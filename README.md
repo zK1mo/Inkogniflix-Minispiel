@@ -1,1 +1,1 @@
-# Inkogniflix-MiniSpiel
+# Inkogniflix-Minispiel
