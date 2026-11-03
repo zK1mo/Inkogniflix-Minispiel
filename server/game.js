@@ -20,7 +20,7 @@ function newGame(players, settings) {
     players: players.map((p) => ({ id: p.id, name: p.name, money: settings.budget, pos: 0, jail: 0, out: false })) };
 }
 function view(g) {
-  return { ...g, board: B.map((f, i) => ({ n: NAMES[g.map][i], t: f[0], g: f[0] === 'p' ? f[3] : null, p: f[1] || 0 })) };
+  return { ...g, board: B.map((f, i) => ({ n: NAMES[g.map][i], t: f[0], g: f[0] === 'p' ? f[3] : null, p: f[1] || 0, r: f[2] || 0 })) };
 }
 function bankrupt(g, p, to) {
   if (to) to.money += Math.max(p.money, 0);
