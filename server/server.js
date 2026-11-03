@@ -1,6 +1,7 @@
 // Inkogniflix Spielserver – Schritt 1: Räume, Einladungscode, Host-Einstellungen, Kicken
 const http = require('http');
 const { WebSocketServer } = require('ws');
+const G = require('./game');
 
 const server = http.createServer((q, r) => { r.writeHead(200); r.end('Inkogniflix-Server läuft'); });
 const wss = new WebSocketServer({ server });
@@ -19,7 +20,7 @@ const newCode = () => {
 
 function broadcast(room) {
   const base = {
-    type: 'room', code: room.code, hostId: room.hostId, settings: room.settings,
+    type: 'room', game: room.game ? G.view(room.game) : null, code: room.code, hostId: room.hostId, settings: room.settings,
     players: [...room.players.values()].map((p) => ({ id: p.id, name: p.name, guest: p.guest })),
   };
   room.players.forEach((p) => send(p.ws, { ...base, you: p.id }));
@@ -29,6 +30,7 @@ function leave(ws) {
   const room = rooms.get(ws.room);
   if (!room) return;
   room.players.delete(ws.pid);
+  if (room.game) G.drop(room.game, ws.pid);
   ws.room = null;
   if (!room.players.size) { rooms.delete(room.code); return; }
   if (room.hostId === ws.pid) room.hostId = room.players.keys().next().value;
@@ -57,11 +59,21 @@ wss.on('connection', (ws) => {
     } else if (m.type === 'join' && !room) {
       const r = rooms.get(String(m.code || '').toUpperCase());
       if (!r) return send(ws, { type: 'error', text: 'Diesen Raum gibt es nicht (mehr).' });
+      if (r.game) return send(ws, { type: 'error', text: 'Das Spiel läuft bereits.' });
       if (r.players.size >= MAX_PLAYERS) return send(ws, { type: 'error', text: 'Der Raum ist voll.' });
       if (r.banned.has(String(m.cid || ''))) return send(ws, { type: 'error', text: 'Du wurdest aus diesem Raum gekickt.' });
       enter(ws, r, m);
+    } else if (room && room.game && ['roll', 'jailpay', 'buy', 'skip', 'end'].includes(m.type)) {
+      G.act(room.game, ws.pid, m);
+      broadcast(room);
     } else if (room && ws.pid === room.hostId) {
-      if (m.type === 'settings') {
+      if (m.type === 'start' && !room.game && room.players.size >= 2) {
+        room.game = G.newGame([...room.players.values()], room.settings);
+        broadcast(room);
+      } else if (m.type === 'lobby' && room.game && room.game.phase === 'over') {
+        room.game = null;
+        broadcast(room);
+      } else if (m.type === 'settings' && !room.game) {
         const b = Math.round(Number(m.budget));
         if (b >= 500 && b <= 100000) room.settings.budget = b;
         if (MAPS.includes(m.map)) room.settings.map = m.map;
@@ -69,6 +81,7 @@ wss.on('connection', (ws) => {
       } else if (m.type === 'kick' && m.id !== ws.pid) {
         const p = room.players.get(m.id);
         if (!p) return;
+        if (room.game) G.drop(room.game, m.id);
         room.banned.add(p.cid);
         room.players.delete(m.id);
         send(p.ws, { type: 'kicked' });
