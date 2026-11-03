@@ -63,7 +63,7 @@ wss.on('connection', (ws) => {
       if (r.players.size >= MAX_PLAYERS) return send(ws, { type: 'error', text: 'Der Raum ist voll.' });
       if (r.banned.has(String(m.cid || ''))) return send(ws, { type: 'error', text: 'Du wurdest aus diesem Raum gekickt.' });
       enter(ws, r, m);
-    } else if (room && room.game && ['roll', 'jailpay', 'buy', 'skip', 'end'].includes(m.type)) {
+    } else if (room && room.game && ['roll', 'jailpay', 'buy', 'skip', 'end', 'build', 'sell', 'mortgage', 'paydebt', 'giveup'].includes(m.type)) {
       G.act(room.game, ws.pid, m);
       broadcast(room);
     } else if (room && ws.pid === room.hostId) {

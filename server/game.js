@@ -16,7 +16,7 @@ const cur = (g) => g.players[g.turn];
 const say = (g, t) => { g.log.push(t); if (g.log.length > 8) g.log.shift(); };
 
 function newGame(players, settings) {
-  return { map: settings.map, owners: {}, turn: 0, phase: 'roll', dice: [0, 0], dbl: 0, again: false, winner: null, log: ['Das Spiel beginnt!'],
+  return { map: settings.map, owners: {}, houses: {}, mort: {}, debt: null, resume: null, turn: 0, phase: 'roll', dice: [0, 0], dbl: 0, again: false, winner: null, log: ['Das Spiel beginnt!'],
     players: players.map((p) => ({ id: p.id, name: p.name, money: settings.budget, pos: 0, jail: 0, out: false })) };
 }
 function view(g) {
@@ -25,12 +25,21 @@ function view(g) {
 function bankrupt(g, p, to) {
   if (to) to.money += Math.max(p.money, 0);
   p.money = 0; p.out = true;
-  for (const k in g.owners) if (g.owners[k] === p.id) { if (to) g.owners[k] = to.id; else delete g.owners[k]; }
+  if (cur(g) === p) g.debt = null;
+  for (const k in g.owners) if (g.owners[k] === p.id) { delete g.houses[k]; if (to) g.owners[k] = to.id; else { delete g.owners[k]; delete g.mort[k]; } }
   say(g, p.name + ' ist bankrott!');
   const alive = g.players.filter((x) => !x.out);
   if (alive.length === 1) { g.phase = 'over'; g.winner = alive[0].id; }
 }
-function pay(g, p, amt, to) { if (p.money >= amt) { p.money -= amt; if (to) to.money += amt; } else bankrupt(g, p, to); }
+const cost = (i) => [50, 50, 100, 100, 150, 150, 200, 200][B[i][3]];
+const grp = (i) => B.map((f, k) => k).filter((k) => B[k][0] === 'p' && B[k][3] === B[i][3]);
+const worth = (g, p) => Object.keys(g.owners).filter((k) => g.owners[k] === p.id)
+  .reduce((s, k) => s + (g.mort[k] ? 0 : B[k][1] / 2) + (g.houses[k] ? g.houses[k] * cost(k) / 2 : 0), 0);
+function pay(g, p, amt, to) {
+  if (p.money >= amt) { p.money -= amt; if (to) to.money += amt; }
+  else if (p.money + worth(g, p) >= amt) g.debt = { amt, to: to ? to.id : null }; // Spieler kann Geld beschaffen
+  else bankrupt(g, p, to);
+}
 function toJail(g, p) { p.pos = 10; p.jail = 1; g.again = false; say(g, p.name + ' geht ins Gefängnis.'); }
 function move(g, p, to) {
   if (to < p.pos) { p.money += 200; say(g, p.name + ' passiert den Start: +200'); }
@@ -42,9 +51,9 @@ function land(g, p) {
   if (['p', 'r', 'u'].includes(f[0])) {
     const o = g.owners[p.pos];
     if (!o) { g.phase = 'buy'; return; }
-    if (o !== p.id) {
+    if (o !== p.id && !g.mort[p.pos]) {
       const ow = g.players.find((x) => x.id === o); let rent;
-      if (f[0] === 'p') rent = f[2] * (B.every((x, i) => x[0] !== 'p' || x[3] !== f[3] || g.owners[i] === o) ? 2 : 1);
+      if (f[0] === 'p') rent = g.houses[p.pos] ? f[2] * [1, 5, 15, 45, 80, 125][g.houses[p.pos]] : f[2] * (B.every((x, i) => x[0] !== 'p' || x[3] !== f[3] || g.owners[i] === o) ? 2 : 1);
       else if (f[0] === 'r') rent = 25 * 2 ** (B.filter((x, i) => x[0] === 'r' && g.owners[i] === o).length - 1);
       else rent = (g.dice[0] + g.dice[1]) * (B.filter((x, i) => x[0] === 'u' && g.owners[i] === o).length > 1 ? 10 : 4);
       say(g, `${p.name} zahlt ${rent} Miete an ${ow.name} (${nm})`);
@@ -62,9 +71,9 @@ function land(g, p) {
 }
 function next(g) {
   do { g.turn = (g.turn + 1) % g.players.length; } while (cur(g).out);
-  g.phase = 'roll'; g.again = false; g.dbl = 0;
+  g.phase = 'roll'; g.again = false; g.dbl = 0; g.debt = null;
 }
-function act(g, pid, a) {
+function act0(g, pid, a) {
   const p = cur(g);
   if (g.phase === 'over' || p.id !== pid) return;
   if (a.type === 'jailpay' && g.phase === 'roll' && p.jail) { pay(g, p, 50, null); p.jail = 0; if (p.out) g.phase = 'end'; }
@@ -74,7 +83,7 @@ function act(g, pid, a) {
     say(g, `${p.name} würfelt ${g.dice[0]} + ${g.dice[1]}`);
     if (p.jail) {
       if (dbl) { p.jail = 0; g.again = false; }
-      else if (++p.jail > 3) { pay(g, p, 50, null); p.jail = 0; g.again = false; if (p.out) { g.phase = 'end'; return; } }
+      else if (++p.jail > 3) { pay(g, p, 50, null); p.jail = 0; g.again = false; if (p.out) { g.phase = 'end'; return; } if (g.debt) return; }
       else { g.phase = 'end'; return; }
     } else if (dbl) {
       g.dbl++; g.again = true;
@@ -86,6 +95,35 @@ function act(g, pid, a) {
     if (a.type === 'buy' && p.money >= f[1]) { p.money -= f[1]; g.owners[p.pos] = p.id; say(g, `${p.name} kauft ${NAMES[g.map][p.pos]} für ${f[1]}`); }
     g.phase = g.again ? 'roll' : 'end';
   } else if (a.type === 'end' && g.phase === 'end') next(g);
+  else manage(g, p, a);
+}
+// Häuser/Hotels (gleichmäßig bauen), Hypotheken, Schulden begleichen oder aufgeben
+function manage(g, p, a) {
+  if (a.type === 'paydebt' && g.debt && p.money >= g.debt.amt) {
+    const to = g.players.find((x) => x.id === g.debt.to);
+    p.money -= g.debt.amt; if (to) to.money += g.debt.amt;
+    g.debt = null; g.phase = g.resume; return;
+  }
+  if (a.type === 'giveup' && g.debt) {
+    bankrupt(g, p, g.players.find((x) => x.id === g.debt.to));
+    if (g.phase !== 'over') next(g);
+    return;
+  }
+  const i = Number(a.pos), f = B[i];
+  if (!f || g.owners[i] !== p.id) return;
+  const hs = g.houses, h = hs[i] || 0, G = grp(i).map((k) => hs[k] || 0);
+  if (a.type === 'build' && f[0] === 'p' && grp(i).every((k) => g.owners[k] === p.id && !g.mort[k]) && h < 5 && h === Math.min(...G) && p.money >= cost(i)) {
+    p.money -= cost(i); hs[i] = h + 1;
+  } else if (a.type === 'sell' && h > 0 && h === Math.max(...G)) {
+    hs[i] = h - 1; p.money += cost(i) / 2;
+  } else if (a.type === 'mortgage') {
+    if (g.mort[i]) { const c = Math.ceil(f[1] / 2 * 1.1); if (p.money >= c) { p.money -= c; delete g.mort[i]; } }
+    else if (f[0] !== 'p' || G.every((x) => x === 0)) { g.mort[i] = true; p.money += f[1] / 2; }
+  }
+}
+function act(g, pid, a) {
+  act0(g, pid, a);
+  if (g.debt && g.phase !== 'debt' && g.phase !== 'over') { g.resume = g.phase; g.phase = 'debt'; }
 }
 function drop(g, pid) {
   const p = g.players.find((x) => x.id === pid);
