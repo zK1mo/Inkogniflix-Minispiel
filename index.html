@@ -80,7 +80,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
 
 <script>
 // Nach dem Render-Deploy hier deine Server-Adresse eintragen (wss://...onrender.com)
-const SERVER_URL = location.hostname === 'localhost' ? 'ws://localhost:3000' : 'wss://DEIN-SERVER.onrender.com';
+const SERVER_URL = location.hostname === 'localhost' ? 'ws://localhost:3000' : 'wss://inkogniflix-minispiel.onrender.com';
 const $ = (id) => document.getElementById(id);
 const cid = (() => { try { let c = localStorage.getItem('cid'); if (!c) { c = Math.random().toString(36).slice(2); localStorage.setItem('cid', c); } return c; } catch { return 'x'; } })();
 const urlCode = (new URLSearchParams(location.search).get('room') || '').toUpperCase();
