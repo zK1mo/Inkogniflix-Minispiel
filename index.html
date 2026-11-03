@@ -38,6 +38,30 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .log{color:var(--dim);font-size:14px;line-height:1.6;margin:10px 0}
 .pl{display:flex;align-items:center;gap:8px;padding:5px 0}.pl.me{font-weight:800}.pl.out{opacity:.4;text-decoration:line-through}
 .big{font-size:20px;font-weight:800;text-align:center;margin:6px 0}
+
+/* ===== Monopoly-Design ===== */
+#board{position:relative;max-width:700px;margin:0 auto 14px;padding:6px;gap:2px;border-radius:22px;border:1px solid var(--line);background:radial-gradient(circle at 50% 50%,#2c1258,#0b0718 72%);box-shadow:0 0 40px #9b5cf633}
+.cell{position:relative;flex-wrap:nowrap;flex-direction:column;align-items:center;justify-content:center;background:#1a1236;border-radius:6px;padding-top:22%;cursor:pointer;color:var(--dim);line-height:1.1;text-align:center}
+.cell.sel{outline:2px solid var(--p1);z-index:3}
+.cell .bar{height:24%}
+.cell .ic{font-size:13px}.cell .pr{font-size:9px;color:var(--text)}
+.cell .nm{display:none}
+@media(min-width:620px){.cell .nm{display:block;font-size:8px;max-width:100%;overflow:hidden;padding:0 1px}.cell .ic{font-size:16px}.cell .pr{font-size:10px}}
+.cell.corner{padding-top:0;font-weight:800}.cell.corner .ic{font-size:20px}
+.t-go{background:linear-gradient(135deg,#14532d,#1a1236)}.t-jail{background:linear-gradient(135deg,#9a3412,#1a1236)}
+.t-free{background:linear-gradient(135deg,#1e3a8a,#1a1236)}.t-gojail{background:linear-gradient(135deg,#991b1b,#1a1236)}
+.own{position:absolute;bottom:0;left:0;right:0;height:4px}
+.tks{position:absolute;inset:auto 0 3px 0;display:flex;flex-wrap:wrap;justify-content:center;z-index:2}
+.tok{width:15px;height:15px;font-size:9px;font-weight:800;color:#0b0718;display:grid;place-items:center;border:1px solid #fff8;box-shadow:0 0 8px #000a}
+.center{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:8px;min-width:0}
+.brand{font-weight:800;letter-spacing:2px;font-size:clamp(14px,4.5vw,28px);background:linear-gradient(90deg,#f3dcff,#b36cf5);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:0 0 30px #c471f0}
+.dice{display:flex;gap:10px}
+.die{width:clamp(34px,9vw,52px);aspect-ratio:1;background:#f5ecff;border-radius:11px;display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);padding:18%;box-shadow:0 0 16px #c471f0}
+.die i{border-radius:50%}.die i.on{background:#1a1236}
+.die.anim{animation:roll .55s ease-out}
+@keyframes roll{0%{transform:rotate(-220deg) scale(.4);opacity:.3}100%{transform:none;opacity:1}}
+.info{background:#0e0920;border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:12px;line-height:1.5}
+@media(prefers-reduced-motion:reduce){.die.anim{animation:none}}
 </style>
 </head>
 <body>
@@ -120,7 +144,7 @@ const sendSettings = () => ws.send(JSON.stringify({ type: 'settings', budget: $(
 $('startBtn').onclick = () => ws.send(JSON.stringify({ type: 'start' }));
 $('budget').onchange = sendSettings; $('map').onchange = sendSettings;
 
-function show(inLobby) { $('home').classList.toggle('hide', inLobby); $('lobby').classList.toggle('hide', !inLobby); $('game').classList.add('hide'); }
+function show(inLobby) { document.querySelector('main').style.maxWidth = ''; $('home').classList.toggle('hide', inLobby); $('lobby').classList.toggle('hide', !inLobby); $('game').classList.add('hide'); }
 function render() {
   show(true);
   if (state.game) { $('lobby').classList.add('hide'); $('game').classList.remove('hide'); renderGame(); return; }
@@ -154,6 +178,8 @@ const cellPos = (i) => i <= 10 ? [10, 10 - i] : i <= 20 ? [10 - (i - 10), 0] : i
 const act = (t) => ws.send(JSON.stringify({ type: t }));
 const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
 
+let sel = null, lastKey = '';
+const PIPS = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
 const BC = [50, 50, 100, 100, 150, 150, 200, 200];
 function renderProps(pn, g, me, mine) {
   const my = Object.keys(g.owners).filter((k) => g.owners[k] === me).map(Number).sort((a, b) => a - b);
@@ -172,24 +198,57 @@ function renderProps(pn, g, me, mine) {
     pn.append(row);
   });
 }
+function infoCard(pn, g, i) {
+  const f = g.board[i], box = el('div', 'info'), b = f.r;
+  box.style.borderLeft = '6px solid ' + (f.g != null ? GC[f.g] : '#9ca3af');
+  box.append(el('b', '', f.n));
+  if (['p', 'r', 'u'].includes(f.t)) {
+    let t = 'Preis ' + f.p + ' €';
+    if (f.t === 'p') t += ' · Miete ' + b + ' (ganzes Set ' + 2 * b + ') · 1🏠 ' + 5 * b + ' · 2🏠 ' + 15 * b + ' · 3🏠 ' + 45 * b + ' · 4🏠 ' + 80 * b + ' · 🏨 ' + 125 * b + ' · Haus kostet ' + BC[f.g] + ' €';
+    else if (f.t === 'r') t += ' · Miete 25 / 50 / 100 / 200 je nach Anzahl';
+    else t += ' · Miete 4× bzw. 10× Würfelsumme';
+    const o = g.owners[i] ? g.players.find((x) => x.id === g.owners[i]) : null;
+    box.append(el('div', 'tag', t), el('div', 'tag', o ? 'Besitzer: ' + o.name : 'Noch frei'));
+  }
+  pn.append(box);
+}
 function renderGame() {
   const g = state.game, me = state.you, p = g.players[g.turn], mine = p.id === me, host = me === state.hostId;
   const idx = (id) => g.players.findIndex((x) => x.id === id);
   const bd = $('board'); bd.textContent = '';
+  document.querySelector('main').style.maxWidth = '720px';
   g.board.forEach((f, i) => {
-    const [r, c] = cellPos(i), d = el('div', 'cell', ICON[f.t] || '');
-    d.style.gridArea = (r + 1) + '/' + (c + 1); d.title = f.n;
+    const [r, c] = cellPos(i), corner = i % 10 === 0;
+    const d = el('div', 'cell' + (corner ? ' corner t-' + f.t : '') + (sel === i ? ' sel' : ''));
+    d.style.gridArea = (r + 1) + '/' + (c + 1);
+    d.onclick = () => { sel = sel === i ? null : i; renderGame(); };
     if (f.g != null) { const b = el('div', 'bar'); b.style.background = GC[f.g]; d.append(b); }
+    d.append(el('div', 'ic', ICON[f.t] || ''));
+    if (f.p && !corner) d.append(el('div', 'pr', f.p));
+    d.append(el('div', 'nm', f.n));
     if (g.houses[i]) d.append(el('b', 'hs', g.houses[i] === 5 ? '🏨' : '🏠' + g.houses[i]));
     if (g.mort[i]) d.style.opacity = '.45';
-    if (g.owners[i]) d.style.boxShadow = 'inset 0 0 0 2px ' + COL[idx(g.owners[i])];
-    g.players.forEach((q, k) => { if (!q.out && q.pos === i) { const t = el('span', 'tok'); t.style.background = COL[k]; d.append(t); } });
-    bd.append(d);
+    if (g.owners[i]) { const o = el('div', 'own'); o.style.background = COL[idx(g.owners[i])]; d.append(o); }
+    const tk = el('div', 'tks');
+    g.players.forEach((q, k) => { if (!q.out && q.pos === i) { const t = el('span', 'tok', q.name[0].toUpperCase()); t.style.background = COL[k]; tk.append(t); } });
+    d.append(tk); bd.append(d);
   });
+  const ce = el('div', 'center'); ce.style.gridArea = '2/2/11/11';
+  ce.append(el('div', 'brand', 'INKOGNIFLIX'));
+  const dr = el('div', 'dice'), key = g.dice.join() + g.log[g.log.length - 1], fresh = key !== lastKey; lastKey = key;
+  g.dice.forEach((v) => {
+    const d = el('div', 'die' + (fresh && v ? ' anim' : ''));
+    for (let k = 0; k < 9; k++) { const pip = el('i'); if (PIPS[v] && PIPS[v].includes(k)) pip.className = 'on'; d.append(pip); }
+    dr.append(d);
+  });
+  ce.append(dr, el('div', 'tag', g.phase === 'over' ? 'Spiel vorbei' : g.players[g.turn].name + ' ist am Zug'));
+  if (g.log.length) ce.append(el('div', 'tag', g.log[g.log.length - 1]));
+  bd.append(ce);
   const pn = $('panel'); pn.textContent = '';
+  if (sel != null) infoCard(pn, g, sel);
   g.players.forEach((q, k) => {
     const row = el('div', 'pl' + (q.id === me ? ' me' : '') + (q.out ? ' out' : ''));
-    const dot = el('span', 'dot'); dot.style.background = COL[k];
+    const dot = el('span', 'tok', q.name[0].toUpperCase()); dot.style.background = COL[k]; dot.style.width = dot.style.height = '22px'; dot.style.fontSize = '12px';
     row.append(dot, el('span', '', (q.id === g.players[g.turn].id && g.phase !== 'over' ? '▶ ' : '') + q.name + (q.jail ? ' ⛓' : '')));
     const m = el('span', 'tag', q.money + ' €'); m.style.marginLeft = 'auto'; row.append(m); pn.append(row);
   });
