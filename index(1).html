@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inkogniflix</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0b0718;--card:#150f2a;--line:#2e2150;--text:#f1e9ff;--dim:#a998cc;--p1:#c471f0;--p2:#9b5cf6;--bad:#ff6b8b}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;font-family:Outfit,system-ui,sans-serif;color:var(--text);background:radial-gradient(900px 500px at 70% 100%,#4c1d7a66,transparent),var(--bg)}
+main{max-width:520px;margin:0 auto;padding:28px 18px 60px}
+h1{font-size:44px;font-weight:800;letter-spacing:1px;margin:8px 0 6px;text-align:center;background:linear-gradient(90deg,#f3dcff,#b36cf5);-webkit-background-clip:text;background-clip:text;color:transparent}
+p.sub{text-align:center;color:var(--dim);margin:0 0 26px;line-height:1.5}
+.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:18px;margin-bottom:14px;box-shadow:0 0 30px #9b5cf620}
+label{display:block;color:var(--dim);font-size:14px;margin:0 0 6px}
+input,select{width:100%;font:inherit;color:var(--text);background:#0e0920;border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:12px}
+input:focus,select:focus,button:focus-visible{outline:2px solid var(--p1);outline-offset:2px}
+button{font:inherit;font-weight:600;border:0;border-radius:999px;padding:13px 22px;cursor:pointer;color:#fff;background:linear-gradient(135deg,var(--p2),var(--p1));box-shadow:0 0 20px #c471f055}
+button.ghost{background:transparent;border:1px solid var(--line);box-shadow:none}
+button.small{padding:7px 14px;font-size:14px}
+button.danger{background:transparent;border:1px solid var(--bad);color:var(--bad);box-shadow:none}
+button:disabled{opacity:.45;cursor:not-allowed}
+.row{display:flex;gap:10px;flex-wrap:wrap}.row>*{flex:1}
+.player{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.player:last-child{border:0}
+.av{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#2a1850,#4c1d7a);display:grid;place-items:center;font-weight:800}
+.name{flex:1}.tag{color:var(--dim);font-size:13px}
+.code{font-size:34px;font-weight:800;letter-spacing:6px;text-align:center;margin:4px 0 12px}
+#err{color:var(--bad);text-align:center;min-height:22px;margin-bottom:8px}
+.hide{display:none}
+#board{display:grid;grid-template:repeat(11,1fr)/repeat(11,1fr);aspect-ratio:1;gap:2px;margin-bottom:14px}
+.cell{position:relative;background:#150f2a;border:1px solid var(--line);border-radius:5px;display:flex;flex-wrap:wrap;align-content:center;justify-content:center;font-size:11px;overflow:hidden;min-width:0}
+.cell .bar{position:absolute;top:0;left:0;right:0;height:5px}
+.tok{width:9px;height:9px;border-radius:50%;margin:1px;border:1px solid #000;z-index:1}
+.dot{width:12px;height:12px;border-radius:50%;display:inline-block}
+.log{color:var(--dim);font-size:14px;line-height:1.6;margin:10px 0}
+.pl{display:flex;align-items:center;gap:8px;padding:5px 0}.pl.me{font-weight:800}.pl.out{opacity:.4;text-decoration:line-through}
+.big{font-size:20px;font-weight:800;text-align:center;margin:6px 0}
+</style>
+</head>
+<body>
+<main>
+  <h1>INKOGNIFLIX</h1>
+  <p class="sub">Deine Spiele-Community im Verborgenen.</p>
+  <div id="err" role="alert"></div>
+
+  <section id="home">
+    <div class="card">
+      <label for="name">Dein Name</label>
+      <input id="name" maxlength="20" placeholder="z. B. Alex" autocomplete="nickname">
+      <div id="joinBox" class="hide"><p class="tag" style="margin:0 0 12px">Du wurdest in Raum <b id="joinCode"></b> eingeladen.</p>
+        <button id="joinBtn" style="width:100%">Raum beitreten</button></div>
+      <div id="createBox"><button id="createBtn" style="width:100%">Raum erstellen</button>
+        <p class="tag" style="text-align:center">Ohne Login spielst du als Gast. Coins und Avatar folgen mit dem Account.</p></div>
+    </div>
+  </section>
+
+  <section id="lobby" class="hide">
+    <div class="card">
+      <div class="tag" style="text-align:center">Raumcode</div>
+      <div class="code" id="code"></div>
+      <button id="copyBtn" class="ghost" style="width:100%">Einladungslink kopieren</button>
+    </div>
+    <div class="card"><label>Spieler</label><div id="players"></div></div>
+    <div class="card" id="settings">
+      <label for="budget">Startbudget</label>
+      <input id="budget" type="number" min="500" max="100000" step="100">
+      <label for="map">Map</label>
+      <select id="map"><option value="klassisch">Klassisch</option><option value="minecraft">Minecraft-Welt</option></select>
+      <button id="startBtn" style="width:100%" disabled>Monopoly starten</button>
+    </div>
+    <button id="leaveBtn" class="ghost" style="width:100%">Raum verlassen</button>
+  </section>
+  <section id="game" class="hide">
+    <div id="board"></div>
+    <div class="card" id="panel"></div>
+  </section>
+</main>
+
+<script>
+// Nach dem Render-Deploy hier deine Server-Adresse eintragen (wss://...onrender.com)
+const SERVER_URL = location.hostname === 'localhost' ? 'ws://localhost:3000' : 'wss://DEIN-SERVER.onrender.com';
+const $ = (id) => document.getElementById(id);
+const cid = (() => { try { let c = localStorage.getItem('cid'); if (!c) { c = Math.random().toString(36).slice(2); localStorage.setItem('cid', c); } return c; } catch { return 'x'; } })();
+const urlCode = (new URLSearchParams(location.search).get('room') || '').toUpperCase();
+let ws, state = null;
+
+if (urlCode) { $('joinBox').classList.remove('hide'); $('createBox').classList.add('hide'); $('joinCode').textContent = urlCode; }
+try { $('name').value = localStorage.getItem('name') || ''; } catch {}
+
+function connect(first) {
+  $('err').textContent = 'Verbinde … (der Server braucht beim ersten Mal bis zu 60 Sekunden)';
+  ws = new WebSocket(SERVER_URL);
+  ws.onopen = () => { $('err').textContent = ''; ws.send(JSON.stringify({ ...first, name: $('name').value, cid, guest: true })); };
+  ws.onmessage = (e) => {
+    const m = JSON.parse(e.data);
+    if (m.type === 'error') $('err').textContent = m.text;
+    if (m.type === 'kicked') { show(false); $('err').textContent = 'Der Host hat dich aus dem Raum entfernt.'; ws.close(); }
+    if (m.type === 'room') { state = m; render(); }
+  };
+  ws.onerror = () => { $('err').textContent = 'Keine Verbindung zum Server.'; };
+}
+function start(first) {
+  const n = $('name').value.trim();
+  if (!n) { $('err').textContent = 'Bitte gib zuerst einen Namen ein.'; return; }
+  try { localStorage.setItem('name', n); } catch {}
+  connect(first);
+}
+$('createBtn').onclick = () => start({ type: 'create' });
+$('joinBtn').onclick = () => start({ type: 'join', code: urlCode });
+$('leaveBtn').onclick = () => { ws.send(JSON.stringify({ type: 'leave' })); ws.close(); history.replaceState(null, '', location.pathname); show(false); };
+$('copyBtn').onclick = async () => {
+  const link = location.origin + location.pathname + '?room=' + state.code;
+  try { await navigator.clipboard.writeText(link); $('copyBtn').textContent = 'Link kopiert!'; } catch { prompt('Link kopieren:', link); }
+  setTimeout(() => $('copyBtn').textContent = 'Einladungslink kopieren', 1800);
+};
+const sendSettings = () => ws.send(JSON.stringify({ type: 'settings', budget: $('budget').value, map: $('map').value }));
+$('startBtn').onclick = () => ws.send(JSON.stringify({ type: 'start' }));
+$('budget').onchange = sendSettings; $('map').onchange = sendSettings;
+
+function show(inLobby) { $('home').classList.toggle('hide', inLobby); $('lobby').classList.toggle('hide', !inLobby); $('game').classList.add('hide'); }
+function render() {
+  show(true);
+  if (state.game) { $('lobby').classList.add('hide'); $('game').classList.remove('hide'); renderGame(); return; }
+  const host = state.you === state.hostId;
+  $('code').textContent = state.code;
+  $('budget').value = state.settings.budget; $('map').value = state.settings.map;
+  $('budget').disabled = $('map').disabled = !host;
+  $('startBtn').disabled = !(host && state.players.length >= 2);
+  $('startBtn').textContent = state.players.length >= 2 ? 'Monopoly starten' : 'Warte auf weitere Spieler …';
+  const box = $('players'); box.textContent = '';
+  state.players.forEach((p) => {
+    const row = document.createElement('div'); row.className = 'player';
+    const av = document.createElement('div'); av.className = 'av'; av.textContent = p.name[0].toUpperCase();
+    const nm = document.createElement('div'); nm.className = 'name'; nm.textContent = p.name + (p.id === state.you ? ' (du)' : '');
+    const tg = document.createElement('div'); tg.className = 'tag'; tg.textContent = p.id === state.hostId ? 'Host' : p.guest ? 'Gast' : '';
+    row.append(av, nm, tg);
+    if (host && p.id !== state.you) {
+      const k = document.createElement('button'); k.className = 'small danger'; k.textContent = 'Kicken';
+      k.onclick = () => ws.send(JSON.stringify({ type: 'kick', id: p.id }));
+      row.append(k);
+    }
+    box.append(row);
+  });
+  if (location.search !== '?room=' + state.code) history.replaceState(null, '', '?room=' + state.code);
+}
+
+const COL = ['#c471f0', '#38bdf8', '#f59e0b', '#34d399', '#fb7185', '#a3e635', '#f472b6', '#e5e7eb'];
+const GC = ['#8b5a2b', '#7dd3fc', '#f472b6', '#fb923c', '#ef4444', '#facc15', '#22c55e', '#3b5bdb'];
+const ICON = { go: '▶', c: '✉', ch: '?', tax: '$', r: '🚂', u: '💡', jail: '⛓', free: 'P', gojail: '👮' };
+const cellPos = (i) => i <= 10 ? [10, 10 - i] : i <= 20 ? [10 - (i - 10), 0] : i <= 30 ? [0, i - 20] : [i - 30, 10];
+const act = (t) => ws.send(JSON.stringify({ type: t }));
+const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
+
+function renderGame() {
+  const g = state.game, me = state.you, p = g.players[g.turn], mine = p.id === me, host = me === state.hostId;
+  const idx = (id) => g.players.findIndex((x) => x.id === id);
+  const bd = $('board'); bd.textContent = '';
+  g.board.forEach((f, i) => {
+    const [r, c] = cellPos(i), d = el('div', 'cell', ICON[f.t] || '');
+    d.style.gridArea = (r + 1) + '/' + (c + 1); d.title = f.n;
+    if (f.g != null) { const b = el('div', 'bar'); b.style.background = GC[f.g]; d.append(b); }
+    if (g.owners[i]) d.style.boxShadow = 'inset 0 0 0 2px ' + COL[idx(g.owners[i])];
+    g.players.forEach((q, k) => { if (!q.out && q.pos === i) { const t = el('span', 'tok'); t.style.background = COL[k]; d.append(t); } });
+    bd.append(d);
+  });
+  const pn = $('panel'); pn.textContent = '';
+  g.players.forEach((q, k) => {
+    const row = el('div', 'pl' + (q.id === me ? ' me' : '') + (q.out ? ' out' : ''));
+    const dot = el('span', 'dot'); dot.style.background = COL[k];
+    row.append(dot, el('span', '', (q.id === g.players[g.turn].id && g.phase !== 'over' ? '▶ ' : '') + q.name + (q.jail ? ' ⛓' : '')));
+    const m = el('span', 'tag', q.money + ' €'); m.style.marginLeft = 'auto'; row.append(m); pn.append(row);
+  });
+  const f = g.board[p.pos];
+  if (g.phase === 'over') {
+    const w = g.players.find((x) => x.id === g.winner);
+    pn.append(el('div', 'big', '🏆 ' + w.name + ' gewinnt!'));
+    if (host) { const b = el('button', '', 'Zurück zur Lobby'); b.style.width = '100%'; b.onclick = () => act('lobby'); pn.append(b); }
+  } else {
+    pn.append(el('div', 'big', g.dice[0] ? '🎲 ' + g.dice[0] + ' + ' + g.dice[1] : '🎲'));
+    pn.append(el('div', 'tag', p.name + ' steht auf: ' + f.n));
+    const row = el('div', 'row'); row.style.marginTop = '12px';
+    const btn = (txt, t, ghost) => { const b = el('button', ghost ? 'ghost' : '', txt); b.onclick = () => act(t); row.append(b); };
+    if (!mine) pn.append(el('div', 'tag', p.name + ' ist am Zug …'));
+    else if (g.phase === 'roll') { btn('Würfeln', 'roll'); if (p.jail) btn('50 € zahlen', 'jailpay', true); }
+    else if (g.phase === 'buy') { btn('Kaufen für ' + f.p + ' €', 'buy'); btn('Nicht kaufen', 'skip', true); }
+    else btn('Zug beenden', 'end');
+    pn.append(row);
+  }
+  const lg = el('div', 'log'); g.log.slice().reverse().forEach((t) => lg.append(el('div', '', t))); pn.append(lg);
+}
+</script>
+</body>
+</html>
