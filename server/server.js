@@ -20,7 +20,7 @@ const newCode = () => {
 
 function broadcast(room) {
   const base = {
-    type: 'room', game: room.game ? G.view(room.game) : null, code: room.code, hostId: room.hostId, settings: room.settings,
+    type: 'room', chat: room.chat, game: room.game ? G.view(room.game) : null, code: room.code, hostId: room.hostId, settings: room.settings,
     players: [...room.players.values()].map((p) => ({ id: p.id, name: p.name, guest: p.guest })),
   };
   room.players.forEach((p) => send(p.ws, { ...base, you: p.id }));
@@ -53,7 +53,7 @@ wss.on('connection', (ws) => {
     const room = rooms.get(ws.room);
 
     if (m.type === 'create' && !room) {
-      const r = { code: newCode(), hostId: null, players: new Map(), banned: new Set(), settings: { budget: 1500, map: 'klassisch' } };
+      const r = { code: newCode(), hostId: null, players: new Map(), banned: new Set(), settings: { budget: 1500, map: 'klassisch' }, chat: [] };
       rooms.set(r.code, r);
       enter(ws, r, m);
     } else if (m.type === 'join' && !room) {
@@ -63,7 +63,7 @@ wss.on('connection', (ws) => {
       if (r.players.size >= MAX_PLAYERS) return send(ws, { type: 'error', text: 'Der Raum ist voll.' });
       if (r.banned.has(String(m.cid || ''))) return send(ws, { type: 'error', text: 'Du wurdest aus diesem Raum gekickt.' });
       enter(ws, r, m);
-    } else if (room && room.game && ['roll', 'jailpay', 'buy', 'skip', 'end', 'build', 'sell', 'mortgage', 'paydebt', 'giveup'].includes(m.type)) {
+    } else if (room && room.game && ['roll', 'jailpay', 'buy', 'skip', 'end', 'build', 'sell', 'mortgage', 'paydebt', 'giveup', 'trade', 'tradeok', 'tradeno'].includes(m.type)) {
       G.act(room.game, ws.pid, m);
       broadcast(room);
     } else if (room && ws.pid === room.hostId) {
@@ -88,6 +88,10 @@ wss.on('connection', (ws) => {
         p.ws.room = null;
         broadcast(room);
       }
+    }
+    if (m.type === 'chat' && room && room.players.has(ws.pid)) {
+      const t = String(m.text || '').replace(/[<>]/g, '').trim().slice(0, 200);
+      if (t) { room.chat.push({ n: room.players.get(ws.pid).name, t }); if (room.chat.length > 50) room.chat.shift(); broadcast(room); }
     }
     if (m.type === 'leave') leave(ws);
   });

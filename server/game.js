@@ -16,7 +16,7 @@ const cur = (g) => g.players[g.turn];
 const say = (g, t) => { g.log.push(t); if (g.log.length > 8) g.log.shift(); };
 
 function newGame(players, settings) {
-  return { map: settings.map, owners: {}, houses: {}, mort: {}, debt: null, resume: null, turn: 0, phase: 'roll', dice: [0, 0], dbl: 0, again: false, winner: null, log: ['Das Spiel beginnt!'],
+  return { map: settings.map, owners: {}, houses: {}, mort: {}, debt: null, resume: null, trades: [], tid: 0, turn: 0, phase: 'roll', dice: [0, 0], dbl: 0, again: false, winner: null, log: ['Das Spiel beginnt!'],
     players: players.map((p) => ({ id: p.id, name: p.name, money: settings.budget, pos: 0, jail: 0, out: false })) };
 }
 function view(g) {
@@ -25,6 +25,7 @@ function view(g) {
 function bankrupt(g, p, to) {
   if (to) to.money += Math.max(p.money, 0);
   p.money = 0; p.out = true;
+  g.trades = g.trades.filter((t) => t.from !== p.id && t.to !== p.id);
   if (cur(g) === p) g.debt = null;
   for (const k in g.owners) if (g.owners[k] === p.id) { delete g.houses[k]; if (to) g.owners[k] = to.id; else { delete g.owners[k]; delete g.mort[k]; } }
   say(g, p.name + ' ist bankrott!');
@@ -104,8 +105,8 @@ function manage(g, p, a) {
     p.money -= g.debt.amt; if (to) to.money += g.debt.amt;
     g.debt = null; g.phase = g.resume; return;
   }
-  if (a.type === 'giveup' && g.debt) {
-    bankrupt(g, p, g.players.find((x) => x.id === g.debt.to));
+  if (a.type === 'giveup') {
+    bankrupt(g, p, g.debt && g.players.find((x) => x.id === g.debt.to));
     if (g.phase !== 'over') next(g);
     return;
   }
@@ -121,7 +122,33 @@ function manage(g, p, a) {
     else if (f[0] !== 'p' || G.every((x) => x === 0)) { g.mort[i] = true; p.money += f[1] / 2; }
   }
 }
+// Handel: jeder Spieler kann jederzeit Angebote machen; der Server prüft alles beim Erstellen und beim Annehmen
+const tradable = (g, pid, ps) => ps.every((k) => g.owners[k] === pid && B[k][0] && !grp(k).some((x) => g.houses[x]));
+function tradeAct(g, pid, a) {
+  const me = g.players.find((x) => x.id === pid);
+  if (!me || me.out || g.phase === 'over') return;
+  if (a.type === 'trade') {
+    const to = g.players.find((x) => x.id === a.to);
+    const gp = [].concat(a.gp || []).map(Number), tp = [].concat(a.tp || []).map(Number);
+    const gm = Math.max(0, Math.floor(Number(a.gm) || 0)), tm = Math.max(0, Math.floor(Number(a.tm) || 0));
+    if (!to || to.out || to === me || !(gm || tm || gp.length || tp.length)) return;
+    if (!tradable(g, pid, gp) || !tradable(g, to.id, tp) || gm > me.money || tm > to.money) return;
+    if (g.trades.length >= 10) g.trades.shift();
+    g.trades.push({ id: ++g.tid, from: pid, to: to.id, gm, gp, tm, tp });
+    return;
+  }
+  const t = g.trades.find((x) => x.id === Number(a.id));
+  if (!t || (pid !== t.from && pid !== t.to)) return;
+  g.trades = g.trades.filter((x) => x !== t);
+  if (a.type !== 'tradeok' || pid !== t.to) return;
+  const f = g.players.find((x) => x.id === t.from);
+  if (f.out || !tradable(g, t.from, t.gp) || !tradable(g, t.to, t.tp) || t.gm > f.money || t.tm > me.money) return;
+  f.money += t.tm - t.gm; me.money += t.gm - t.tm;
+  t.gp.forEach((k) => { g.owners[k] = t.to; }); t.tp.forEach((k) => { g.owners[k] = t.from; });
+  say(g, `Handel: ${f.name} und ${me.name} tauschen`);
+}
 function act(g, pid, a) {
+  if (String(a.type).startsWith('trade')) return tradeAct(g, pid, a);
   act0(g, pid, a);
   if (g.debt && g.phase !== 'debt' && g.phase !== 'over') { g.resume = g.phase; g.phase = 'debt'; }
 }
