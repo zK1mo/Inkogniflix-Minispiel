@@ -136,6 +136,9 @@ nav #vol{width:100px;margin:0;flex:none}
 .sw::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.2s}
 .rule input:checked+.sw{background:var(--p2)}.rule input:checked+.sw::after{transform:translateX(20px)}
 .rule input:disabled+.sw{opacity:.5}.rule input:focus-visible+.sw{outline:2px solid var(--p1);outline-offset:2px}
+.cell.auc{outline:2px solid #facc15;outline-offset:-2px;z-index:3;animation:aucp 1s ease-in-out infinite}
+@keyframes aucp{50%{background:#facc1533}}
+@media(prefers-reduced-motion:reduce){.cell.auc{animation:none}}
 </style>
 </head>
 <body>
@@ -247,6 +250,7 @@ const RULES = [
   ['vacation', 'Urlaubsgeld', 'Steuern und Zahlungen an die Bank kommen in einen Topf. Wer auf Urlaub landet, bekommt ihn.'],
   ['noRentPrison', 'Keine Miete im Gefängnis', 'Für Grundstücke von Spielern, die im Gefängnis sitzen, gibt es keine Miete.'],
   ['evenBuild', 'Gleichmäßig bauen', 'Häuser müssen innerhalb eines Landes gleichmäßig verteilt gebaut werden.'],
+  ['auction', 'Auktion', 'Will jemand ein Grundstück nicht kaufen, wird es an den Höchstbietenden versteigert.'],
   ['randomOrder', 'Zufällige Reihenfolge', 'Die Spielreihenfolge wird beim Start ausgelost.'],
 ];
 const sendSettings = () => { const rules = {}; RULES.forEach(([k]) => { rules[k] = $('r_' + k).checked; }); out({ type: 'settings', budget: $('budget').value, map: $('map').value, max: $('max').value, rules }); };
@@ -363,7 +367,7 @@ const SFX = {
   win: () => [523, 659, 784, 1047].forEach((f, i) => tone(f, .25, 'triangle', .11, i * .13)),
 };
 const sfx = (n) => { try { SFX[n](); } catch {} };
-const lineSfx = (t) => /bankrott/.test(t) ? 'bad' : /nimmt eine Hypothek/.test(t) ? 'ding' : /kauft/.test(t) ? 'buy' : /baut|verkauft|löst/.test(t) ? 'build' : /im Minus/.test(t) ? 'bad' : /Handel:/.test(t) ? 'trade' : /Gefängnis/.test(t) ? 'jail' : /zahlt/.test(t) ? 'rent' : null;
+const lineSfx = (t) => /bankrott/.test(t) ? 'bad' : /^(?!Niemand).*ersteigert/.test(t) ? 'buy' : /bietet/.test(t) ? 'tick' : /nimmt eine Hypothek/.test(t) ? 'ding' : /kauft/.test(t) ? 'buy' : /baut|verkauft|löst/.test(t) ? 'build' : /im Minus/.test(t) ? 'bad' : /Handel:/.test(t) ? 'trade' : /Gefängnis/.test(t) ? 'jail' : /zahlt/.test(t) ? 'rent' : null;
 function notify(g) {
   const me = state.you, tid = g.players[g.turn].id, inc = g.trades.filter((t) => t.to === me).map((t) => t.id), n = state.chat.length;
   const myName = g.players.find((x) => x.id === me).name;
@@ -437,6 +441,7 @@ function renderGame() {
     if (f.g != null) { const b = el('div', 'bar'); b.style.background = gc(f.g); d.append(b); }
     d.append(el('div', 'ic', f.t === 'r' && g.map === 'klassisch' ? '✈' : ICON[f.t] || ''));
     if (f.p && !corner) d.append(el('div', 'pr', f.p));
+    if (g.auction && g.auction.pos === i) d.classList.add('auc');
     if (i === 20 && g.rules.vacation) d.append(el('div', 'pr', g.pot + ' €')); // Urlaubs-Topf
     d.append(el('div', 'nm', f.n));
     if (g.houses[i]) d.append(el('b', 'hs', g.houses[i] === 5 ? '🏨' : '🏠' + g.houses[i]));
@@ -454,7 +459,16 @@ function renderGame() {
     low.append(el('div', 'brand', '🏆 ' + nm(g.winner) + ' gewinnt!'));
     if (host) btn('Zurück zur Lobby', 'lobby');
   } else {
-    low.append(el('div', 'tag', p.name + (mine ? ' (du)' : '') + ' ist am Zug'), el('div', 'tag', g.log[g.log.length - 1]));
+    if (!g.auction) low.append(el('div', 'tag', p.name + (mine ? ' (du)' : '') + ' ist am Zug'), el('div', 'tag', g.log[g.log.length - 1])); // bei Auktion zu wenig Platz
+    if (g.auction) { // Auktion: alle können bieten
+      const au = g.auction, f = g.board[au.pos], ame = g.players.find((x) => x.id === me), passed = au.passed.includes(me);
+      const t = el('div', 'tag'), cd = el('b', '', ''); cd.id = 'acd';
+      t.append(document.createTextNode('🔨 ' + f.n + ' · ' + (au.bidder ? (au.bidder === me ? 'Du bietest ' : nm(au.bidder) + ' bietet ') + au.bid + ' € · ' : 'noch kein Gebot · ')), cd);
+      low.append(t);
+      const bb = (txt, o, gh, dis) => { const b = el('button', gh ? 'ghost' : '', txt); b.disabled = !!dis; b.onclick = () => out(o); row.append(b); };
+      if (passed) low.append(el('div', 'tag', 'Du bist ausgestiegen.'));
+      else if (!ame.out) { [10, 50, 100].forEach((n) => bb('+' + n + ' €', { type: 'bid', amount: au.bid + n }, 0, ame.money < au.bid + n)); bb('Aussteigen', { type: 'pass' }, 1, au.bidder === me); }
+    }
     const spp = state.players.find((x) => x.id === p.id);
     if (spp && spp.dc) { const w2 = el('div', 'tag why'), b2 = el('b', 'dcc', ''); b2.dataset.until = spp.dc; w2.append(document.createTextNode(p.name + ' ist getrennt – noch '), b2); low.append(w2); }
     if (g.minus) {
@@ -466,8 +480,8 @@ function renderGame() {
     const f = g.board[p.pos];
     if (mine && !busy) {
       if (g.phase === 'roll') { btn('Würfeln', 'roll').disabled = p.money < 0; if (p.jail) btn('50 € zahlen', 'jailpay', true).disabled = p.money < 50; }
-      else if (g.phase === 'buy') { btn('Kaufen für ' + f.p + ' €', 'buy').disabled = p.money < f.p; btn('Nicht kaufen', 'skip', true); }
-      else btn('Zug beenden', 'end').disabled = p.money < 0;
+      else if (g.phase === 'buy') { btn('Kaufen für ' + f.p + ' €', 'buy').disabled = p.money < f.p; btn(g.rules.auction ? 'Versteigern' : 'Nicht kaufen', 'skip', true); }
+      else if (g.phase === 'end') btn('Zug beenden', 'end').disabled = p.money < 0;
       if (p.money < 0) { const gb = btn('Aufgeben', 'giveup', true); gb.className = 'danger'; gb.onclick = () => { if (confirm('Wirklich aufgeben?')) out({ type: 'giveup' }); }; }
     }
   }
@@ -559,6 +573,7 @@ function renderGame() {
 const mmss = (until) => { const s = Math.max(0, Math.ceil((until - (Date.now() + skew)) / 1000)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
 function tickCd() {
   const e = $('cd'); if (e && state && state.game && state.game.minus) e.textContent = mmss(state.game.minus.until);
+  const ea = $('acd'); if (ea && state && state.game && state.game.auction) ea.textContent = Math.max(0, Math.ceil((state.game.auction.until - (Date.now() + skew)) / 1000)) + ' s';
   document.querySelectorAll('.dcc').forEach((d) => { d.textContent = mmss(Number(d.dataset.until)); });
 }
 // Zeile unter einem getrennten Spieler: Countdown und Votekick
