@@ -81,7 +81,7 @@ wss.on('connection', (ws) => {
     const room = rooms.get(ws.room);
 
     if (m.type === 'create' && !room) {
-      const r = { code: newCode(), hostId: null, players: new Map(), banned: new Set(), settings: { budget: 1500, map: 'klassisch', max: 8, rules: { doubleRent: true, vacation: true, noRentPrison: true, evenBuild: true, randomOrder: false } }, chat: [] };
+      const r = { code: newCode(), hostId: null, players: new Map(), banned: new Set(), settings: { budget: 1500, map: 'klassisch', max: 8, rules: { doubleRent: true, vacation: true, noRentPrison: true, evenBuild: true, randomOrder: false, auction: false } }, chat: [] };
       rooms.set(r.code, r);
       enter(ws, r, m);
     } else if (m.type === 'join' && !room) {
@@ -98,7 +98,7 @@ wss.on('connection', (ws) => {
       }
       if (r.players.size >= r.settings.max) return send(ws, { type: 'error', text: 'Der Raum ist voll.' });
       enter(ws, r, m);
-    } else if (room && room.game && ['roll', 'jailpay', 'buy', 'skip', 'end', 'build', 'sell', 'mortgage', 'giveup', 'trade', 'tradeok', 'tradeno'].includes(m.type)) {
+    } else if (room && room.game && ['roll', 'jailpay', 'buy', 'skip', 'end', 'build', 'sell', 'mortgage', 'giveup', 'bid', 'pass', 'trade', 'tradeok', 'tradeno'].includes(m.type)) {
       G.act(room.game, ws.pid, m);
       broadcast(room);
     } else if (room && ws.pid === room.hostId) {

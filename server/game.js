@@ -19,7 +19,7 @@ const rnd = () => 1 + Math.floor(Math.random() * 6);
 const cur = (g) => g.players[g.turn];
 const say = (g, t) => { g.log.push(t); if (g.log.length > 120) g.log.shift(); };
 
-const DEFAULT_RULES = { doubleRent: true, vacation: true, noRentPrison: true, evenBuild: true, randomOrder: false };
+const DEFAULT_RULES = { doubleRent: true, vacation: true, noRentPrison: true, evenBuild: true, randomOrder: false, auction: false };
 function newGame(players, settings) {
   return { map: settings.map, rules: { ...DEFAULT_RULES, ...(settings.rules || {}) }, pot: 0, owners: {}, houses: {}, mort: {}, minus: null, trades: [], tid: 0, rn: 0, turn: 0, phase: 'roll', dice: [0, 0], dbl: 0, again: false, winner: null, log: ['Das Spiel beginnt!'],
     players: players.map((p) => ({ id: p.id, name: p.name, color: p.color || 0, money: settings.budget, pos: 0, jail: 0, out: false })) };
@@ -33,6 +33,7 @@ function bankrupt(g, p, to) {
   g.trades = g.trades.filter((t) => t.from !== p.id && t.to !== p.id);
   for (const k in g.owners) if (g.owners[k] === p.id) { delete g.houses[k]; if (to) g.owners[k] = to.id; else { delete g.owners[k]; delete g.mort[k]; } }
   say(g, p.name + ' ist bankrott!');
+  if (g.auction && g.auction.bidder === p.id) { g.auction.bid = 0; g.auction.bidder = null; }
   const alive = g.players.filter((x) => !x.out);
   if (alive.length === 1) { g.phase = 'over'; g.winner = alive[0].id; }
 }
@@ -40,6 +41,35 @@ const cost = (i) => [50, 50, 100, 100, 150, 150, 200, 200][B[i][3]];
 const grp = (i) => B.map((f, k) => k).filter((k) => B[k][0] === 'p' && B[k][3] === B[i][3]);
 const worth = (g, p) => Object.keys(g.owners).filter((k) => g.owners[k] === p.id)
   .reduce((s, k) => s + (g.mort[k] ? 0 : B[k][1] / 2) + (g.houses[k] ? g.houses[k] * cost(k) / 2 : 0), 0);
+// ===== Auktion: wer nicht kaufen will, schickt das Feld in die Versteigerung =====
+const AUC_START_MS = 15000, AUC_BID_MS = 10000; // Startzeit; nach jedem Gebot laufen 10 s neu
+function startAuction(g, p) {
+  g.auction = { pos: p.pos, bid: 0, bidder: null, passed: [], until: Date.now() + AUC_START_MS };
+  g.phase = 'auction'; say(g, `${NAMES[g.map][p.pos]} wird versteigert`);
+}
+function endAuction(g) {
+  const au = g.auction, w = au.bidder && g.players.find((x) => x.id === au.bidder), nm = NAMES[g.map][au.pos];
+  if (w && !w.out && w.money >= au.bid) { w.money -= au.bid; g.owners[au.pos] = w.id; say(g, `${w.name} ersteigert ${nm} für ${au.bid} €`); }
+  else say(g, `Niemand ersteigert ${nm}`);
+  g.auction = null; g.phase = g.again ? 'roll' : 'end';
+}
+// Früher fertig, wenn niemand mehr überbieten kann oder will
+function auctionCheck(g) {
+  const au = g.auction; if (!au) return;
+  const live = g.players.filter((x) => !x.out && !au.passed.includes(x.id) && x.money >= 0 && (x.id === au.bidder || x.money > au.bid));
+  if (au.bidder ? live.length === 1 : live.length === 0) endAuction(g);
+}
+function auctionAct(g, pid, a) {
+  const au = g.auction, q = g.players.find((x) => x.id === pid);
+  if (!au || !q || q.out || au.passed.includes(pid)) return;
+  if (a.type === 'bid') {
+    const amt = Math.floor(Number(a.amount));
+    if (!(amt > au.bid) || amt > q.money || amt > 1e6) return;
+    au.bid = amt; au.bidder = pid; au.until = Date.now() + AUC_BID_MS; say(g, `${q.name} bietet ${amt} €`);
+  } else if (a.type === 'pass') { if (pid === au.bidder) return; au.passed.push(pid); }
+  auctionCheck(g);
+}
+
 const MINUS_MS = 3 * 60 * 1000; // so lange hat man Zeit, wieder ins Plus zu kommen
 function pay(g, p, amt, to) {
   p.money -= amt; if (to) to.money += amt; // darf ins Minus gehen, kein automatisches Aufgeben
@@ -50,6 +80,11 @@ function pay(g, p, amt, to) {
 function chk(g) { if (g.minus) { const q = g.players.find((x) => x.id === g.minus.id); if (!q || q.out || q.money >= 0) g.minus = null; } }
 // Wird vom Server jede Sekunde aufgerufen: Zeit abgelaufen -> Bankrott
 function tick(g) {
+  let ch = false;
+  if (g.auction && g.phase !== 'over' && Date.now() >= g.auction.until) { endAuction(g); ch = true; }
+  return tickMinus(g) || ch;
+}
+function tickMinus(g) {
   if (!g.minus || g.phase === 'over' || Date.now() < g.minus.until) return false;
   const q = g.players.find((x) => x.id === g.minus.id); g.minus = null;
   if (!q || q.out || q.money >= 0) return true;
@@ -89,7 +124,7 @@ function land(g, p) {
 }
 function next(g) {
   do { g.turn = (g.turn + 1) % g.players.length; } while (cur(g).out);
-  g.phase = 'roll'; g.again = false; g.dbl = 0;
+  g.phase = 'roll'; g.again = false; g.dbl = 0; g.auction = null;
 }
 function act0(g, pid, a) {
   const p = cur(g);
@@ -110,6 +145,7 @@ function act0(g, pid, a) {
     move(g, p, (p.pos + g.dice[0] + g.dice[1]) % 40);
   } else if ((a.type === 'buy' || a.type === 'skip') && g.phase === 'buy') {
     const f = B[p.pos];
+    if (a.type === 'skip' && g.rules.auction) { startAuction(g, p); return; }
     if (a.type === 'buy' && p.money >= f[1]) { p.money -= f[1]; g.owners[p.pos] = p.id; say(g, `${p.name} kauft ${NAMES[g.map][p.pos]} für ${f[1]}`); }
     g.phase = g.again ? 'roll' : 'end';
   } else if (a.type === 'end' && g.phase === 'end' && p.money >= 0) next(g);
@@ -164,6 +200,7 @@ function tradeAct(g, pid, a) {
 }
 function act(g, pid, a) {
   if (String(a.type).startsWith('trade')) { tradeAct(g, pid, a); chk(g); return; }
+  if (a.type === 'bid' || a.type === 'pass') { auctionAct(g, pid, a); return; }
   if (['build', 'sell', 'mortgage'].includes(a.type)) { // Bauen und Hypotheken gehen jederzeit, nicht nur im eigenen Zug
     const q = g.players.find((x) => x.id === pid);
     if (q && !q.out && g.phase !== 'over') manage(g, q, a);
