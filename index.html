@@ -124,6 +124,18 @@ nav #vol{width:100px;margin:0;flex:none}
 #lg{max-height:240px;overflow-y:auto;padding-right:4px}#lg div{padding:3px 0;border-bottom:1px solid #ffffff10}
 .chip.static{cursor:default}
 .dcrow{flex-basis:100%;display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;color:#fbbf24}
+/* Lobby */
+.colors{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
+.cbtn{width:100%;aspect-ratio:1;border-radius:50%;padding:0;border:3px solid transparent;box-shadow:none}
+.cbtn.me{border-color:#fff;box-shadow:0 0 12px #fff8}.cbtn.taken{opacity:.22;cursor:not-allowed}
+.rhd{font-weight:600;margin:6px 0 12px;color:#c9b3ee}
+.rule{display:flex;align-items:center;gap:12px;margin:0 0 14px;color:var(--text);cursor:pointer;position:relative}
+.rtx{flex:1}.rule small{display:block;color:var(--dim);font-size:12.5px;margin-top:2px;line-height:1.35}
+.rule input{position:absolute;right:0;opacity:0;width:46px;height:26px;margin:0}
+.sw{width:46px;height:26px;border-radius:999px;background:#ffffff22;position:relative;flex:none;transition:.2s}
+.sw::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.2s}
+.rule input:checked+.sw{background:var(--p2)}.rule input:checked+.sw::after{transform:translateX(20px)}
+.rule input:disabled+.sw{opacity:.5}.rule input:focus-visible+.sw{outline:2px solid var(--p1);outline-offset:2px}
 </style>
 </head>
 <body>
@@ -154,12 +166,15 @@ nav #vol{width:100px;margin:0;flex:none}
       <div class="code" id="code"></div>
       <button id="copyBtn" class="ghost" style="width:100%">Einladungslink kopieren</button>
     </div>
-    <div class="card"><label>Spieler</label><div id="players"></div></div>
+    <div class="card"><label>Spieler</label><div id="players"></div><label style="margin:14px 0 8px">Deine Farbe</label><div id="colors" class="colors"></div></div>
     <div class="card" id="settings">
+      <label for="max">Maximale Spielerzahl</label>
+      <select id="max"><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option></select>
       <label for="budget">Startbudget</label>
       <input id="budget" type="number" min="500" max="100000" step="100">
       <label for="map">Map</label>
       <select id="map"><option value="klassisch">Klassisch</option><option value="minecraft">Minecraft-Welt</option></select>
+      <div class="rhd">Spielregeln</div><div id="rules"></div>
       <button id="startBtn" style="width:100%" disabled>Monopoly starten</button>
     </div>
     <button id="leaveBtn" class="ghost" style="width:100%">Raum verlassen</button>
@@ -227,9 +242,21 @@ async function copyLink(b) {
   setTimeout(() => { b.textContent = old; }, 1800);
 }
 $('copyBtn').onclick = () => copyLink($('copyBtn')); $('copy2').onclick = () => copyLink($('copy2'));
-const sendSettings = () => out({ type: 'settings', budget: $('budget').value, map: $('map').value });
+const RULES = [
+  ['doubleRent', 'Doppelte Miete bei ganzem Land', 'Gehören einem Spieler alle Städte eines Landes, verdoppelt sich die Grundmiete.'],
+  ['vacation', 'Urlaubsgeld', 'Steuern und Zahlungen an die Bank kommen in einen Topf. Wer auf Urlaub landet, bekommt ihn.'],
+  ['noRentPrison', 'Keine Miete im Gefängnis', 'Für Grundstücke von Spielern, die im Gefängnis sitzen, gibt es keine Miete.'],
+  ['evenBuild', 'Gleichmäßig bauen', 'Häuser müssen innerhalb eines Landes gleichmäßig verteilt gebaut werden.'],
+  ['randomOrder', 'Zufällige Reihenfolge', 'Die Spielreihenfolge wird beim Start ausgelost.'],
+];
+const sendSettings = () => { const rules = {}; RULES.forEach(([k]) => { rules[k] = $('r_' + k).checked; }); out({ type: 'settings', budget: $('budget').value, map: $('map').value, max: $('max').value, rules }); };
+RULES.forEach(([k, t, d]) => {
+  const l = el('label', 'rule'), cb = document.createElement('input'), tx = el('span', 'rtx');
+  cb.type = 'checkbox'; cb.id = 'r_' + k; cb.onchange = sendSettings; tx.append(el('b', '', t), el('small', '', d)); l.append(tx, cb, el('span', 'sw')); $('rules').append(l);
+});
+for (let i = 0; i < 12; i++) { const b = el('button', 'cbtn'); b.style.background = ['#c471f0', '#38bdf8', '#f59e0b', '#34d399', '#fb7185', '#a3e635', '#f472b6', '#e5e7eb', '#facc15', '#f97316', '#14b8a6', '#a16207'][i]; b.setAttribute('aria-label', 'Farbe ' + (i + 1)); b.onclick = () => out({ type: 'color', color: i }); $('colors').append(b); }
 $('startBtn').onclick = () => out({ type: 'start' });
-$('budget').onchange = sendSettings; $('map').onchange = sendSettings;
+$('budget').onchange = sendSettings; $('map').onchange = sendSettings; $('max').onchange = sendSettings;
 const sendChat = () => { const t = $('chatIn').value.trim(); if (t) out({ type: 'chat', text: t }); $('chatIn').value = ''; };
 $('chatBtn').onclick = sendChat; $('chatIn').onkeydown = (e) => { if (e.key === 'Enter') sendChat(); };
 
@@ -245,13 +272,16 @@ function render() {
   const host = state.you === state.hostId;
   $('code').textContent = state.code;
   $('budget').value = state.settings.budget; $('map').value = state.settings.map;
-  $('budget').disabled = $('map').disabled = !host;
+  $('max').value = state.settings.max; RULES.forEach(([k]) => { $('r_' + k).checked = !!state.settings.rules[k]; $('r_' + k).disabled = !host; });
+  $('budget').disabled = $('map').disabled = $('max').disabled = !host;
+  [...$('colors').children].forEach((b, i) => { const o = state.players.find((p) => p.color === i); b.classList.toggle('me', !!o && o.id === state.you); b.classList.toggle('taken', !!o && o.id !== state.you); b.disabled = !!o && o.id !== state.you; });
   $('startBtn').disabled = !(host && state.players.length >= 2);
   $('startBtn').textContent = state.players.length >= 2 ? 'Monopoly starten' : 'Warte auf weitere Spieler …';
   const box = $('players'); box.textContent = '';
   state.players.forEach((p) => {
     const row = el('div', 'player');
-    row.append(el('div', 'av', p.name[0].toUpperCase()), el('div', 'name', p.name + (p.id === state.you ? ' (du)' : '')),
+    const av = el('div', 'av', p.name[0].toUpperCase()); av.style.background = COL[p.color]; av.style.color = '#0b0718';
+    row.append(av, el('div', 'name', p.name + (p.id === state.you ? ' (du)' : '')),
       el('div', 'tag', p.id === state.hostId ? 'Host' : p.guest ? 'Gast' : ''));
     if (host && p.id !== state.you) { const k = el('button', 'small danger', 'Kicken'); k.onclick = () => out({ type: 'kick', id: p.id }); row.append(k); }
     box.append(row);
@@ -260,7 +290,7 @@ function render() {
 }
 
 /* ===== Monopoly ===== */
-const COL = ['#c471f0', '#38bdf8', '#f59e0b', '#34d399', '#fb7185', '#a3e635', '#f472b6', '#e5e7eb'];
+const COL = ['#c471f0', '#38bdf8', '#f59e0b', '#34d399', '#fb7185', '#a3e635', '#f472b6', '#e5e7eb', '#facc15', '#f97316', '#14b8a6', '#a16207'];
 const GC = ['#8b5a2b', '#7dd3fc', '#f472b6', '#fb923c', '#ef4444', '#facc15', '#22c55e', '#3b5bdb'];
 const ICON = { go: '▶', c: '✉', ch: '?', tax: '$', r: '🚂', u: '💡', jail: '⛓', free: '🏝', gojail: '👮' };
 const FLAGS = ['linear-gradient(#fff 50%,#dc143c 50%)', 'linear-gradient(#cd2a3e 33%,#fff 33% 67%,#436f4d 67%)', 'linear-gradient(90deg,#169b62 33%,#fff 33% 67%,#ff883e 67%)',
@@ -280,11 +310,11 @@ function buildInfo(g, me, i) {
   if (!ids.every((k) => g.owners[k] === me)) why = 'Zum Bauen muss dir das ganze Land gehören (' + g.groups[gi] + ').';
   else if (ids.some((k) => g.mort[k])) why = 'Ein Feld dieses Landes ist beliehen.';
   else if (h >= 5) why = 'Schon voll ausgebaut (Hotel).';
-  else if (h > Math.min(...hs)) why = 'Baue gleichmäßig: erst auf den anderen Feldern des Landes.';
+  else if (g.rules.evenBuild && h > Math.min(...hs)) why = 'Baue gleichmäßig: erst auf den anderen Feldern des Landes.';
   else if (money < BC[gi]) why = 'Nicht genug Geld.';
   return { can: !why, why };
 }
-const canSell = (g, i) => { const h = g.houses[i] || 0; return h > 0 && h === Math.max(...grpIds(g, g.board[i].g).map((k) => g.houses[k] || 0)); };
+const canSell = (g, i) => { const h = g.houses[i] || 0; return h > 0 && (!g.rules.evenBuild || h === Math.max(...grpIds(g, g.board[i].g).map((k) => g.houses[k] || 0))); };
 
 /* ===== Sounds (selbst erzeugt, keine Dateien nötig) ===== */
 let AC = null, master = null, muted = false, vol = 70, seen = '', trk = null, pendingOffer = null, offerId = null;
@@ -381,7 +411,7 @@ function syncGame(g) {
   g.players.forEach((q, k) => {
     let t = tokEl[q.id];
     if (!t) { t = tokEl[q.id] = el('div', 'ptok'); $('tokens').append(t); shown[q.id] = q.pos; place(t, q.pos, k); }
-    t.style.background = COL[k]; t.textContent = q.name[0].toUpperCase(); t.style.display = q.out ? 'none' : '';
+    t.style.background = COL[q.color]; t.textContent = q.name[0].toUpperCase(); t.style.display = q.out ? 'none' : '';
     if (shown[q.id] !== q.pos) {
       const from = shown[q.id], d = (q.pos - from + 40) % 40; shown[q.id] = q.pos;
       const path = d > 0 && d <= 12 ? Array.from({ length: d }, (_, s) => (from + s + 1) % 40) : [q.pos];
@@ -407,10 +437,11 @@ function renderGame() {
     if (f.g != null) { const b = el('div', 'bar'); b.style.background = gc(f.g); d.append(b); }
     d.append(el('div', 'ic', f.t === 'r' && g.map === 'klassisch' ? '✈' : ICON[f.t] || ''));
     if (f.p && !corner) d.append(el('div', 'pr', f.p));
+    if (i === 20 && g.rules.vacation) d.append(el('div', 'pr', g.pot + ' €')); // Urlaubs-Topf
     d.append(el('div', 'nm', f.n));
     if (g.houses[i]) d.append(el('b', 'hs', g.houses[i] === 5 ? '🏨' : '🏠' + g.houses[i]));
     if (g.mort[i]) d.style.opacity = '.45';
-    if (g.owners[i]) { const o = el('div', 'own'); o.style.background = COL[idx(g.owners[i])]; d.append(o); }
+    if (g.owners[i]) { const o = el('div', 'own'); o.style.background = COL[g.players[idx(g.owners[i])].color]; d.append(o); }
     bd.append(d);
   });
   notify(g); syncGame(g);
@@ -454,7 +485,7 @@ function renderGame() {
     const tb = el('div', 'rt'), rr = (a, c) => tb.append(el('span', '', a), el('b', '', c));
     if (f.t === 'p') {
       tb.append(el('span', 'h', 'wann'), el('span', 'h r', 'bekommst'));
-      rr('mit Miete', b + ' €'); rr('mit ganzem Land', 2 * b + ' €');
+      rr('mit Miete', b + ' €'); if (g.rules.doubleRent) rr('mit ganzem Land', 2 * b + ' €');
       ['einem Haus', 'zwei Häusern', 'drei Häusern', 'vier Häusern', 'einem Hotel'].forEach((t, k) => rr('mit ' + t, [5, 15, 45, 80, 125][k] * b + ' €'));
     } else if (f.t === 'r') (air ? ['1 Flughafen', '2 Flughäfen', '3 Flughäfen', '4 Flughäfen'] : ['1 Bahnhof', '2 Bahnhöfen', '3 Bahnhöfen', '4 Bahnhöfen']).forEach((t, k) => rr('mit ' + t, 25 * 2 ** k + ' €'));
     else if (f.t === 'u') { rr('mit einem Werk', '4× Würfel'); rr('mit zwei Werken', '10× Würfel'); }
@@ -478,7 +509,7 @@ function renderGame() {
   const pl = $('plCard'); pl.textContent = ''; pl.append(el('div', 'hd', 'Spieler'));
   g.players.forEach((q, k) => {
     const r = el('div', 'pl' + (k === g.turn && g.phase !== 'over' ? ' turn' : '') + (q.out ? ' out' : '')), t = el('div', 'ptok', q.name[0].toUpperCase());
-    t.style.background = COL[k];
+    t.style.background = COL[q.color];
     r.append(t, el('span', '', q.name + (q.id === me ? ' (du)' : '') + (q.id === state.hostId ? ' 👑' : '') + (q.jail ? ' ⛓' : '')), (() => { const m = el('span', 'm', q.money + ' €'); if (q.money < 0) m.style.color = '#ff6b8b'; return m; })());
     dcRow(r, q, me); pl.append(r);
   });
@@ -556,7 +587,7 @@ function showOffer(id) {
   box.append(x, el('div', 'ttl', 'Handelsangebot von ' + nm(t.from)));
   const col = (pid, title, money, props) => {
     const w = el('div', 'tside'), hd = el('div', 'thead'), tk = el('div', 'ptok', nm(pid)[0].toUpperCase()), chips = el('div', 'chips');
-    tk.style.background = COL[g.players.findIndex((q) => q.id === pid)]; hd.append(tk, el('b', '', title));
+    tk.style.background = COL[g.players.find((q) => q.id === pid).color]; hd.append(tk, el('b', '', title));
     props.forEach((k) => { const c = el('div', 'chip static'), d = el('span', 'dot2'); d.style.background = g.board[k].g != null ? gc(g.board[k].g) : '#9ca3af'; c.append(d, document.createTextNode(g.board[k].n + ' · ' + g.board[k].p + ' €')); chips.append(c); });
     if (!props.length) chips.append(el('div', 'tag', 'Keine Grundstücke'));
     w.append(hd, el('div', 'pill', money + ' €'), chips); return w;
@@ -601,7 +632,7 @@ function openTrade(pre) {
     return { w, rng, sel, refresh, apply };
   };
   const meP = g.players.find((q) => q.id === me), hl = el('div', 'thead'), tk = el('div', 'ptok', meP.name[0].toUpperCase());
-  tk.style.background = COL[g.players.indexOf(meP)]; hl.append(tk, el('b', '', meP.name + ' (du)'));
+  tk.style.background = COL[meP.color]; hl.append(tk, el('b', '', meP.name + ' (du)'));
   const who = document.createElement('select'); who.className = 'psel'; others.forEach((o) => { const op = el('option', '', o.name); op.value = o.id; who.append(op); });
   const hr = el('div', 'thead'); hr.append(who);
   const L = mkSide(hl, () => meP), R = mkSide(hr, () => others.find((o) => o.id === who.value));
