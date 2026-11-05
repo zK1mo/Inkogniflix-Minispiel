@@ -366,7 +366,7 @@ function rollDice(v) {
   let n = 0; const iv = setInterval(() => { ds.forEach((d) => showDie(d, 1 + Math.floor(Math.random() * 6))); if (++n > 9) { clearInterval(iv); ds.forEach((d, i) => showDie(d, v[i])); } }, 85);
 }
 function syncGame(g) {
-  const key = g.dice.join() + '|' + g.log[g.log.length - 1], fresh = key !== lastKey && g.dice[0] && lastKey !== '';
+  const key = g.rn !== undefined ? g.rn : g.dice.join() + g.turn, fresh = key !== lastKey && g.dice[0] && lastKey !== '';
   const first = lastKey === ''; lastKey = key;
   if (fresh) { rollDice(g.dice); sfx('dice'); } else if (!busy) dieEls().forEach((d, i) => showDie(d, g.dice[i]));
   const t0 = fresh ? 950 : 0; let end = t0 && t0;
