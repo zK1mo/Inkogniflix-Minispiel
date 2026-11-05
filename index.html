@@ -119,10 +119,12 @@ input[type=range]{accent-color:var(--p2);padding:0;margin:4px 0;border:0;backgro
 .cell.right{padding-top:0;padding-left:22%}.cell.right .bar{top:0;bottom:0;left:0;right:auto;width:24%;height:auto}.cell.right .own{top:0;bottom:0;right:0;left:auto;width:4px;height:auto}
 .pflag{height:10px;border-radius:6px;margin:0 0 8px;box-shadow:0 0 0 1px #fff3}.ptop{padding-bottom:6px!important;margin-bottom:0!important}
 .tag.why{color:#fbbf24;margin-top:8px}button:disabled{box-shadow:none}
+nav #vol{width:100px;margin:0;flex:none}
+@media(max-width:520px){nav a.ext{display:none}nav #vol{width:80px}.navbrand{font-size:17px}}
 </style>
 </head>
 <body>
-<nav><a class="navbrand" href="."><img src="logo.png" alt="">INKOGNIFLIX</a><button id="mute" class="small ghost" aria-label="Ton an/aus">🔊</button><a class="ext" href="https://zk1mo.github.io/Test-Website/">Zur Website</a></nav>
+<nav><a class="navbrand" href="."><img src="logo.png" alt="">INKOGNIFLIX</a><button id="mute" class="small ghost" aria-label="Ton an/aus">🔊</button><input id="vol" type="range" min="0" max="100" aria-label="Lautstärke"><a class="ext" href="https://zk1mo.github.io/Test-Website/">Zur Website</a></nav>
 <main>
   <div class="hero" id="hero">
     <div class="cube" style="width:70px;height:70px;left:4%;top:30px"></div><div class="cube" style="width:46px;height:46px;right:6%;top:120px;animation-delay:-2s"></div>
@@ -279,24 +281,39 @@ function buildInfo(g, me, i) {
 const canSell = (g, i) => { const h = g.houses[i] || 0; return h > 0 && h === Math.max(...grpIds(g, g.board[i].g).map((k) => g.houses[k] || 0)); };
 
 /* ===== Sounds (selbst erzeugt, keine Dateien nötig) ===== */
-let AC = null, muted = false, seen = '', trk = null;
-try { muted = localStorage.getItem('mute') === '1'; } catch {}
-function actx() { if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch { return null; } } if (AC.state === 'suspended') AC.resume(); return AC; }
+let AC = null, master = null, muted = false, vol = 70, seen = '', trk = null;
+const gainOf = () => Math.pow(vol / 100, 1.5) * 1.8;
+try { muted = localStorage.getItem('mute') === '1'; const v = localStorage.getItem('vol'); if (v !== null) vol = Math.min(100, Math.max(0, Number(v) || 0)); } catch {}
+function actx() { if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); master = AC.createGain(); master.gain.value = gainOf(); master.connect(AC.destination); } catch { return null; } } if (AC.state === 'suspended') AC.resume(); return AC; }
 function tone(f, d, type = 'sine', v = .12, at = 0, f2) {
   const a = muted ? null : actx(); if (!a) return;
   const o = a.createOscillator(), gn = a.createGain(), t = a.currentTime + at;
   o.type = type; o.frequency.setValueAtTime(f, t); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + d);
-  gn.gain.setValueAtTime(v, t); gn.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(gn); gn.connect(a.destination); o.start(t); o.stop(t + d + .02);
+  gn.gain.setValueAtTime(v, t); gn.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(gn); gn.connect(master); o.start(t); o.stop(t + d + .02);
 }
 function noise(d, v = .15, at = 0, hp = 1200) {
   const a = muted ? null : actx(); if (!a) return;
   const n = Math.floor(a.sampleRate * d), buf = a.createBuffer(1, n, a.sampleRate), ch = buf.getChannelData(0);
   for (let i = 0; i < n; i++) ch[i] = (Math.random() * 2 - 1) * (1 - i / n);
   const s = a.createBufferSource(), f = a.createBiquadFilter(), gn = a.createGain();
-  s.buffer = buf; f.type = 'highpass'; f.frequency.value = hp; gn.gain.value = v; s.connect(f); f.connect(gn); gn.connect(a.destination); s.start(a.currentTime + at);
+  s.buffer = buf; f.type = 'highpass'; f.frequency.value = hp; gn.gain.value = v; s.connect(f); f.connect(gn); gn.connect(master); s.start(a.currentTime + at);
+}
+// kurzer Aufprall wie ein Würfel auf Holz: Rausch-Knack plus dumpfes Pochen
+function click(at, v = .3, f = 2500, q = 1.2) {
+  const a = muted ? null : actx(); if (!a) return;
+  const n = Math.floor(a.sampleRate * .035), buf = a.createBuffer(1, n, a.sampleRate), ch = buf.getChannelData(0);
+  for (let i = 0; i < n; i++) ch[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 3);
+  const s = a.createBufferSource(), bp = a.createBiquadFilter(), gn = a.createGain();
+  s.buffer = buf; bp.type = 'bandpass'; bp.frequency.value = f; bp.Q.value = q; gn.gain.value = v; s.connect(bp); bp.connect(gn); gn.connect(master); s.start(a.currentTime + at);
+  tone(90 + Math.random() * 70, .06, 'sine', v * .55, at, 45);
 }
 const SFX = {
-  dice: () => { for (let i = 0; i < 9; i++) noise(.06, .2, i * .085, 800 + Math.random() * 1500); tone(180, .1, 'square', .05, .78, 90); },
+  dice: () => {
+    for (let i = 0; i < 18; i++) click(i * .018 + Math.random() * .012, .08 + Math.random() * .1, 1800 + Math.random() * 2600); // Rasseln in der Luft
+    [0, .045].forEach((o, d) => { // zwei Würfel landen, springen und kullern aus
+      [[.31, .6], [.36, .25], [.68, .4], [.73, .18], [.9, .28], [.95, .12], [.99, .08]].forEach(([t, v]) => click(t + o + Math.random() * .012, v * (d ? .85 : 1), 1400 + Math.random() * 1000 + d * 250, 1.8));
+    });
+  },
   tick: () => tone(520, .05, 'triangle', .07),
   buy: () => { tone(988, .09, 'square', .07); tone(1319, .25, 'square', .07, .09); },
   rent: () => { tone(330, .12, 'sawtooth', .06); tone(220, .25, 'sawtooth', .06, .1); },
@@ -322,8 +339,16 @@ function notify(g) {
   trk = { tid, inc, n, ph: g.phase };
 }
 document.addEventListener('pointerdown', () => { if (!muted) actx(); }, { once: true });
-$('mute').textContent = muted ? '🔇' : '🔊';
-$('mute').onclick = () => { muted = !muted; try { localStorage.setItem('mute', muted ? '1' : '0'); } catch {} $('mute').textContent = muted ? '🔇' : '🔊'; if (!muted) sfx('tick'); };
+const icon = () => { $('mute').textContent = muted || vol === 0 ? '🔇' : '🔊'; };
+const saveMute = () => { try { localStorage.setItem('mute', muted ? '1' : '0'); } catch {} };
+$('vol').value = vol; icon();
+$('mute').onclick = () => { muted = !muted; saveMute(); icon(); if (!muted) sfx('tick'); };
+let vt; $('vol').oninput = () => {
+  vol = Number($('vol').value); if (master) master.gain.value = gainOf();
+  if (muted && vol > 0) { muted = false; saveMute(); }
+  try { localStorage.setItem('vol', vol); } catch {} icon();
+  clearTimeout(vt); vt = setTimeout(() => sfx('tick'), 120);
+};
 
 function resetGame() {
   timers.forEach(clearTimeout); timers = []; busy = false; lastKey = ''; seen = ''; trk = null; shown = {}; tokEl = {}; sel = null;
