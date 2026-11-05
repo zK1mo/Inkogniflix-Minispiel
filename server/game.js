@@ -17,7 +17,7 @@ const CARDS = [['Bankirrtum zu deinen Gunsten: +150',{m:150}],['Strafzettel: -50
 
 const rnd = () => 1 + Math.floor(Math.random() * 6);
 const cur = (g) => g.players[g.turn];
-const say = (g, t) => { g.log.push(t); if (g.log.length > 8) g.log.shift(); };
+const say = (g, t) => { g.log.push(t); if (g.log.length > 120) g.log.shift(); };
 
 function newGame(players, settings) {
   return { map: settings.map, owners: {}, houses: {}, mort: {}, debt: null, resume: null, trades: [], tid: 0, rn: 0, turn: 0, phase: 'roll', dice: [0, 0], dbl: 0, again: false, winner: null, log: ['Das Spiel beginnt!'],
