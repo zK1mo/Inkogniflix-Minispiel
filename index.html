@@ -123,6 +123,7 @@ nav #vol{width:100px;margin:0;flex:none}
 @media(max-width:520px){nav a.ext{display:none}nav #vol{width:80px}.navbrand{font-size:17px}}
 #lg{max-height:240px;overflow-y:auto;padding-right:4px}#lg div{padding:3px 0;border-bottom:1px solid #ffffff10}
 .chip.static{cursor:default}
+.dcrow{flex-basis:100%;display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;color:#fbbf24}
 </style>
 </head>
 <body>
@@ -190,7 +191,8 @@ const $ = (id) => document.getElementById(id);
 const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
 const cid = (() => { try { let c = localStorage.getItem('cid'); if (!c) { c = Math.random().toString(36).slice(2); localStorage.setItem('cid', c); } return c; } catch { return 'x'; } })();
 const urlCode = (new URLSearchParams(location.search).get('room') || '').toUpperCase();
-let ws, state = null, skew = 0;
+let ws, state = null, skew = 0, retry = null;
+const forget = () => { retry = null; try { localStorage.removeItem('room'); } catch {} };
 const out = (o) => ws.send(JSON.stringify(o));
 
 if (urlCode) { $('joinBox').classList.remove('hide'); $('createBox').classList.add('hide'); $('joinCode').textContent = urlCode; }
@@ -202,11 +204,13 @@ function connect(first) {
   ws.onopen = () => { $('err').textContent = ''; out({ ...first, name: $('name').value, cid, guest: true }); };
   ws.onmessage = (e) => {
     const m = JSON.parse(e.data);
-    if (m.type === 'error') $('err').textContent = m.text;
-    if (m.type === 'kicked') { show(false); $('err').textContent = 'Der Host hat dich aus dem Raum entfernt.'; ws.close(); }
-    if (m.type === 'room') { skew = m.now - Date.now(); state = m; render(); }
+    if (m.type === 'error') { const was = retry; $('err').textContent = m.text; if (was) { forget(); state = null; show(false); $('err').textContent = m.text; } }
+    if (m.type === 'kicked') { forget(); show(false); $('err').textContent = 'Der Host hat dich aus dem Raum entfernt.'; ws.close(); }
+    if (m.type === 'room') { skew = m.now - Date.now(); state = m; retry = m.code; try { localStorage.setItem('room', m.code); } catch {} render(); }
   };
   ws.onerror = () => { $('err').textContent = 'Keine Verbindung zum Server.'; };
+  const mine = ws; // Verbindung weg (z. B. WLAN-Aussetzer): automatisch wieder in den Raum
+  ws.onclose = () => { if (retry && ws === mine) { $('err').textContent = 'Verbindung verloren – verbinde neu …'; setTimeout(() => { if (retry) connect({ type: 'join', code: retry }); }, 2500); } };
 }
 function start(first) {
   const n = $('name').value.trim();
@@ -216,7 +220,7 @@ function start(first) {
 }
 $('createBtn').onclick = () => start({ type: 'create' });
 $('joinBtn').onclick = () => start({ type: 'join', code: urlCode });
-$('leaveBtn').onclick = () => { out({ type: 'leave' }); ws.close(); history.replaceState(null, '', location.pathname); show(false); };
+$('leaveBtn').onclick = () => { forget(); out({ type: 'leave' }); ws.close(); history.replaceState(null, '', location.pathname); show(false); };
 async function copyLink(b) {
   const link = location.origin + location.pathname + '?room=' + state.code, old = b.textContent;
   try { await navigator.clipboard.writeText(link); b.textContent = 'Kopiert!'; } catch { prompt('Link kopieren:', link); }
@@ -420,6 +424,8 @@ function renderGame() {
     if (host) btn('Zurück zur Lobby', 'lobby');
   } else {
     low.append(el('div', 'tag', p.name + (mine ? ' (du)' : '') + ' ist am Zug'), el('div', 'tag', g.log[g.log.length - 1]));
+    const spp = state.players.find((x) => x.id === p.id);
+    if (spp && spp.dc) { const w2 = el('div', 'tag why'), b2 = el('b', 'dcc', ''); b2.dataset.until = spp.dc; w2.append(document.createTextNode(p.name + ' ist getrennt – noch '), b2); low.append(w2); }
     if (g.minus) {
       const mp = g.players.find((x) => x.id === g.minus.id), im = mp.id === me, w = el('div', 'tag why');
       w.append(document.createTextNode((im ? 'Du bist im Minus (' + mp.money + ' €)' : mp.name + ' ist im Minus') + ' – noch '), el('b', '', ''),
@@ -429,7 +435,7 @@ function renderGame() {
     const f = g.board[p.pos];
     if (mine && !busy) {
       if (g.phase === 'roll') { btn('Würfeln', 'roll').disabled = p.money < 0; if (p.jail) btn('50 € zahlen', 'jailpay', true).disabled = p.money < 50; }
-      else if (g.phase === 'buy') { btn('Kaufen für ' + f.p + ' €', 'buy'); btn('Nicht kaufen', 'skip', true); }
+      else if (g.phase === 'buy') { btn('Kaufen für ' + f.p + ' €', 'buy').disabled = p.money < f.p; btn('Nicht kaufen', 'skip', true); }
       else btn('Zug beenden', 'end').disabled = p.money < 0;
       if (p.money < 0) { const gb = btn('Aufgeben', 'giveup', true); gb.className = 'danger'; gb.onclick = () => { if (confirm('Wirklich aufgeben?')) out({ type: 'giveup' }); }; }
     }
@@ -473,7 +479,8 @@ function renderGame() {
   g.players.forEach((q, k) => {
     const r = el('div', 'pl' + (k === g.turn && g.phase !== 'over' ? ' turn' : '') + (q.out ? ' out' : '')), t = el('div', 'ptok', q.name[0].toUpperCase());
     t.style.background = COL[k];
-    r.append(t, el('span', '', q.name + (q.id === me ? ' (du)' : '') + (q.id === state.hostId ? ' 👑' : '') + (q.jail ? ' ⛓' : '')), (() => { const m = el('span', 'm', q.money + ' €'); if (q.money < 0) m.style.color = '#ff6b8b'; return m; })()); pl.append(r);
+    r.append(t, el('span', '', q.name + (q.id === me ? ' (du)' : '') + (q.id === state.hostId ? ' 👑' : '') + (q.jail ? ' ⛓' : '')), (() => { const m = el('span', 'm', q.money + ' €'); if (q.money < 0) m.style.color = '#ff6b8b'; return m; })());
+    dcRow(r, q, me); pl.append(r);
   });
   if (mine && !busy && g.phase !== 'over') { const b = el('button', 'small danger', 'Aufgeben'); b.style.marginTop = '8px'; b.onclick = () => { if (confirm('Wirklich aufgeben?')) out({ type: 'giveup' }); }; pl.append(b); }
 
@@ -518,10 +525,22 @@ function renderGame() {
   if (pendingOffer != null) { const id = pendingOffer; pendingOffer = null; showOffer(id); }
 }
 
+const mmss = (until) => { const s = Math.max(0, Math.ceil((until - (Date.now() + skew)) / 1000)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
 function tickCd() {
-  const e = $('cd'); if (!e || !state || !state.game || !state.game.minus) return;
-  const sec = Math.max(0, Math.ceil((state.game.minus.until - (Date.now() + skew)) / 1000));
-  e.textContent = Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0');
+  const e = $('cd'); if (e && state && state.game && state.game.minus) e.textContent = mmss(state.game.minus.until);
+  document.querySelectorAll('.dcc').forEach((d) => { d.textContent = mmss(Number(d.dataset.until)); });
+}
+// Zeile unter einem getrennten Spieler: Countdown und Votekick
+function dcRow(r, q, me) {
+  const sp = state.players.find((x) => x.id === q.id);
+  if (!sp || !sp.dc) return;
+  const ln = el('div', 'dcrow'), b = el('b', 'dcc', ''); b.dataset.until = sp.dc;
+  ln.append(document.createTextNode('⚠ getrennt – noch '), b);
+  if (q.id !== me) {
+    const voted = sp.votes.includes(me), bt = el('button', 'small danger', (voted ? 'Abgestimmt ' : 'Votekick ') + sp.votes.length + '/' + state.need);
+    bt.disabled = voted; bt.onclick = () => out({ type: 'votekick', id: q.id }); ln.append(bt);
+  }
+  r.append(ln);
 }
 setInterval(tickCd, 500);
 
@@ -592,6 +611,7 @@ function openTrade(pre) {
   ok.onclick = () => { out({ type: 'trade', to: who.value, gm: L.rng.value, tm: R.rng.value, gp: [...L.sel], tp: [...R.sel], replace: pre && pre.replace }); close(); };
   box.append(ok);
 }
+try { if (urlCode && localStorage.getItem('room') === urlCode && $('name').value.trim()) $('joinBtn').click(); } catch {} // Seite neu geladen: automatisch zurück in den Raum
 </script>
 </body>
 </html>
