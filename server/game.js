@@ -5,8 +5,12 @@ const B = [['go'],['p',60,2,0],['c'],['p',60,4,0],['tax',200],['r',200],['p',100
 ['free'],['p',220,18,4],['ch'],['p',220,18,4],['p',240,20,4],['r',200],['p',260,22,5],['p',260,22,5],['u',150],['p',280,24,5],
 ['gojail'],['p',300,26,6],['p',300,26,6],['c'],['p',320,28,6],['r',200],['ch'],['p',350,35,7],['tax',100],['p',400,50,7]];
 const NAMES = {
-  klassisch: ['Start','Moosgasse','Gemeinschaft','Rosenweg','Einkommensteuer','Nordbahnhof','Lindenallee','Ereignis','Birkenstraße','Ahornplatz','Gefängnis','Uferstraße','Stadtwerke','Hafenweg','Dockstraße','Ostbahnhof','Marktplatz','Gemeinschaft','Kirchgasse','Rathausplatz','Frei Parken','Theaterstraße','Ereignis','Opernplatz','Museumsallee','Südbahnhof','Wiesenstraße','Gartenweg','Wasserwerk','Schlossgasse','Gehe ins Gefängnis','Bankenviertel','Börsenstraße','Gemeinschaft','Goldallee','Westbahnhof','Ereignis','Kaiserstraße','Luxussteuer','Königsallee'],
+  klassisch: ['Start','Warschau','Schatztruhe','Krakau','Einkommensteuer','Flughafen Nord','Budapest','Überraschung','Debrecen','Szeged','Gefängnis','Dublin','Stromwerk','Cork','Galway','Flughafen Ost','Amsterdam','Schatztruhe','Rotterdam','Den Haag','Urlaub','Paris','Überraschung','Lyon','Marseille','Flughafen Süd','Madrid','Barcelona','Wasserwerk','Sevilla','Ins Gefängnis','Rom','Mailand','Schatztruhe','Venedig','Flughafen West','Überraschung','München','Luxussteuer','Berlin'],
   minecraft: ['Spawn','Erdhütte','Truhe','Sandgrube','Hungersteuer','Minenbahn Nord','Kiesstrand','Ereignis','Wiesenhügel','Birkenwald','Verlies','Dschungel','Redstone-Werk','Lehmteich','Sumpfhütte','Minenbahn Ost','Taiga','Truhe','Schneeberg','Eisfjord','Pilzinsel','Savanne','Ereignis','Mesa','Wüstentempel','Minenbahn Süd','Ozeanmonument','Korallenriff','Wasserwerk','Unterwasserhöhle','Zum Verlies','Nether-Brücke','Lavasee','Truhe','Netherfestung','Minenbahn West','Ereignis','End-Stadt','Beacon-Steuer','Thron des Drachen'],
+};
+const GN = {
+  klassisch: ['Polen', 'Ungarn', 'Irland', 'Niederlande', 'Frankreich', 'Spanien', 'Italien', 'Deutschland'],
+  minecraft: ['Dorf', 'Ebene', 'Wald', 'Gebirge', 'Wüste', 'Ozean', 'Nether', 'Ende'],
 };
 const CARDS = [['Bankirrtum zu deinen Gunsten: +150',{m:150}],['Strafzettel: -50',{m:-50}],['Geburtstag: +100',{m:100}],
 ['Gehe direkt zum Start',{go:0}],['Gehe ins Gefängnis',{jail:1}],['Reise zum letzten Feld',{go:39}],['Arztrechnung: -100',{m:-100}],['Lotteriegewinn: +200',{m:200}]];
@@ -20,7 +24,7 @@ function newGame(players, settings) {
     players: players.map((p) => ({ id: p.id, name: p.name, money: settings.budget, pos: 0, jail: 0, out: false })) };
 }
 function view(g) {
-  return { ...g, board: B.map((f, i) => ({ n: NAMES[g.map][i], t: f[0], g: f[0] === 'p' ? f[3] : null, p: f[1] || 0, r: f[2] || 0 })) };
+  return { ...g, groups: GN[g.map], board: B.map((f, i) => ({ n: NAMES[g.map][i], t: f[0], g: f[0] === 'p' ? f[3] : null, p: f[1] || 0, r: f[2] || 0 })) };
 }
 function bankrupt(g, p, to) {
   if (to) to.money += Math.max(p.money, 0);
@@ -115,11 +119,13 @@ function manage(g, p, a) {
   const hs = g.houses, h = hs[i] || 0, G = grp(i).map((k) => hs[k] || 0);
   if (a.type === 'build' && f[0] === 'p' && grp(i).every((k) => g.owners[k] === p.id && !g.mort[k]) && h < 5 && h === Math.min(...G) && p.money >= cost(i)) {
     p.money -= cost(i); hs[i] = h + 1;
+    say(g, `${p.name} baut auf ${NAMES[g.map][i]} (${hs[i] === 5 ? 'Hotel' : hs[i] + '. Haus'})`);
   } else if (a.type === 'sell' && h > 0 && h === Math.max(...G)) {
     hs[i] = h - 1; p.money += cost(i) / 2;
+    say(g, `${p.name} verkauft ein Gebäude auf ${NAMES[g.map][i]}`);
   } else if (a.type === 'mortgage') {
-    if (g.mort[i]) { const c = Math.ceil(f[1] / 2 * 1.1); if (p.money >= c) { p.money -= c; delete g.mort[i]; } }
-    else if (f[0] !== 'p' || G.every((x) => x === 0)) { g.mort[i] = true; p.money += f[1] / 2; }
+    if (g.mort[i]) { const c = Math.ceil(f[1] / 2 * 1.1); if (p.money >= c) { p.money -= c; delete g.mort[i]; say(g, `${p.name} löst die Hypothek auf ${NAMES[g.map][i]} aus`); } }
+    else if (f[0] !== 'p' || G.every((x) => x === 0)) { g.mort[i] = true; p.money += f[1] / 2; say(g, `${p.name} nimmt eine Hypothek auf ${NAMES[g.map][i]} auf`); }
   }
 }
 // Handel: jeder Spieler kann jederzeit Angebote machen; der Server prüft alles beim Erstellen und beim Annehmen
@@ -133,6 +139,7 @@ function tradeAct(g, pid, a) {
     const gm = Math.max(0, Math.floor(Number(a.gm) || 0)), tm = Math.max(0, Math.floor(Number(a.tm) || 0));
     if (!to || to.out || to === me || !(gm || tm || gp.length || tp.length)) return;
     if (!tradable(g, pid, gp) || !tradable(g, to.id, tp) || gm > me.money || tm > to.money) return;
+    if (a.replace) g.trades = g.trades.filter((x) => !(x.id === Number(a.replace) && x.to === pid)); // Gegenangebot ersetzt das alte Angebot
     if (g.trades.length >= 10) g.trades.shift();
     g.trades.push({ id: ++g.tid, from: pid, to: to.id, gm, gp, tm, tp });
     return;
@@ -149,6 +156,11 @@ function tradeAct(g, pid, a) {
 }
 function act(g, pid, a) {
   if (String(a.type).startsWith('trade')) return tradeAct(g, pid, a);
+  if (['build', 'sell', 'mortgage'].includes(a.type)) { // Bauen und Hypotheken gehen jederzeit, nicht nur im eigenen Zug
+    const q = g.players.find((x) => x.id === pid);
+    if (q && !q.out && g.phase !== 'over') manage(g, q, a);
+    return;
+  }
   act0(g, pid, a);
   if (g.debt && g.phase !== 'debt' && g.phase !== 'over') { g.resume = g.phase; g.phase = 'debt'; }
 }
