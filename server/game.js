@@ -19,9 +19,10 @@ const rnd = () => 1 + Math.floor(Math.random() * 6);
 const cur = (g) => g.players[g.turn];
 const say = (g, t) => { g.log.push(t); if (g.log.length > 120) g.log.shift(); };
 
+const DEFAULT_RULES = { doubleRent: true, vacation: true, noRentPrison: true, evenBuild: true, randomOrder: false };
 function newGame(players, settings) {
-  return { map: settings.map, owners: {}, houses: {}, mort: {}, minus: null, trades: [], tid: 0, rn: 0, turn: 0, phase: 'roll', dice: [0, 0], dbl: 0, again: false, winner: null, log: ['Das Spiel beginnt!'],
-    players: players.map((p) => ({ id: p.id, name: p.name, money: settings.budget, pos: 0, jail: 0, out: false })) };
+  return { map: settings.map, rules: { ...DEFAULT_RULES, ...(settings.rules || {}) }, pot: 0, owners: {}, houses: {}, mort: {}, minus: null, trades: [], tid: 0, rn: 0, turn: 0, phase: 'roll', dice: [0, 0], dbl: 0, again: false, winner: null, log: ['Das Spiel beginnt!'],
+    players: players.map((p) => ({ id: p.id, name: p.name, color: p.color || 0, money: settings.budget, pos: 0, jail: 0, out: false })) };
 }
 function view(g) {
   return { ...g, groups: GN[g.map], board: B.map((f, i) => ({ n: NAMES[g.map][i], t: f[0], g: f[0] === 'p' ? f[3] : null, p: f[1] || 0, r: f[2] || 0 })) };
@@ -42,6 +43,7 @@ const worth = (g, p) => Object.keys(g.owners).filter((k) => g.owners[k] === p.id
 const MINUS_MS = 3 * 60 * 1000; // so lange hat man Zeit, wieder ins Plus zu kommen
 function pay(g, p, amt, to) {
   p.money -= amt; if (to) to.money += amt; // darf ins Minus gehen, kein automatisches Aufgeben
+  if (!to && g.rules.vacation) g.pot += amt; // Zahlungen an die Bank wandern in den Urlaubs-Topf
   if (p.money < 0) { say(g, `${p.name} ist im Minus (${p.money} €)`); g.minus = { id: p.id, until: Date.now() + MINUS_MS }; }
 }
 // Minus-Timer löschen, sobald der Spieler wieder im Plus ist (oder ausgeschieden)
@@ -68,13 +70,14 @@ function land(g, p) {
     if (!o) { g.phase = 'buy'; return; }
     if (o !== p.id && !g.mort[p.pos]) {
       const ow = g.players.find((x) => x.id === o); let rent;
-      if (f[0] === 'p') rent = g.houses[p.pos] ? f[2] * [1, 5, 15, 45, 80, 125][g.houses[p.pos]] : f[2] * (B.every((x, i) => x[0] !== 'p' || x[3] !== f[3] || g.owners[i] === o) ? 2 : 1);
+      if (f[0] === 'p') rent = g.houses[p.pos] ? f[2] * [1, 5, 15, 45, 80, 125][g.houses[p.pos]] : f[2] * (g.rules.doubleRent && B.every((x, i) => x[0] !== 'p' || x[3] !== f[3] || g.owners[i] === o) ? 2 : 1);
       else if (f[0] === 'r') rent = 25 * 2 ** (B.filter((x, i) => x[0] === 'r' && g.owners[i] === o).length - 1);
       else rent = (g.dice[0] + g.dice[1]) * (B.filter((x, i) => x[0] === 'u' && g.owners[i] === o).length > 1 ? 10 : 4);
-      say(g, `${p.name} zahlt ${rent} Miete an ${ow.name} (${nm})`);
-      pay(g, p, rent, ow);
+      if (g.rules.noRentPrison && ow.jail) say(g, `${ow.name} sitzt im Gefängnis: keine Miete für ${nm}`);
+      else { say(g, `${p.name} zahlt ${rent} Miete an ${ow.name} (${nm})`); pay(g, p, rent, ow); }
     }
   } else if (f[0] === 'tax') { say(g, `${p.name} zahlt ${f[1]} Steuern`); pay(g, p, f[1], null); }
+  else if (f[0] === 'free' && g.rules.vacation && g.pot > 0) { say(g, `${p.name} kassiert ${g.pot} € Urlaubsgeld`); p.money += g.pot; g.pot = 0; }
   else if (f[0] === 'gojail') toJail(g, p);
   else if (f[0] === 'c' || f[0] === 'ch') {
     const c = CARDS[Math.floor(Math.random() * CARDS.length)], e = c[1];
@@ -122,10 +125,10 @@ function manage(g, p, a) {
   const i = Number(a.pos), f = B[i];
   if (!f || g.owners[i] !== p.id) return;
   const hs = g.houses, h = hs[i] || 0, G = grp(i).map((k) => hs[k] || 0);
-  if (a.type === 'build' && f[0] === 'p' && grp(i).every((k) => g.owners[k] === p.id && !g.mort[k]) && h < 5 && h === Math.min(...G) && p.money >= cost(i)) {
+  if (a.type === 'build' && f[0] === 'p' && grp(i).every((k) => g.owners[k] === p.id && !g.mort[k]) && h < 5 && (!g.rules.evenBuild || h === Math.min(...G)) && p.money >= cost(i)) {
     p.money -= cost(i); hs[i] = h + 1;
     say(g, `${p.name} baut auf ${NAMES[g.map][i]} (${hs[i] === 5 ? 'Hotel' : hs[i] + '. Haus'})`);
-  } else if (a.type === 'sell' && h > 0 && h === Math.max(...G)) {
+  } else if (a.type === 'sell' && h > 0 && (!g.rules.evenBuild || h === Math.max(...G))) {
     hs[i] = h - 1; p.money += cost(i) / 2;
     say(g, `${p.name} verkauft ein Gebäude auf ${NAMES[g.map][i]}`);
   } else if (a.type === 'mortgage') {
