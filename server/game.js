@@ -176,4 +176,4 @@ function drop(g, pid) {
   if (g.phase !== 'over' && was) next(g);
   chk(g);
 }
-module.exports = { newGame, act, drop, view, tick };
+module.exports = { newGame, act, drop, view, tick, note: say };
