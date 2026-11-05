@@ -20,7 +20,7 @@ const cur = (g) => g.players[g.turn];
 const say = (g, t) => { g.log.push(t); if (g.log.length > 8) g.log.shift(); };
 
 function newGame(players, settings) {
-  return { map: settings.map, owners: {}, houses: {}, mort: {}, debt: null, resume: null, trades: [], tid: 0, turn: 0, phase: 'roll', dice: [0, 0], dbl: 0, again: false, winner: null, log: ['Das Spiel beginnt!'],
+  return { map: settings.map, owners: {}, houses: {}, mort: {}, debt: null, resume: null, trades: [], tid: 0, rn: 0, turn: 0, phase: 'roll', dice: [0, 0], dbl: 0, again: false, winner: null, log: ['Das Spiel beginnt!'],
     players: players.map((p) => ({ id: p.id, name: p.name, money: settings.budget, pos: 0, jail: 0, out: false })) };
 }
 function view(g) {
@@ -83,7 +83,7 @@ function act0(g, pid, a) {
   if (g.phase === 'over' || p.id !== pid) return;
   if (a.type === 'jailpay' && g.phase === 'roll' && p.jail) { pay(g, p, 50, null); p.jail = 0; if (p.out) g.phase = 'end'; }
   else if (a.type === 'roll' && g.phase === 'roll') {
-    g.dice = [rnd(), rnd()];
+    g.dice = [rnd(), rnd()]; g.rn++; // Wurfzähler: nur ein neuer Wurf startet die Würfel-Animation
     const dbl = g.dice[0] === g.dice[1];
     say(g, `${p.name} würfelt ${g.dice[0]} + ${g.dice[1]}`);
     if (p.jail) {
