@@ -20,7 +20,7 @@ const newCode = () => {
 
 function broadcast(room) {
   const base = {
-    type: 'room', chat: room.chat, game: room.game ? G.view(room.game) : null, code: room.code, hostId: room.hostId, settings: room.settings,
+    type: 'room', now: Date.now(), chat: room.chat, game: room.game ? G.view(room.game) : null, code: room.code, hostId: room.hostId, settings: room.settings,
     players: [...room.players.values()].map((p) => ({ id: p.id, name: p.name, guest: p.guest })),
   };
   room.players.forEach((p) => send(p.ws, { ...base, you: p.id }));
@@ -97,5 +97,8 @@ wss.on('connection', (ws) => {
   });
   ws.on('close', () => leave(ws));
 });
+
+// Minus-Timer: jede Sekunde prüfen, ob jemandes Zeit abgelaufen ist
+setInterval(() => rooms.forEach((r) => { if (r.game && G.tick(r.game)) broadcast(r); }), 1000);
 
 server.listen(process.env.PORT || 3000, () => console.log('Server läuft'));

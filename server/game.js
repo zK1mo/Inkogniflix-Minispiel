@@ -20,7 +20,7 @@ const cur = (g) => g.players[g.turn];
 const say = (g, t) => { g.log.push(t); if (g.log.length > 120) g.log.shift(); };
 
 function newGame(players, settings) {
-  return { map: settings.map, owners: {}, houses: {}, mort: {}, debt: null, resume: null, trades: [], tid: 0, rn: 0, turn: 0, phase: 'roll', dice: [0, 0], dbl: 0, again: false, winner: null, log: ['Das Spiel beginnt!'],
+  return { map: settings.map, owners: {}, houses: {}, mort: {}, minus: null, trades: [], tid: 0, rn: 0, turn: 0, phase: 'roll', dice: [0, 0], dbl: 0, again: false, winner: null, log: ['Das Spiel beginnt!'],
     players: players.map((p) => ({ id: p.id, name: p.name, money: settings.budget, pos: 0, jail: 0, out: false })) };
 }
 function view(g) {
@@ -30,7 +30,6 @@ function bankrupt(g, p, to) {
   if (to) to.money += Math.max(p.money, 0);
   p.money = 0; p.out = true;
   g.trades = g.trades.filter((t) => t.from !== p.id && t.to !== p.id);
-  if (cur(g) === p) g.debt = null;
   for (const k in g.owners) if (g.owners[k] === p.id) { delete g.houses[k]; if (to) g.owners[k] = to.id; else { delete g.owners[k]; delete g.mort[k]; } }
   say(g, p.name + ' ist bankrott!');
   const alive = g.players.filter((x) => !x.out);
@@ -40,10 +39,21 @@ const cost = (i) => [50, 50, 100, 100, 150, 150, 200, 200][B[i][3]];
 const grp = (i) => B.map((f, k) => k).filter((k) => B[k][0] === 'p' && B[k][3] === B[i][3]);
 const worth = (g, p) => Object.keys(g.owners).filter((k) => g.owners[k] === p.id)
   .reduce((s, k) => s + (g.mort[k] ? 0 : B[k][1] / 2) + (g.houses[k] ? g.houses[k] * cost(k) / 2 : 0), 0);
+const MINUS_MS = 3 * 60 * 1000; // so lange hat man Zeit, wieder ins Plus zu kommen
 function pay(g, p, amt, to) {
-  if (p.money >= amt) { p.money -= amt; if (to) to.money += amt; }
-  else if (p.money + worth(g, p) >= amt) g.debt = { amt, to: to ? to.id : null }; // Spieler kann Geld beschaffen
-  else bankrupt(g, p, to);
+  p.money -= amt; if (to) to.money += amt; // darf ins Minus gehen, kein automatisches Aufgeben
+  if (p.money < 0) { say(g, `${p.name} ist im Minus (${p.money} €)`); g.minus = { id: p.id, until: Date.now() + MINUS_MS }; }
+}
+// Minus-Timer löschen, sobald der Spieler wieder im Plus ist (oder ausgeschieden)
+function chk(g) { if (g.minus) { const q = g.players.find((x) => x.id === g.minus.id); if (!q || q.out || q.money >= 0) g.minus = null; } }
+// Wird vom Server jede Sekunde aufgerufen: Zeit abgelaufen -> Bankrott
+function tick(g) {
+  if (!g.minus || g.phase === 'over' || Date.now() < g.minus.until) return false;
+  const q = g.players.find((x) => x.id === g.minus.id); g.minus = null;
+  if (!q || q.out || q.money >= 0) return true;
+  say(g, `${q.name}: Zeit abgelaufen`);
+  const was = cur(g) === q; bankrupt(g, q, null); if (g.phase !== 'over' && was) next(g);
+  return true;
 }
 function toJail(g, p) { p.pos = 10; p.jail = 1; g.again = false; say(g, p.name + ' geht ins Gefängnis.'); }
 function move(g, p, to) {
@@ -76,19 +86,19 @@ function land(g, p) {
 }
 function next(g) {
   do { g.turn = (g.turn + 1) % g.players.length; } while (cur(g).out);
-  g.phase = 'roll'; g.again = false; g.dbl = 0; g.debt = null;
+  g.phase = 'roll'; g.again = false; g.dbl = 0;
 }
 function act0(g, pid, a) {
   const p = cur(g);
   if (g.phase === 'over' || p.id !== pid) return;
-  if (a.type === 'jailpay' && g.phase === 'roll' && p.jail) { pay(g, p, 50, null); p.jail = 0; if (p.out) g.phase = 'end'; }
-  else if (a.type === 'roll' && g.phase === 'roll') {
+  if (a.type === 'jailpay' && g.phase === 'roll' && p.jail && p.money >= 50) { pay(g, p, 50, null); p.jail = 0; if (p.out) g.phase = 'end'; }
+  else if (a.type === 'roll' && g.phase === 'roll' && p.money >= 0) { // im Minus darf man nicht würfeln
     g.dice = [rnd(), rnd()]; g.rn++; // Wurfzähler: nur ein neuer Wurf startet die Würfel-Animation
     const dbl = g.dice[0] === g.dice[1];
     say(g, `${p.name} würfelt ${g.dice[0]} + ${g.dice[1]}`);
     if (p.jail) {
       if (dbl) { p.jail = 0; g.again = false; }
-      else if (++p.jail > 3) { pay(g, p, 50, null); p.jail = 0; g.again = false; if (p.out) { g.phase = 'end'; return; } if (g.debt) return; }
+      else if (++p.jail > 3) { pay(g, p, 50, null); p.jail = 0; g.again = false; if (p.out) { g.phase = 'end'; return; } }
       else { g.phase = 'end'; return; }
     } else if (dbl) {
       g.dbl++; g.again = true;
@@ -99,18 +109,13 @@ function act0(g, pid, a) {
     const f = B[p.pos];
     if (a.type === 'buy' && p.money >= f[1]) { p.money -= f[1]; g.owners[p.pos] = p.id; say(g, `${p.name} kauft ${NAMES[g.map][p.pos]} für ${f[1]}`); }
     g.phase = g.again ? 'roll' : 'end';
-  } else if (a.type === 'end' && g.phase === 'end') next(g);
+  } else if (a.type === 'end' && g.phase === 'end' && p.money >= 0) next(g);
   else manage(g, p, a);
 }
 // Häuser/Hotels (gleichmäßig bauen), Hypotheken, Schulden begleichen oder aufgeben
 function manage(g, p, a) {
-  if (a.type === 'paydebt' && g.debt && p.money >= g.debt.amt) {
-    const to = g.players.find((x) => x.id === g.debt.to);
-    p.money -= g.debt.amt; if (to) to.money += g.debt.amt;
-    g.debt = null; g.phase = g.resume; return;
-  }
-  if (a.type === 'giveup') {
-    bankrupt(g, p, g.debt && g.players.find((x) => x.id === g.debt.to));
+  if (a.type === 'giveup') { // Aufgeben: alles geht zurück an die Bank
+    bankrupt(g, p, null);
     if (g.phase !== 'over') next(g);
     return;
   }
@@ -138,7 +143,7 @@ function tradeAct(g, pid, a) {
     const gp = [].concat(a.gp || []).map(Number), tp = [].concat(a.tp || []).map(Number);
     const gm = Math.max(0, Math.floor(Number(a.gm) || 0)), tm = Math.max(0, Math.floor(Number(a.tm) || 0));
     if (!to || to.out || to === me || !(gm || tm || gp.length || tp.length)) return;
-    if (!tradable(g, pid, gp) || !tradable(g, to.id, tp) || gm > me.money || tm > to.money) return;
+    if (!tradable(g, pid, gp) || !tradable(g, to.id, tp) || (gm > 0 && gm > me.money) || (tm > 0 && tm > to.money)) return;
     if (a.replace) g.trades = g.trades.filter((x) => !(x.id === Number(a.replace) && x.to === pid)); // Gegenangebot ersetzt das alte Angebot
     if (g.trades.length >= 10) g.trades.shift();
     g.trades.push({ id: ++g.tid, from: pid, to: to.id, gm, gp, tm, tp });
@@ -149,20 +154,19 @@ function tradeAct(g, pid, a) {
   g.trades = g.trades.filter((x) => x !== t);
   if (a.type !== 'tradeok' || pid !== t.to) return;
   const f = g.players.find((x) => x.id === t.from);
-  if (f.out || !tradable(g, t.from, t.gp) || !tradable(g, t.to, t.tp) || t.gm > f.money || t.tm > me.money) return;
+  if (f.out || !tradable(g, t.from, t.gp) || !tradable(g, t.to, t.tp) || (t.gm > 0 && t.gm > f.money) || (t.tm > 0 && t.tm > me.money)) return;
   f.money += t.tm - t.gm; me.money += t.gm - t.tm;
   t.gp.forEach((k) => { g.owners[k] = t.to; }); t.tp.forEach((k) => { g.owners[k] = t.from; });
   say(g, `Handel: ${f.name} und ${me.name} tauschen`);
 }
 function act(g, pid, a) {
-  if (String(a.type).startsWith('trade')) return tradeAct(g, pid, a);
+  if (String(a.type).startsWith('trade')) { tradeAct(g, pid, a); chk(g); return; }
   if (['build', 'sell', 'mortgage'].includes(a.type)) { // Bauen und Hypotheken gehen jederzeit, nicht nur im eigenen Zug
     const q = g.players.find((x) => x.id === pid);
     if (q && !q.out && g.phase !== 'over') manage(g, q, a);
-    return;
+    chk(g); return;
   }
-  act0(g, pid, a);
-  if (g.debt && g.phase !== 'debt' && g.phase !== 'over') { g.resume = g.phase; g.phase = 'debt'; }
+  act0(g, pid, a); chk(g);
 }
 function drop(g, pid) {
   const p = g.players.find((x) => x.id === pid);
@@ -170,5 +174,6 @@ function drop(g, pid) {
   const was = cur(g).id === pid;
   bankrupt(g, p, null);
   if (g.phase !== 'over' && was) next(g);
+  chk(g);
 }
-module.exports = { newGame, act, drop, view };
+module.exports = { newGame, act, drop, view, tick };
