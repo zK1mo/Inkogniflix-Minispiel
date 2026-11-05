@@ -121,6 +121,8 @@ input[type=range]{accent-color:var(--p2);padding:0;margin:4px 0;border:0;backgro
 .tag.why{color:#fbbf24;margin-top:8px}button:disabled{box-shadow:none}
 nav #vol{width:100px;margin:0;flex:none}
 @media(max-width:520px){nav a.ext{display:none}nav #vol{width:80px}.navbrand{font-size:17px}}
+#lg{max-height:240px;overflow-y:auto;padding-right:4px}#lg div{padding:3px 0;border-bottom:1px solid #ffffff10}
+.chip.static{cursor:default}
 </style>
 </head>
 <body>
@@ -281,7 +283,7 @@ function buildInfo(g, me, i) {
 const canSell = (g, i) => { const h = g.houses[i] || 0; return h > 0 && h === Math.max(...grpIds(g, g.board[i].g).map((k) => g.houses[k] || 0)); };
 
 /* ===== Sounds (selbst erzeugt, keine Dateien nötig) ===== */
-let AC = null, master = null, muted = false, vol = 70, seen = '', trk = null;
+let AC = null, master = null, muted = false, vol = 70, seen = '', trk = null, pendingOffer = null, offerId = null;
 const gainOf = () => Math.pow(vol / 100, 1.5) * 1.8;
 try { muted = localStorage.getItem('mute') === '1'; const v = localStorage.getItem('vol'); if (v !== null) vol = Math.min(100, Math.max(0, Number(v) || 0)); } catch {}
 function actx() { if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); master = AC.createGain(); master.gain.value = gainOf(); master.connect(AC.destination); } catch { return null; } } if (AC.state === 'suspended') AC.resume(); return AC; }
@@ -336,6 +338,7 @@ function notify(g) {
     if (n > trk.n && state.chat[n - 1].n !== myName) sfx('chat');
     if (g.phase === 'over' && trk.ph !== 'over') sfx('win');
   }
+  const ni = inc.filter((i) => !trk || !trk.inc.includes(i)); if (ni.length) pendingOffer = ni[0];
   trk = { tid, inc, n, ph: g.phase };
 }
 document.addEventListener('pointerdown', () => { if (!muted) actx(); }, { once: true });
@@ -351,7 +354,7 @@ let vt; $('vol').oninput = () => {
 };
 
 function resetGame() {
-  timers.forEach(clearTimeout); timers = []; busy = false; lastKey = ''; seen = ''; trk = null; shown = {}; tokEl = {}; sel = null;
+  timers.forEach(clearTimeout); timers = []; busy = false; lastKey = ''; seen = ''; trk = null; pendingOffer = null; offerId = null; shown = {}; tokEl = {}; sel = null;
   $('tokens').textContent = ''; $('modal').classList.add('hide');
 }
 function place(t, pos, k) {
@@ -368,7 +371,7 @@ function rollDice(v) {
 function syncGame(g) {
   const key = g.rn !== undefined ? g.rn : g.dice.join() + g.turn, fresh = key !== lastKey && g.dice[0] && lastKey !== '';
   const first = lastKey === ''; lastKey = key;
-  if (fresh) { rollDice(g.dice); sfx('dice'); } else if (!busy) dieEls().forEach((d, i) => showDie(d, g.dice[i]));
+  if (fresh) { rollDice(g.dice); if (g.players[g.turn].id === state.you) sfx('dice'); } else if (!busy) dieEls().forEach((d, i) => showDie(d, g.dice[i]));
   const t0 = fresh ? 950 : 0; let end = t0 && t0;
   g.players.forEach((q, k) => {
     let t = tokEl[q.id];
@@ -377,7 +380,7 @@ function syncGame(g) {
     if (shown[q.id] !== q.pos) {
       const from = shown[q.id], d = (q.pos - from + 40) % 40; shown[q.id] = q.pos;
       const path = d > 0 && d <= 12 ? Array.from({ length: d }, (_, s) => (from + s + 1) % 40) : [q.pos];
-      path.forEach((pos, s) => timers.push(setTimeout(() => { place(t, pos, k); sfx('tick'); }, t0 + s * 160)));
+      path.forEach((pos, s) => timers.push(setTimeout(() => { place(t, pos, k); if (q.id === state.you) sfx('tick'); }, t0 + s * 160)));
       end = Math.max(end, t0 + path.length * 160 + 150);
     }
   });
@@ -473,11 +476,12 @@ function renderGame() {
   const mt = g.trades.filter((t) => t.from === me || t.to === me);
   if (!mt.length) tr.append(el('div', 'tag', 'Keine offenen Angebote'));
   mt.forEach((t) => {
-    const bx = el('div', 'trade'); bx.append(el('div', '', nm(t.from) + ' gibt ' + desc(t.gm, t.gp) + ' · ' + nm(t.to) + ' gibt ' + desc(t.tm, t.tp)));
+    const bx = el('div', 'trade'), inc = t.to === me;
+    bx.append(el('b', '', inc ? 'Angebot von ' + nm(t.from) : 'Dein Angebot an ' + nm(t.to)),
+      el('div', 'tag', (inc ? nm(t.from) + ' gibt: ' : 'Du gibst: ') + desc(t.gm, t.gp)), el('div', 'tag', (inc ? 'Du gibst: ' : nm(t.to) + ' gibt: ') + desc(t.tm, t.tp)));
     const r = el('div', 'row'); r.style.marginTop = '8px';
-    const tb = (txt, ty, gh) => { const b = el('button', 'small' + (gh ? ' ghost' : ''), txt); b.onclick = () => out({ type: ty, id: t.id }); r.append(b); };
-    if (t.to === me) { tb('Annehmen', 'tradeok'); const cb = el('button', 'small ghost', 'Gegenangebot'); cb.onclick = () => openTrade({ to: t.from, gm: t.tm, gp: t.tp, tm: t.gm, tp: t.gp, replace: t.id }); r.append(cb); tb('Ablehnen', 'tradeno', true); } else tb('Zurückziehen', 'tradeno', true);
-    bx.append(r); tr.append(bx);
+    const bt = el('button', 'small' + (inc ? '' : ' ghost'), inc ? 'Ansehen' : 'Zurückziehen');
+    bt.onclick = inc ? () => showOffer(t.id) : () => out({ type: 'tradeno', id: t.id }); r.append(bt); bx.append(r); tr.append(bx);
   });
 
   // Rechts: Grundstücke
@@ -497,11 +501,41 @@ function renderGame() {
   });
 
   // Links: Verlauf und Chat
-  const lg = $('lg'); lg.textContent = ''; g.log.slice().reverse().forEach((t) => lg.append(el('div', '', t)));
+  const lg = $('lg'), keep = lg.scrollTop, atEnd = lg.scrollHeight - lg.scrollTop - lg.clientHeight < 30;
+  lg.textContent = ''; g.log.forEach((t) => lg.append(el('div', '', t))); lg.scrollTop = atEnd ? lg.scrollHeight : keep;
   const ms = $('msgs'); ms.textContent = '';
   if (!state.chat.length) ms.append(el('div', 'tag', 'Noch keine Nachrichten'));
   state.chat.forEach((m) => { const d = el('div'); d.append(el('b', '', m.n + ': '), document.createTextNode(m.t)); ms.append(d); });
   ms.scrollTop = ms.scrollHeight;
+  if (offerId != null && !g.trades.some((x) => x.id === offerId)) { $('modal').classList.add('hide'); offerId = null; } // Angebot wurde zurückgezogen
+  if (pendingOffer != null) { const id = pendingOffer; pendingOffer = null; showOffer(id); }
+}
+
+// Fenster, das aufpoppt, wenn dir jemand ein Handelsangebot macht
+function showOffer(id) {
+  const g = state.game, me = state.you, t = g.trades.find((x) => x.id === id && x.to === me), m = $('modal');
+  if (!t || !m.classList.contains('hide')) return;
+  const nm = (pid) => g.players.find((x) => x.id === pid).name, meP = g.players.find((x) => x.id === me);
+  offerId = id; m.textContent = ''; m.classList.remove('hide');
+  const close = () => { m.classList.add('hide'); offerId = null; }; m.onclick = (e) => { if (e.target === m) close(); };
+  const box = el('div', 'tbox'); m.append(box);
+  const x = el('button', 'tx ghost', '✕'); x.setAttribute('aria-label', 'Später entscheiden'); x.title = 'Später entscheiden'; x.onclick = close;
+  box.append(x, el('div', 'ttl', 'Handelsangebot von ' + nm(t.from)));
+  const col = (pid, title, money, props) => {
+    const w = el('div', 'tside'), hd = el('div', 'thead'), tk = el('div', 'ptok', nm(pid)[0].toUpperCase()), chips = el('div', 'chips');
+    tk.style.background = COL[g.players.findIndex((q) => q.id === pid)]; hd.append(tk, el('b', '', title));
+    props.forEach((k) => { const c = el('div', 'chip static'), d = el('span', 'dot2'); d.style.background = g.board[k].g != null ? gc(g.board[k].g) : '#9ca3af'; c.append(d, document.createTextNode(g.board[k].n + ' · ' + g.board[k].p + ' €')); chips.append(c); });
+    if (!props.length) chips.append(el('div', 'tag', 'Keine Grundstücke'));
+    w.append(hd, el('div', 'pill', money + ' €'), chips); return w;
+  };
+  const cols = el('div', 'tcols'); cols.append(col(t.from, nm(t.from) + ' gibt', t.gm, t.gp), el('div', 'tmid', '⇄'), col(me, 'Du gibst', t.tm, t.tp)); box.append(cols);
+  const row = el('div', 'row'); row.style.marginTop = '20px';
+  const b = (txt, cls, fn, dis) => { const e = el('button', cls, txt); e.disabled = !!dis; e.onclick = fn; row.append(e); };
+  b('Annehmen', '', () => { out({ type: 'tradeok', id }); close(); }, meP.money < t.tm);
+  b('Gegenangebot', 'ghost', () => { close(); openTrade({ to: t.from, gm: t.tm, gp: t.tp, tm: t.gm, tp: t.gp, replace: id }); });
+  b('Ablehnen', 'danger', () => { out({ type: 'tradeno', id }); close(); });
+  box.append(row);
+  if (meP.money < t.tm) box.append(el('div', 'tag why', 'Dir fehlen ' + (t.tm - meP.money) + ' € für dieses Angebot.'));
 }
 
 function openTrade(pre) {
