@@ -112,10 +112,17 @@ input[type=range]{accent-color:var(--p2);padding:0;margin:4px 0;border:0;backgro
 .chip.on{background:#a855f744;border-color:var(--p1)}.dot2{width:12px;height:12px;border-radius:50%;flex:none}
 .psel{font-weight:600;font-size:17px;padding:6px 10px;margin:0}
 .tsend{display:block;margin:20px auto 0}
+
+/* Brett: Balken zeigen zur Brettmitte */
+.cell.top{padding-top:0;padding-bottom:22%}.cell.top .bar{top:auto;bottom:0}.cell.top .own{bottom:auto;top:0}
+.cell.left{padding-top:0;padding-right:22%}.cell.left .bar{top:0;bottom:0;left:auto;right:0;width:24%;height:auto}.cell.left .own{top:0;bottom:0;left:0;right:auto;width:4px;height:auto}
+.cell.right{padding-top:0;padding-left:22%}.cell.right .bar{top:0;bottom:0;left:0;right:auto;width:24%;height:auto}.cell.right .own{top:0;bottom:0;right:0;left:auto;width:4px;height:auto}
+.pflag{height:10px;border-radius:6px;margin:0 0 8px;box-shadow:0 0 0 1px #fff3}.ptop{padding-bottom:6px!important;margin-bottom:0!important}
+.tag.why{color:#fbbf24;margin-top:8px}button:disabled{box-shadow:none}
 </style>
 </head>
 <body>
-<nav><a class="navbrand" href="."><img src="logo.png" alt="">INKOGNIFLIX</a><a class="ext" href="https://zk1mo.github.io/Test-Website/">Zur Website</a></nav>
+<nav><a class="navbrand" href="."><img src="logo.png" alt="">INKOGNIFLIX</a><button id="mute" class="small ghost" aria-label="Ton an/aus">🔊</button><a class="ext" href="https://zk1mo.github.io/Test-Website/">Zur Website</a></nav>
 <main>
   <div class="hero" id="hero">
     <div class="cube" style="width:70px;height:70px;left:4%;top:30px"></div><div class="cube" style="width:46px;height:46px;right:6%;top:120px;animation-delay:-2s"></div>
@@ -247,14 +254,79 @@ function render() {
 /* ===== Monopoly ===== */
 const COL = ['#c471f0', '#38bdf8', '#f59e0b', '#34d399', '#fb7185', '#a3e635', '#f472b6', '#e5e7eb'];
 const GC = ['#8b5a2b', '#7dd3fc', '#f472b6', '#fb923c', '#ef4444', '#facc15', '#22c55e', '#3b5bdb'];
-const ICON = { go: '▶', c: '✉', ch: '?', tax: '$', r: '🚂', u: '💡', jail: '⛓', free: 'P', gojail: '👮' };
+const ICON = { go: '▶', c: '✉', ch: '?', tax: '$', r: '🚂', u: '💡', jail: '⛓', free: '🏝', gojail: '👮' };
+const FLAGS = ['linear-gradient(#fff 50%,#dc143c 50%)', 'linear-gradient(#cd2a3e 33%,#fff 33% 67%,#436f4d 67%)', 'linear-gradient(90deg,#169b62 33%,#fff 33% 67%,#ff883e 67%)',
+  'linear-gradient(#ae1c28 33%,#fff 33% 67%,#21468b 67%)', 'linear-gradient(90deg,#0055a4 33%,#fff 33% 67%,#ef4135 67%)', 'linear-gradient(#c60b1e 25%,#ffc400 25% 75%,#c60b1e 75%)',
+  'linear-gradient(90deg,#009246 33%,#fff 33% 67%,#ce2b37 67%)', 'linear-gradient(#000 33%,#dd0000 33% 67%,#ffce00 67%)'];
+const gc = (k) => state.game.map === 'klassisch' ? FLAGS[k] : GC[k];
 const BC = [50, 50, 100, 100, 150, 150, 200, 200];
 const PIPS = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
-const cellPos = (i) => i <= 10 ? [10, 10 - i] : i <= 20 ? [10 - (i - 10), 0] : i <= 30 ? [0, i - 20] : [i - 30, 10];
+// Start oben links, im Uhrzeigersinn (wie bei Richup)
+const cellPos = (i) => i <= 10 ? [0, i] : i <= 20 ? [i - 10, 10] : i <= 30 ? [10, 10 - (i - 20)] : [10 - (i - 30), 0];
 let sel = null, busy = false, lastKey = '', shown = {}, tokEl = {}, timers = [];
 
+const grpIds = (g, gi) => g.board.map((x, k) => k).filter((k) => g.board[k].g === gi);
+function buildInfo(g, me, i) {
+  const gi = g.board[i].g, ids = grpIds(g, gi), h = g.houses[i] || 0, hs = ids.map((k) => g.houses[k] || 0), money = g.players.find((q) => q.id === me).money;
+  let why = '';
+  if (!ids.every((k) => g.owners[k] === me)) why = 'Zum Bauen muss dir das ganze Land gehören (' + g.groups[gi] + ').';
+  else if (ids.some((k) => g.mort[k])) why = 'Ein Feld dieses Landes ist beliehen.';
+  else if (h >= 5) why = 'Schon voll ausgebaut (Hotel).';
+  else if (h > Math.min(...hs)) why = 'Baue gleichmäßig: erst auf den anderen Feldern des Landes.';
+  else if (money < BC[gi]) why = 'Nicht genug Geld.';
+  return { can: !why, why };
+}
+const canSell = (g, i) => { const h = g.houses[i] || 0; return h > 0 && h === Math.max(...grpIds(g, g.board[i].g).map((k) => g.houses[k] || 0)); };
+
+/* ===== Sounds (selbst erzeugt, keine Dateien nötig) ===== */
+let AC = null, muted = false, seen = '', trk = null;
+try { muted = localStorage.getItem('mute') === '1'; } catch {}
+function actx() { if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch { return null; } } if (AC.state === 'suspended') AC.resume(); return AC; }
+function tone(f, d, type = 'sine', v = .12, at = 0, f2) {
+  const a = muted ? null : actx(); if (!a) return;
+  const o = a.createOscillator(), gn = a.createGain(), t = a.currentTime + at;
+  o.type = type; o.frequency.setValueAtTime(f, t); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + d);
+  gn.gain.setValueAtTime(v, t); gn.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(gn); gn.connect(a.destination); o.start(t); o.stop(t + d + .02);
+}
+function noise(d, v = .15, at = 0, hp = 1200) {
+  const a = muted ? null : actx(); if (!a) return;
+  const n = Math.floor(a.sampleRate * d), buf = a.createBuffer(1, n, a.sampleRate), ch = buf.getChannelData(0);
+  for (let i = 0; i < n; i++) ch[i] = (Math.random() * 2 - 1) * (1 - i / n);
+  const s = a.createBufferSource(), f = a.createBiquadFilter(), gn = a.createGain();
+  s.buffer = buf; f.type = 'highpass'; f.frequency.value = hp; gn.gain.value = v; s.connect(f); f.connect(gn); gn.connect(a.destination); s.start(a.currentTime + at);
+}
+const SFX = {
+  dice: () => { for (let i = 0; i < 9; i++) noise(.06, .2, i * .085, 800 + Math.random() * 1500); tone(180, .1, 'square', .05, .78, 90); },
+  tick: () => tone(520, .05, 'triangle', .07),
+  buy: () => { tone(988, .09, 'square', .07); tone(1319, .25, 'square', .07, .09); },
+  rent: () => { tone(330, .12, 'sawtooth', .06); tone(220, .25, 'sawtooth', .06, .1); },
+  jail: () => tone(200, .5, 'sawtooth', .08, 0, 70),
+  bad: () => { tone(300, .2, 'sawtooth', .08); tone(150, .45, 'sawtooth', .08, .18); },
+  build: () => { noise(.05, .2, 0, 300); tone(240, .08, 'square', .07, .05); tone(320, .1, 'square', .07, .12); },
+  turn: () => { tone(660, .12, 'sine', .1); tone(880, .2, 'sine', .1, .12); },
+  trade: () => { tone(740, .1, 'triangle', .1); tone(740, .1, 'triangle', .1, .16); },
+  chat: () => tone(900, .06, 'sine', .06),
+  win: () => [523, 659, 784, 1047].forEach((f, i) => tone(f, .25, 'triangle', .11, i * .13)),
+};
+const sfx = (n) => { try { SFX[n](); } catch {} };
+const lineSfx = (t) => /bankrott/.test(t) ? 'bad' : /kauft/.test(t) ? 'buy' : /baut|verkauft|Hypothek/.test(t) ? 'build' : /Handel:/.test(t) ? 'trade' : /Gefängnis/.test(t) ? 'jail' : /zahlt/.test(t) ? 'rent' : null;
+function notify(g) {
+  const me = state.you, tid = g.players[g.turn].id, inc = g.trades.filter((t) => t.to === me).map((t) => t.id), n = state.chat.length;
+  const myName = g.players.find((x) => x.id === me).name;
+  if (trk) {
+    if (tid !== trk.tid && tid === me && g.phase !== 'over') timers.push(setTimeout(() => sfx('turn'), 500));
+    if (inc.some((i) => !trk.inc.includes(i))) sfx('trade');
+    if (n > trk.n && state.chat[n - 1].n !== myName) sfx('chat');
+    if (g.phase === 'over' && trk.ph !== 'over') sfx('win');
+  }
+  trk = { tid, inc, n, ph: g.phase };
+}
+document.addEventListener('pointerdown', () => { if (!muted) actx(); }, { once: true });
+$('mute').textContent = muted ? '🔇' : '🔊';
+$('mute').onclick = () => { muted = !muted; try { localStorage.setItem('mute', muted ? '1' : '0'); } catch {} $('mute').textContent = muted ? '🔇' : '🔊'; if (!muted) sfx('tick'); };
+
 function resetGame() {
-  timers.forEach(clearTimeout); timers = []; busy = false; lastKey = ''; shown = {}; tokEl = {}; sel = null;
+  timers.forEach(clearTimeout); timers = []; busy = false; lastKey = ''; seen = ''; trk = null; shown = {}; tokEl = {}; sel = null;
   $('tokens').textContent = ''; $('modal').classList.add('hide');
 }
 function place(t, pos, k) {
@@ -270,8 +342,8 @@ function rollDice(v) {
 }
 function syncGame(g) {
   const key = g.dice.join() + '|' + g.log[g.log.length - 1], fresh = key !== lastKey && g.dice[0] && lastKey !== '';
-  lastKey = key;
-  if (fresh) rollDice(g.dice); else if (!busy) dieEls().forEach((d, i) => showDie(d, g.dice[i]));
+  const first = lastKey === ''; lastKey = key;
+  if (fresh) { rollDice(g.dice); sfx('dice'); } else if (!busy) dieEls().forEach((d, i) => showDie(d, g.dice[i]));
   const t0 = fresh ? 950 : 0; let end = t0 && t0;
   g.players.forEach((q, k) => {
     let t = tokEl[q.id];
@@ -280,10 +352,12 @@ function syncGame(g) {
     if (shown[q.id] !== q.pos) {
       const from = shown[q.id], d = (q.pos - from + 40) % 40; shown[q.id] = q.pos;
       const path = d > 0 && d <= 12 ? Array.from({ length: d }, (_, s) => (from + s + 1) % 40) : [q.pos];
-      path.forEach((pos, s) => timers.push(setTimeout(() => place(t, pos, k), t0 + s * 160)));
+      path.forEach((pos, s) => timers.push(setTimeout(() => { place(t, pos, k); sfx('tick'); }, t0 + s * 160)));
       end = Math.max(end, t0 + path.length * 160 + 150);
     }
   });
+  const L = g.log, ix = L.lastIndexOf(seen), nl = first ? [] : ix < 0 ? L.slice(-3) : L.slice(ix + 1); seen = L[L.length - 1];
+  nl.map(lineSfx).filter(Boolean).slice(0, 2).forEach((n, j) => timers.push(setTimeout(() => sfx(n), end + 120 + j * 350)));
   if (end > 0) { busy = true; timers.push(setTimeout(() => { busy = false; if (state && state.game) renderGame(); }, end)); }
 }
 
@@ -293,12 +367,12 @@ function renderGame() {
   $('rc').textContent = state.code;
   const bd = $('board'); bd.textContent = '';
   g.board.forEach((f, i) => {
-    const [r, c] = cellPos(i), corner = i % 10 === 0;
-    const d = el('div', 'cell' + (corner ? ' corner t-' + f.t : '') + (sel === i ? ' sel' : ''));
+    const [r, c] = cellPos(i), corner = i % 10 === 0, side = corner ? '' : r === 0 ? ' top' : r === 10 ? ' bottom' : c === 0 ? ' left' : ' right';
+    const d = el('div', 'cell' + side + (corner ? ' corner t-' + f.t : '') + (sel === i ? ' sel' : ''));
     d.style.gridArea = (r + 1) + '/' + (c + 1);
     d.onclick = () => { sel = sel === i ? null : i; renderGame(); };
-    if (f.g != null) { const b = el('div', 'bar'); b.style.background = GC[f.g]; d.append(b); }
-    d.append(el('div', 'ic', ICON[f.t] || ''));
+    if (f.g != null) { const b = el('div', 'bar'); b.style.background = gc(f.g); d.append(b); }
+    d.append(el('div', 'ic', f.t === 'r' && g.map === 'klassisch' ? '✈' : ICON[f.t] || ''));
     if (f.p && !corner) d.append(el('div', 'pr', f.p));
     d.append(el('div', 'nm', f.n));
     if (g.houses[i]) d.append(el('b', 'hs', g.houses[i] === 5 ? '🏨' : '🏠' + g.houses[i]));
@@ -306,7 +380,7 @@ function renderGame() {
     if (g.owners[i]) { const o = el('div', 'own'); o.style.background = COL[idx(g.owners[i])]; d.append(o); }
     bd.append(d);
   });
-  syncGame(g);
+  notify(g); syncGame(g);
 
   // Mitte: Logo, Status, Aktionen
   const cx = $('cx'); cx.textContent = ''; const lg0 = el('img', 'clogo'); lg0.src = 'logo.png'; lg0.alt = 'Inkogniflix'; cx.append(lg0);
@@ -330,15 +404,18 @@ function renderGame() {
   // Feld-Karte (Klick auf ein Feld)
   const pop = $('pop'); pop.textContent = ''; pop.classList.toggle('hide', sel == null);
   pop.onclick = () => { sel = null; renderGame(); };
+  const can = !busy && g.phase !== 'over';
   if (sel != null) {
-    const i = sel, f = g.board[i], b = f.r, h = g.houses[i] || 0;
-    const top = el('div', 'ptop', f.n); top.style.borderBottom = '4px solid ' + (f.g != null ? GC[f.g] : '#9ca3af'); pop.append(top);
+    const i = sel, f = g.board[i], b = f.r, h = g.houses[i] || 0, air = g.map === 'klassisch';
+    const fl = el('div', 'pflag'); fl.style.background = f.g != null ? gc(f.g) : '#9ca3af';
+    pop.append(el('div', 'ptop', f.n), fl);
+    if (f.g != null) pop.append(el('div', 'tag', 'Land: ' + g.groups[f.g]));
     const tb = el('div', 'rt'), rr = (a, c) => tb.append(el('span', '', a), el('b', '', c));
     if (f.t === 'p') {
       tb.append(el('span', 'h', 'wann'), el('span', 'h r', 'bekommst'));
-      rr('mit Miete', b + ' €'); rr('mit ganzem Set', 2 * b + ' €');
+      rr('mit Miete', b + ' €'); rr('mit ganzem Land', 2 * b + ' €');
       ['einem Haus', 'zwei Häusern', 'drei Häusern', 'vier Häusern', 'einem Hotel'].forEach((t, k) => rr('mit ' + t, [5, 15, 45, 80, 125][k] * b + ' €'));
-    } else if (f.t === 'r') ['1 Bahnhof', '2 Bahnhöfen', '3 Bahnhöfen', '4 Bahnhöfen'].forEach((t, k) => rr('mit ' + t, 25 * 2 ** k + ' €'));
+    } else if (f.t === 'r') (air ? ['1 Flughafen', '2 Flughäfen', '3 Flughäfen', '4 Flughäfen'] : ['1 Bahnhof', '2 Bahnhöfen', '3 Bahnhöfen', '4 Bahnhöfen']).forEach((t, k) => rr('mit ' + t, 25 * 2 ** k + ' €'));
     else if (f.t === 'u') { rr('mit einem Werk', '4× Würfel'); rr('mit zwei Werken', '10× Würfel'); }
     else tb.append(el('span', '', 'Sonderfeld'));
     pop.append(tb);
@@ -347,10 +424,11 @@ function renderGame() {
       cell('Preis', f.p + ' €'); if (f.t === 'p') { cell('🏠 Haus', BC[f.g] + ' €'); cell('🏨 Hotel', BC[f.g] + ' €'); } else cell('Hypothek', f.p / 2 + ' €');
       pop.append(ft);
       pop.append(el('div', 'tag', (g.owners[i] ? 'Besitzer: ' + nm(g.owners[i]) : 'Noch frei') + (f.t === 'p' && g.owners[i] ? ' · Häuser: ' + h + '/5' : '') + (g.mort[i] ? ' · beliehen' : '')));
-      if (g.owners[i] === me && mine && !busy) {
-        const ac = el('div', 'pact'), ab = (t, a, gh) => { const x = el('button', gh ? 'ghost' : '', t); x.onclick = (e) => { e.stopPropagation(); out({ type: a, pos: i }); }; ac.append(x); };
-        if (f.t === 'p') { ab('Bauen ' + BC[f.g] + ' €', 'build'); ab('Verkaufen', 'sell', 1); }
-        ab(g.mort[i] ? 'Auslösen ' + Math.ceil(f.p / 2 * 1.1) + ' €' : 'Hypothek +' + f.p / 2 + ' €', 'mortgage', 1); pop.append(ac);
+      if (g.owners[i] === me && can) {
+        const ac = el('div', 'pact'), ab = (t, a, gh, dis) => { const x = el('button', gh ? 'ghost' : '', t); x.disabled = !!dis; x.onclick = (e) => { e.stopPropagation(); out({ type: a, pos: i }); }; ac.append(x); };
+        if (f.t === 'p') { const bi = buildInfo(g, me, i); ab('Bauen ' + BC[f.g] + ' €', 'build', 0, !bi.can); ab('Verkaufen', 'sell', 1, !canSell(g, i)); if (!bi.can) pop.append(el('div', 'tag why', bi.why)); }
+        ab(g.mort[i] ? 'Auslösen ' + Math.ceil(f.p / 2 * 1.1) + ' €' : 'Hypothek +' + f.p / 2 + ' €', 'mortgage', 1, f.t === 'p' && !g.mort[i] && grpIds(g, f.g).some((k) => g.houses[k]));
+        pop.append(ac);
       }
     }
   }
@@ -365,7 +443,7 @@ function renderGame() {
   if (mine && !busy && g.phase !== 'over') { const b = el('button', 'small danger', 'Aufgeben'); b.style.marginTop = '8px'; b.onclick = () => { if (confirm('Wirklich aufgeben?')) out({ type: 'giveup' }); }; pl.append(b); }
 
   // Rechts: Handel
-  const tr = $('trCard'); tr.textContent = ''; const hd = el('div', 'hd', 'Handel'); const nb = el('button', 'small', '＋ Erstellen'); nb.onclick = openTrade; hd.append(nb); tr.append(hd);
+  const tr = $('trCard'); tr.textContent = ''; const hd = el('div', 'hd', 'Handel'); const nb = el('button', 'small', '＋ Erstellen'); nb.onclick = () => openTrade(); hd.append(nb); tr.append(hd);
   const desc = (m, ps) => [m ? m + ' €' : '', ...ps.map((k) => g.board[k].n)].filter(Boolean).join(' + ') || 'nichts';
   const mt = g.trades.filter((t) => t.from === me || t.to === me);
   if (!mt.length) tr.append(el('div', 'tag', 'Keine offenen Angebote'));
@@ -373,7 +451,7 @@ function renderGame() {
     const bx = el('div', 'trade'); bx.append(el('div', '', nm(t.from) + ' gibt ' + desc(t.gm, t.gp) + ' · ' + nm(t.to) + ' gibt ' + desc(t.tm, t.tp)));
     const r = el('div', 'row'); r.style.marginTop = '8px';
     const tb = (txt, ty, gh) => { const b = el('button', 'small' + (gh ? ' ghost' : ''), txt); b.onclick = () => out({ type: ty, id: t.id }); r.append(b); };
-    if (t.to === me) { tb('Annehmen', 'tradeok'); tb('Ablehnen', 'tradeno', true); } else tb('Zurückziehen', 'tradeno', true);
+    if (t.to === me) { tb('Annehmen', 'tradeok'); const cb = el('button', 'small ghost', 'Gegenangebot'); cb.onclick = () => openTrade({ to: t.from, gm: t.tm, gp: t.tp, tm: t.gm, tp: t.gp, replace: t.id }); r.append(cb); tb('Ablehnen', 'tradeno', true); } else tb('Zurückziehen', 'tradeno', true);
     bx.append(r); tr.append(bx);
   });
 
@@ -383,12 +461,12 @@ function renderGame() {
   pr.append(el('div', 'hd', 'Meine Grundstücke (' + my.length + ')'));
   my.forEach((i) => {
     const f = g.board[i], r = el('div', 'pl'), dot = el('span', 'ptok'), h = g.houses[i] || 0;
-    dot.style.background = f.g != null ? GC[f.g] : '#9ca3af'; dot.style.width = dot.style.height = '14px';
+    dot.style.background = f.g != null ? gc(f.g) : '#9ca3af'; dot.style.width = dot.style.height = '14px';
     r.append(dot, el('span', '', f.n + (g.mort[i] ? ' (Hypothek)' : h ? (h === 5 ? ' 🏨' : ' 🏠' + h) : '')));
-    if (mine && !busy) {
-      const box = el('span', 'sq'), b = (t, a) => { const x = el('button', 'small ghost', t); x.onclick = () => out({ type: a, pos: i }); box.append(x); };
-      if (f.t === 'p') { b('＋ ' + BC[f.g], 'build'); b('－', 'sell'); }
-      b(g.mort[i] ? 'Auslösen' : 'Hypothek', 'mortgage'); r.append(box);
+    if (can) {
+      const box = el('span', 'sq'), b = (t, a, dis, why) => { const x = el('button', 'small ghost', t); x.disabled = !!dis; if (why) x.title = why; x.onclick = () => out({ type: a, pos: i }); box.append(x); };
+      if (f.t === 'p') { const bi = buildInfo(g, me, i); b('＋ ' + BC[f.g], 'build', !bi.can, bi.why); b('－', 'sell', !canSell(g, i)); }
+      b(g.mort[i] ? 'Auslösen' : 'Hypothek', 'mortgage', f.t === 'p' && !g.mort[i] && grpIds(g, f.g).some((k) => g.houses[k])); r.append(box);
     }
     pr.append(r);
   });
@@ -401,14 +479,14 @@ function renderGame() {
   ms.scrollTop = ms.scrollHeight;
 }
 
-function openTrade() {
+function openTrade(pre) {
   const g = state.game, me = state.you, others = g.players.filter((x) => !x.out && x.id !== me);
   if (!others.length) return;
   const m = $('modal'); m.textContent = ''; m.classList.remove('hide');
   const close = () => m.classList.add('hide'); m.onclick = (e) => { if (e.target === m) close(); };
   const box = el('div', 'tbox'); m.append(box);
   const x = el('button', 'tx ghost', '✕'); x.setAttribute('aria-label', 'Schließen'); x.onclick = close;
-  box.append(x, el('div', 'ttl', 'Handel erstellen'));
+  box.append(x, el('div', 'ttl', pre ? 'Gegenangebot' : 'Handel erstellen'));
   const hasB = (k) => g.board.some((f, i) => f.g != null && f.g === g.board[k].g && g.houses[i]);
   const mkSide = (head, who) => {
     const w = el('div', 'tside'), rng = document.createElement('input'), pill = el('div', 'pill', '0 €'), lbl = el('div', 'rl'), chips = el('div', 'chips'), sel = new Set();
@@ -418,23 +496,27 @@ function openTrade() {
       const q = who(); rng.max = Math.floor(q.money / 10) * 10; rng.value = 0; pill.textContent = '0 €'; lbl.textContent = '0 – ' + rng.max + ' €';
       sel.clear(); chips.textContent = '';
       Object.keys(g.owners).filter((k) => g.owners[k] === q.id && !hasB(k)).forEach((k) => {
-        const c = el('button', 'chip ghost'), d = el('span', 'dot2'); d.style.background = g.board[k].g != null ? GC[g.board[k].g] : '#9ca3af';
-        c.append(d, document.createTextNode(g.board[k].n + ' · ' + g.board[k].p + ' €'));
+        const c = el('button', 'chip ghost'), d = el('span', 'dot2'); d.style.background = g.board[k].g != null ? gc(g.board[k].g) : '#9ca3af';
+        c.dataset.k = k; c.append(d, document.createTextNode(g.board[k].n + ' · ' + g.board[k].p + ' €'));
         c.onclick = () => { if (sel.has(k)) sel.delete(k); else sel.add(k); c.classList.toggle('on'); }; chips.append(c);
       });
       if (!chips.children.length) chips.append(el('div', 'tag', 'Keine tauschbaren Grundstücke'));
     };
-    return { w, rng, sel, refresh };
+    const apply = (mn, keys) => {
+      rng.value = Math.min(mn, rng.max); pill.textContent = rng.value + ' €';
+      chips.querySelectorAll('.chip').forEach((c) => { if (keys.map(Number).includes(Number(c.dataset.k))) { sel.add(c.dataset.k); c.classList.add('on'); } });
+    };
+    return { w, rng, sel, refresh, apply };
   };
   const meP = g.players.find((q) => q.id === me), hl = el('div', 'thead'), tk = el('div', 'ptok', meP.name[0].toUpperCase());
   tk.style.background = COL[g.players.indexOf(meP)]; hl.append(tk, el('b', '', meP.name + ' (du)'));
   const who = document.createElement('select'); who.className = 'psel'; others.forEach((o) => { const op = el('option', '', o.name); op.value = o.id; who.append(op); });
   const hr = el('div', 'thead'); hr.append(who);
   const L = mkSide(hl, () => meP), R = mkSide(hr, () => others.find((o) => o.id === who.value));
-  who.onchange = () => R.refresh(); L.refresh(); R.refresh();
+  who.onchange = () => R.refresh(); if (pre) who.value = pre.to; L.refresh(); R.refresh(); if (pre) { L.apply(pre.gm, pre.gp); R.apply(pre.tm, pre.tp); }
   const cols = el('div', 'tcols'); cols.append(L.w, el('div', 'tmid', '⇄'), R.w); box.append(cols);
   const ok = el('button', 'tsend', '➤ Handel senden');
-  ok.onclick = () => { out({ type: 'trade', to: who.value, gm: L.rng.value, tm: R.rng.value, gp: [...L.sel], tp: [...R.sel] }); close(); };
+  ok.onclick = () => { out({ type: 'trade', to: who.value, gm: L.rng.value, tm: R.rng.value, gp: [...L.sel], tp: [...R.sel], replace: pre && pre.replace }); close(); };
   box.append(ok);
 }
 </script>
