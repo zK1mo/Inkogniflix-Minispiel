@@ -2,6 +2,7 @@
 const http = require('http');
 const { WebSocketServer } = require('ws');
 const G = require('./game');
+const db = require('./db');
 
 const server = http.createServer((q, r) => { r.writeHead(200); r.end('Inkogniflix-Server läuft'); });
 const wss = new WebSocketServer({ server });
@@ -57,22 +58,61 @@ function disconnect(ws) {
 // Spieler endgültig entfernen (Zeit abgelaufen oder Votekick): Besitz geht an die Bank, kein Wiederbeitritt
 function removePlayer(room, p, why) {
   if (room.game) { G.drop(room.game, p.id); G.note(room.game, `${p.name} wurde entfernt (${why})`); }
-  room.banned.add(p.cid);
+  room.banned.add(p.cid); if (p.uid) room.banned.add(p.uid);
   room.players.delete(p.id);
   if (!room.players.size) { rooms.delete(room.code); return; }
   if (room.hostId === p.id) room.hostId = nextHost(room);
   broadcast(room);
 }
 
-function enter(ws, room, msg) {
-  const name = clean(msg.name);
+function enter(ws, room, msg, id) {
+  const name = id.name;
   if (!name) return send(ws, { type: 'error', text: 'Bitte gib einen Namen ein.' });
   ws.pid = Math.random().toString(36).slice(2, 10);
   ws.room = room.code;
   const used = new Set([...room.players.values()].map((p) => p.color)); let color = 0; while (used.has(color)) color++;
-  room.players.set(ws.pid, { id: ws.pid, name, color, guest: msg.guest !== false, cid: String(msg.cid || ''), ws, dc: null, votes: new Set() });
+  room.players.set(ws.pid, { id: ws.pid, name, color, guest: id.guest, uid: id.uid, cid: String(msg.cid || ''), ws, dc: null, votes: new Set() });
   if (!room.hostId) room.hostId = ws.pid;
   broadcast(room);
+}
+
+// Wer ist das wirklich? Konto: Token wird bei Supabase geprüft, Name kommt aus der Datenbank. Gast: Name darf kein registrierter sein.
+async function identify(m) {
+  if (m.token) {
+    const u = await db.verifyUser(String(m.token));
+    if (!u) return { error: 'Anmeldung ungültig oder abgelaufen. Bitte melde dich neu an.' };
+    if (await db.isBanned(m.token, u.id)) return { error: 'Dein Konto ist gesperrt.' };
+    const name = clean(await db.username(m.token, u.id));
+    if (!name) return { error: 'Zu deinem Konto gibt es noch keinen Benutzernamen.' };
+    return { name, guest: false, uid: u.id };
+  }
+  const name = clean(m.name);
+  if (name && await db.nameTaken(name)) return { error: 'Dieser Name gehört einem registrierten Spieler. Wähle einen anderen oder melde dich an.' };
+  return { name, guest: true, uid: null };
+}
+
+// Raum erstellen oder betreten (nachdem die Identität geklärt ist)
+function entry(ws, m, id) {
+  const cid = String(m.cid || '');
+  if (m.type === 'create') {
+    const r = { code: newCode(), hostId: null, players: new Map(), banned: new Set(), settings: { budget: 1500, map: 'klassisch', max: 8, rules: { doubleRent: true, vacation: true, noRentPrison: true, evenBuild: true, randomOrder: true, auction: false } }, chat: [] };
+    rooms.set(r.code, r);
+    return enter(ws, r, m, id);
+  }
+  const r = rooms.get(String(m.code || '').toUpperCase());
+  if (!r) return send(ws, { type: 'error', text: 'Diesen Raum gibt es nicht (mehr).' });
+  if (r.banned.has(cid) || (id.uid && r.banned.has(id.uid))) return send(ws, { type: 'error', text: 'Du wurdest aus diesem Raum entfernt.' });
+  // gleiches Gerät oder gleiches Konto = derselbe Spieler (Wiederverbinden, auch von einem anderen Gerät)
+  const same = [...r.players.values()].find((x) => (x.cid && x.cid === cid) || (id.uid && x.uid === id.uid));
+  if (r.game && !same) return send(ws, { type: 'error', text: 'Das Spiel läuft bereits.' });
+  if (same) {
+    if (same.ws && same.ws !== ws) { same.ws.room = null; try { same.ws.close(); } catch {} }
+    same.ws = ws; same.dc = null; same.votes.clear(); ws.pid = same.id; ws.room = r.code;
+    if (r.game) G.note(r.game, `${same.name} ist zurück`);
+    return broadcast(r);
+  }
+  if (r.players.size >= r.settings.max) return send(ws, { type: 'error', text: 'Der Raum ist voll.' });
+  enter(ws, r, m, id);
 }
 
 wss.on('connection', (ws) => {
@@ -80,24 +120,12 @@ wss.on('connection', (ws) => {
     let m; try { m = JSON.parse(raw); } catch { return; }
     const room = rooms.get(ws.room);
 
-    if (m.type === 'create' && !room) {
-      const r = { code: newCode(), hostId: null, players: new Map(), banned: new Set(), settings: { budget: 1500, map: 'klassisch', max: 8, rules: { doubleRent: true, vacation: true, noRentPrison: true, evenBuild: true, randomOrder: false, auction: false } }, chat: [] };
-      rooms.set(r.code, r);
-      enter(ws, r, m);
-    } else if (m.type === 'join' && !room) {
-      const r = rooms.get(String(m.code || '').toUpperCase()), cid = String(m.cid || '');
-      if (!r) return send(ws, { type: 'error', text: 'Diesen Raum gibt es nicht (mehr).' });
-      if (r.banned.has(cid)) return send(ws, { type: 'error', text: 'Du wurdest aus diesem Raum entfernt.' });
-      if (r.game) { // laufendes Spiel: nur Wiederverbinden mit demselben Gerät/Browser
-        const p = [...r.players.values()].find((x) => x.cid && x.cid === cid);
-        if (!p) return send(ws, { type: 'error', text: 'Das Spiel läuft bereits.' });
-        if (p.ws && p.ws !== ws) { p.ws.room = null; try { p.ws.close(); } catch {} }
-        p.ws = ws; p.dc = null; p.votes.clear(); ws.pid = p.id; ws.room = r.code;
-        G.note(r.game, `${p.name} ist zurück`);
-        return broadcast(r);
-      }
-      if (r.players.size >= r.settings.max) return send(ws, { type: 'error', text: 'Der Raum ist voll.' });
-      enter(ws, r, m);
+    if ((m.type === 'create' || m.type === 'join') && !room) {
+      if (ws.busy) return;
+      ws.busy = true;
+      identify(m).then((id) => { ws.busy = false; if (ws.room) return; if (id.error) return send(ws, { type: 'error', text: id.error }); entry(ws, m, id); })
+        .catch(() => { ws.busy = false; send(ws, { type: 'error', text: 'Anmeldung konnte nicht geprüft werden. Bitte versuche es gleich noch einmal.' }); });
+      return;
     } else if (room && room.game && ['roll', 'jailpay', 'buy', 'skip', 'end', 'build', 'sell', 'mortgage', 'giveup', 'bid', 'pass', 'trade', 'tradeok', 'tradeno'].includes(m.type)) {
       G.act(room.game, ws.pid, m);
       broadcast(room);
