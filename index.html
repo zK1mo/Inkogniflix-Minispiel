@@ -2,6 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-x9E2GXBXg49L7iJ5u2WcQ19WbXOc6HlM46aU0gTf2Sg='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https://hzvnbtksanoonvkblded.supabase.co wss://inkogniflix-minispiel.onrender.com ws://localhost:3000; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Inkogniflix</title>
 <link rel="icon" href="logo.png">
@@ -139,10 +140,16 @@ nav #vol{width:100px;margin:0;flex:none}
 .cell.auc{outline:2px solid #facc15;outline-offset:-2px;z-index:3;animation:aucp 1s ease-in-out infinite}
 @keyframes aucp{50%{background:#facc1533}}
 @media(prefers-reduced-motion:reduce){.cell.auc{animation:none}}
+.pot{position:relative;z-index:1;margin-top:2px;padding:1px 5px;border-radius:999px;background:#facc15;color:#1a1236;font-weight:800;font-size:max(9px,1.8cqw);line-height:1.3;white-space:nowrap}
+.ctop{display:flex;flex-direction:column;align-items:center;gap:6px}.potline{color:#facc15;font-weight:600;font-size:max(11px,1.8cqw)}
+#amodal{position:fixed;inset:0;background:#000b;display:grid;place-items:center;z-index:60;padding:14px}
+.abox{width:min(440px,100%)}.abox input{margin-bottom:10px}.abox .chk{display:flex;gap:8px;align-items:flex-start;font-size:13px;color:var(--dim)}.abox a{color:var(--p1)}
+.who{font-size:14px;font-weight:600;white-space:nowrap;max-width:150px;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:460px){.navbrand b{display:none}}
 </style>
 </head>
 <body>
-<nav><a class="navbrand" href="."><img src="logo.png" alt="">INKOGNIFLIX</a><button id="mute" class="small ghost" aria-label="Ton an/aus">🔊</button><input id="vol" type="range" min="0" max="100" aria-label="Lautstärke"><a class="ext" href="https://zk1mo.github.io/Inkogniflix/">Zur Website</a></nav>
+<nav><a class="navbrand" href="."><img src="logo.png" alt=""><b>INKOGNIFLIX</b></a><button id="mute" class="small ghost" aria-label="Ton an/aus">🔊</button><input id="vol" type="range" min="0" max="100" aria-label="Lautstärke"><span id="who" class="who hide"></span><button id="authBtn" class="small">Anmelden</button><a class="ext" href="https://zk1mo.github.io/Inkogniflix/">Zur Website</a></nav>
 <main>
   <div class="hero" id="hero">
     <div class="cube" style="width:70px;height:70px;left:4%;top:30px"></div><div class="cube" style="width:46px;height:46px;right:6%;top:120px;animation-delay:-2s"></div>
@@ -159,7 +166,7 @@ nav #vol{width:100px;margin:0;flex:none}
       <div id="joinBox" class="hide"><p class="tag" style="margin:0 0 12px">Du wurdest in Raum <b id="joinCode"></b> eingeladen.</p>
         <button id="joinBtn" style="width:100%">Raum beitreten</button></div>
       <div id="createBox"><button id="createBtn" style="width:100%">Raum erstellen</button>
-        <p class="tag" style="text-align:center">Ohne Login spielst du als Gast. Coins und Avatar folgen mit dem Account.</p></div>
+        <p class="tag" id="homeNote" style="text-align:center"></p></div>
     </div>
   </section>
 
@@ -202,6 +209,18 @@ nav #vol{width:100px;margin:0;flex:none}
   </section>
 </main>
 <div id="modal" class="hide"></div>
+<div id="amodal" class="hide" role="dialog" aria-modal="true" aria-label="Konto"><div class="tbox abox">
+  <button id="aclose" class="tx ghost" aria-label="Schließen">✕</button>
+  <div class="ttl">Konto</div>
+  <div class="row" style="margin-bottom:14px"><button id="tLogin">Login</button><button id="tReg" class="ghost">Registrieren</button></div>
+  <input id="auser" type="text" placeholder="Benutzername oder E-Mail" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="100">
+  <input id="apass" type="password" placeholder="Passwort" autocomplete="current-password" maxlength="200">
+  <p id="regHint" class="tag hide">Du brauchst keine E-Mail. Benutzername 3–20 Zeichen, das Passwort braucht mindestens 8 Zeichen.</p>
+  <label id="acc" class="chk hide"><input type="checkbox" id="accCb"><span>Ich bin mindestens 16 Jahre alt und akzeptiere die <a href="https://zk1mo.github.io/Inkogniflix/#l-nutzung" target="_blank" rel="noopener">Regeln</a> und die <a href="https://zk1mo.github.io/Inkogniflix/#l-datenschutz" target="_blank" rel="noopener">Datenschutzhinweise</a>.</span></label>
+  <p id="amsg" class="tag why" role="alert"></p>
+  <button id="ago" style="width:100%">Anmelden</button>
+  <p class="tag" style="margin-top:12px">Dein Konto ist dasselbe wie auf der Website und wird sicher bei Supabase gespeichert. <a id="forgot" href="https://zk1mo.github.io/Inkogniflix/" target="_blank" rel="noopener">Passwort vergessen? Auf der Website zurücksetzen.</a></p>
+</div></div>
 
 <script>
 const SERVER_URL = location.hostname === 'localhost' ? 'ws://localhost:3000' : 'wss://inkogniflix-minispiel.onrender.com';
@@ -209,7 +228,9 @@ const $ = (id) => document.getElementById(id);
 const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
 const cid = (() => { try { let c = localStorage.getItem('cid'); if (!c) { c = Math.random().toString(36).slice(2); localStorage.setItem('cid', c); } return c; } catch { return 'x'; } })();
 const urlCode = (new URLSearchParams(location.search).get('room') || '').toUpperCase();
-let ws, state = null, skew = 0, retry = null;
+let ws, state = null, skew = 0, retry = null, applySaved = false, curView = 'home';
+try { history.scrollRestoration = 'manual'; } catch {}
+const toTop = () => { window.scrollTo(0, 0); requestAnimationFrame(() => window.scrollTo(0, 0)); };
 const forget = () => { retry = null; try { localStorage.removeItem('room'); } catch {} };
 const out = (o) => ws.send(JSON.stringify(o));
 
@@ -219,12 +240,17 @@ try { $('name').value = localStorage.getItem('name') || ''; } catch {}
 function connect(first) {
   $('err').textContent = 'Verbinde … (der Server braucht beim ersten Mal bis zu 60 Sekunden)';
   ws = new WebSocket(SERVER_URL);
-  ws.onopen = () => { $('err').textContent = ''; out({ ...first, name: $('name').value, cid, guest: true }); };
+  ws.onopen = async () => { $('err').textContent = ''; const token = await getToken(); out({ ...first, name: $('name').value, cid, token }); }; // der Server prüft das Token selbst
   ws.onmessage = (e) => {
     const m = JSON.parse(e.data);
     if (m.type === 'error') { const was = retry; $('err').textContent = m.text; if (was) { forget(); state = null; show(false); $('err').textContent = m.text; } }
     if (m.type === 'kicked') { forget(); show(false); $('err').textContent = 'Der Host hat dich aus dem Raum entfernt.'; ws.close(); }
-    if (m.type === 'room') { skew = m.now - Date.now(); state = m; retry = m.code; try { localStorage.setItem('room', m.code); } catch {} render(); }
+    if (m.type === 'room') {
+      if (applySaved && m.hostId === m.you && !m.game) { // neuer Raum: gespeicherte Host-Einstellungen anwenden
+        applySaved = false;
+        try { const s = loadPref('hostSettings'); if (s) out(s); } catch {}
+      }
+      skew = m.now - Date.now(); state = m; retry = m.code; try { localStorage.setItem('room', m.code); } catch {} render(); }
   };
   ws.onerror = () => { $('err').textContent = 'Keine Verbindung zum Server.'; };
   const mine = ws; // Verbindung weg (z. B. WLAN-Aussetzer): automatisch wieder in den Raum
@@ -233,10 +259,10 @@ function connect(first) {
 function start(first) {
   const n = $('name').value.trim();
   if (!n) { $('err').textContent = 'Bitte gib zuerst einen Namen ein.'; return; }
-  try { localStorage.setItem('name', n); } catch {}
+  if (!auth.session) try { localStorage.setItem('name', n); } catch {}
   connect(first);
 }
-$('createBtn').onclick = () => start({ type: 'create' });
+$('createBtn').onclick = () => { applySaved = true; start({ type: 'create' }); };
 $('joinBtn').onclick = () => start({ type: 'join', code: urlCode });
 $('leaveBtn').onclick = () => { forget(); out({ type: 'leave' }); ws.close(); history.replaceState(null, '', location.pathname); show(false); };
 async function copyLink(b) {
@@ -253,7 +279,11 @@ const RULES = [
   ['auction', 'Auktion', 'Will jemand ein Grundstück nicht kaufen, wird es an den Höchstbietenden versteigert.'],
   ['randomOrder', 'Zufällige Reihenfolge', 'Die Spielreihenfolge wird beim Start ausgelost.'],
 ];
-const sendSettings = () => { const rules = {}; RULES.forEach(([k]) => { rules[k] = $('r_' + k).checked; }); out({ type: 'settings', budget: $('budget').value, map: $('map').value, max: $('max').value, rules }); };
+const sendSettings = () => {
+  const rules = {}; RULES.forEach(([k]) => { rules[k] = $('r_' + k).checked; });
+  const s = { type: 'settings', budget: $('budget').value, map: $('map').value, max: $('max').value, rules };
+  out(s); savePref('hostSettings', s); // für den nächsten Raum merken (im Konto, sonst nur in diesem Browser)
+};
 RULES.forEach(([k, t, d]) => {
   const l = el('label', 'rule'), cb = document.createElement('input'), tx = el('span', 'rtx');
   cb.type = 'checkbox'; cb.id = 'r_' + k; cb.onchange = sendSettings; tx.append(el('b', '', t), el('small', '', d)); l.append(tx, cb, el('span', 'sw')); $('rules').append(l);
@@ -267,10 +297,11 @@ $('chatBtn').onclick = sendChat; $('chatIn').onkeydown = (e) => { if (e.key === 
 function show(inLobby) {
   document.body.classList.remove('ingame'); $('hero').classList.toggle('hide', inLobby);
   $('home').classList.toggle('hide', inLobby); $('lobby').classList.toggle('hide', !inLobby); $('game').classList.add('hide');
-  if (!inLobby) resetGame();
+  if (!inLobby) { curView = 'home'; toTop(); resetGame(); }
 }
 function render() {
   show(true);
+  const view = state.game ? 'game' : 'lobby'; if (view !== curView) { curView = view; toTop(); }
   if (state.game) { $('lobby').classList.add('hide'); $('game').classList.remove('hide'); document.body.classList.add('ingame'); renderGame(); return; }
   resetGame();
   const host = state.you === state.hostId;
@@ -294,6 +325,130 @@ function render() {
 }
 
 /* ===== Monopoly ===== */
+/* ===== Konto (Supabase) =====
+   Im Browser bleibt nur das Login-Token (kurz gültig). Coins, Avatar und Einstellungen liegen in der Datenbank,
+   der Spielserver prüft das Token bei jedem Beitritt selbst. */
+const SB_URL = 'https://hzvnbtksanoonvkblded.supabase.co', SB_KEY = 'sb_publishable_BXqu2VmFxndAXpF4FAqlAg_3Dpr4Lsf', ALIAS = 'zk1mo.github.io', SKEY = 'sbSession';
+const NAME_RE = /^[A-Za-z0-9][A-Za-z0-9_.äöüÄÖÜß-]{2,19}$/;
+const alias = (n) => n.toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss').replace(/[^a-z0-9_-]/g, '-') + '@' + ALIAS;
+const auth = { session: null, username: '', gp: null };
+let prefs = {}, prefTimer = null, refreshing = null, mode = 'login';
+async function sbx(path, { method = 'GET', token, body, prefer } = {}) {
+  const h = { apikey: SB_KEY, 'Content-Type': 'application/json' };
+  if (token) h.Authorization = 'Bearer ' + token;
+  if (prefer) h.Prefer = prefer;
+  try {
+    const r = await fetch(SB_URL + path, { method, headers: h, body: body ? JSON.stringify(body) : undefined });
+    const t = await r.text(); let d = null; try { d = t ? JSON.parse(t) : null; } catch {}
+    return { ok: r.ok, status: r.status, data: d };
+  } catch { return { ok: false, status: 0, data: null }; }
+}
+function setSession(s) {
+  if (!s || !s.access_token) { auth.session = null; try { localStorage.removeItem(SKEY); } catch {} return; }
+  auth.session = { access_token: s.access_token, refresh_token: s.refresh_token, expires_at: s.expires_at || Math.floor(Date.now() / 1000) + (s.expires_in || 3600), uid: (s.user && s.user.id) || (auth.session && auth.session.uid) };
+  try { localStorage.setItem(SKEY, JSON.stringify(auth.session)); } catch {}
+}
+function refreshSession() { // nur eine Anfrage gleichzeitig
+  if (!auth.session) return Promise.resolve(false);
+  if (!refreshing) refreshing = sbx('/auth/v1/token?grant_type=refresh_token', { method: 'POST', body: { refresh_token: auth.session.refresh_token } })
+    .then((r) => { if (r.ok && r.data && r.data.access_token) { setSession(r.data); return true; } if ([400, 401, 403].includes(r.status)) setSession(null); return false; })
+    .finally(() => { refreshing = null; });
+  return refreshing;
+}
+async function getToken() {
+  if (!auth.session) return null;
+  if (auth.session.expires_at - 60 < Date.now() / 1000) await refreshSession();
+  return auth.session ? auth.session.access_token : null;
+}
+async function doLogin(u, password) {
+  const mail = u.includes('@'), tok = (email) => sbx('/auth/v1/token?grant_type=password', { method: 'POST', body: { email, password } });
+  let r = await tok(mail ? u : alias(u));
+  if (!r.ok && !mail) { const q = await sbx('/rest/v1/rpc/login_email', { method: 'POST', body: { p_login: u, p_password: password } }); if (q.ok && q.data) r = await tok(q.data); } // ältere Konten
+  if (r.ok && r.data && r.data.access_token) { setSession(r.data); return {}; }
+  return { error: r.status === 0 ? 'Keine Verbindung zu Supabase.' : r.status === 400 ? 'Benutzername oder Passwort falsch.' : 'Anmeldung fehlgeschlagen.' };
+}
+async function doRegister(u, password) {
+  const av = await sbx('/rest/v1/rpc/username_available', { method: 'POST', body: { p_name: u } });
+  if (!av.ok) return { error: av.status === 0 ? 'Keine Verbindung zu Supabase.' : 'Der Name konnte nicht geprüft werden.' };
+  if (av.data === false) return { error: 'Dieser Benutzername ist schon vergeben.' };
+  const r = await sbx('/auth/v1/signup', { method: 'POST', body: { email: alias(u), password } });
+  if (!r.ok) return { error: /registered|exists/i.test(JSON.stringify(r.data || '')) ? 'Dieser Benutzername ist schon vergeben.' : r.status === 0 ? 'Keine Verbindung zu Supabase.' : 'Registrierung fehlgeschlagen.' };
+  if (!r.data || !r.data.access_token) return { error: 'Registrierung gerade nicht möglich: Der Admin muss in Supabase „Confirm email“ ausschalten.' };
+  setSession(r.data);
+  const p = await sbx('/rest/v1/profiles?on_conflict=user_id', { method: 'POST', token: r.data.access_token, prefer: 'resolution=merge-duplicates,return=minimal', body: { user_id: r.data.user.id, username: u } });
+  if (!p.ok) { await sbx('/rest/v1/rpc/delete_my_account', { method: 'POST', token: r.data.access_token, body: {} }); setSession(null); return { error: p.status === 409 ? 'Dieser Benutzername ist schon vergeben.' : 'Das Konto konnte nicht angelegt werden.' }; }
+  return {};
+}
+// Benutzername, Spiel-Konto (Coins, Avatar) und Einstellungen aus der Datenbank holen
+async function loadAccount() {
+  const token = await getToken();
+  if (!token) { auth.username = ''; auth.gp = null; prefs = {}; uiAuth(); return; }
+  const uid = auth.session.uid, gpq = '/rest/v1/game_profiles?select=coins,avatar,settings&user_id=eq.' + encodeURIComponent(uid);
+  const pr = await sbx('/rest/v1/profiles?select=username&user_id=eq.' + encodeURIComponent(uid), { token });
+  if (pr.status === 401) { setSession(null); auth.username = ''; auth.gp = null; uiAuth(); return; }
+  auth.username = pr.ok && pr.data && pr.data[0] ? String(pr.data[0].username || '') : '';
+  let g = await sbx(gpq, { token });
+  if (g.ok && Array.isArray(g.data) && !g.data.length) { await sbx('/rest/v1/rpc/game_init', { method: 'POST', token, body: {} }); g = await sbx(gpq, { token }); }
+  auth.gp = g.ok && Array.isArray(g.data) && g.data[0] ? g.data[0] : null;
+  prefs = (auth.gp && auth.gp.settings) || {};
+  if (typeof prefs.vol === 'number') vol = Math.min(100, Math.max(0, prefs.vol));
+  if (typeof prefs.mute === 'boolean') muted = prefs.mute;
+  $('vol').value = vol; icon(); if (master) master.gain.value = gainOf();
+  uiAuth();
+}
+function savePref(k, v) { // eingeloggt: in der Datenbank; Gast: nur in diesem Browser
+  if (auth.session && auth.gp) {
+    prefs[k] = v; clearTimeout(prefTimer);
+    prefTimer = setTimeout(async () => { const t = await getToken(); if (t) sbx('/rest/v1/game_profiles?user_id=eq.' + encodeURIComponent(auth.session.uid), { method: 'PATCH', token: t, prefer: 'return=minimal', body: { settings: prefs } }); }, 800);
+  } else try { localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v)); } catch {}
+}
+function loadPref(k) {
+  if (auth.session && auth.gp) return prefs[k] === undefined ? null : prefs[k];
+  try { const s = localStorage.getItem(k); return s === null ? null : k === 'hostSettings' ? JSON.parse(s) : s; } catch { return null; }
+}
+function uiAuth() {
+  const on = !!auth.session && !!auth.username;
+  $('authBtn').textContent = on ? 'Abmelden' : 'Anmelden'; $('authBtn').classList.toggle('ghost', on);
+  $('who').classList.toggle('hide', !on); $('who').textContent = on ? auth.username + (auth.gp ? ' · 🪙 ' + auth.gp.coins : '') : '';
+  $('name').readOnly = on;
+  if (on) $('name').value = auth.username; else { try { $('name').value = localStorage.getItem('name') || ''; } catch {} }
+  $('homeNote').textContent = on ? 'Eingeloggt als ' + auth.username + '. Deine Einstellungen werden sicher in deinem Konto gespeichert.' : 'Ohne Login spielst du als Gast. Mit einem Konto speichern wir deine Einstellungen sicher und später auch Coins und Avatar.';
+}
+function setMode(m) {
+  mode = m; $('tLogin').classList.toggle('ghost', m !== 'login'); $('tReg').classList.toggle('ghost', m !== 'reg');
+  $('ago').textContent = m === 'login' ? 'Anmelden' : 'Konto erstellen'; $('acc').classList.toggle('hide', m !== 'reg'); $('regHint').classList.toggle('hide', m !== 'reg');
+  $('amsg').textContent = ''; $('auser').placeholder = m === 'reg' ? 'Benutzername (3–20 Zeichen)' : 'Benutzername oder E-Mail'; $('apass').autocomplete = m === 'reg' ? 'new-password' : 'current-password';
+}
+const closeAuth = () => { $('amodal').classList.add('hide'); $('apass').value = ''; };
+$('authBtn').onclick = async () => {
+  if (state) { $('err').textContent = 'Verlasse erst den Raum, um dich an- oder abzumelden.'; return; }
+  if (auth.session) { const t = auth.session.access_token; setSession(null); auth.username = ''; auth.gp = null; prefs = {}; loadLocalPrefs(); $('vol').value = vol; icon(); if (master) master.gain.value = gainOf(); uiAuth(); sbx('/auth/v1/logout?scope=local', { method: 'POST', token: t, body: {} }); return; }
+  setMode('login'); $('amodal').classList.remove('hide'); $('auser').focus();
+};
+$('aclose').onclick = closeAuth; $('amodal').onclick = (e) => { if (e.target === $('amodal')) closeAuth(); };
+$('tLogin').onclick = () => setMode('login'); $('tReg').onclick = () => setMode('reg');
+$('auser').onkeydown = $('apass').onkeydown = (e) => { if (e.key === 'Enter') $('ago').click(); };
+$('ago').onclick = async () => {
+  const u = $('auser').value.trim(), pw = $('apass').value, msg = (t) => { $('amsg').textContent = t; };
+  if (!u || !pw) return msg('Bitte alles ausfüllen.');
+  if (mode === 'reg') {
+    if (!NAME_RE.test(u)) return msg('Benutzername: 3–20 Zeichen, am Anfang Buchstabe oder Zahl, erlaubt sind Buchstaben, Zahlen, _ . -');
+    if (pw.length < 8) return msg('Das Passwort braucht mindestens 8 Zeichen.');
+    if (!$('accCb').checked) return msg('Bitte bestätige Alter und Bedingungen.');
+  }
+  msg('Einen Moment …'); $('ago').disabled = true;
+  const r = mode === 'reg' ? await doRegister(u, pw) : await doLogin(u, pw);
+  $('ago').disabled = false;
+  if (r.error) return msg(r.error);
+  closeAuth(); $('auser').value = ''; await loadAccount();
+};
+// Beim Start: gespeicherte Anmeldung wiederherstellen, danach ggf. automatisch zurück in den Raum
+async function initAuth() {
+  try { const s = JSON.parse(localStorage.getItem(SKEY) || 'null'); if (s && s.access_token && s.refresh_token) auth.session = s; } catch {}
+  uiAuth();
+  if (auth.session) await loadAccount();
+}
+
 const COL = ['#c471f0', '#38bdf8', '#f59e0b', '#34d399', '#fb7185', '#a3e635', '#f472b6', '#e5e7eb', '#facc15', '#f97316', '#14b8a6', '#a16207'];
 const GC = ['#8b5a2b', '#7dd3fc', '#f472b6', '#fb923c', '#ef4444', '#facc15', '#22c55e', '#3b5bdb'];
 const ICON = { go: '▶', c: '✉', ch: '?', tax: '$', r: '🚂', u: '💡', jail: '⛓', free: '🏝', gojail: '👮' };
@@ -323,7 +478,8 @@ const canSell = (g, i) => { const h = g.houses[i] || 0; return h > 0 && (!g.rule
 /* ===== Sounds (selbst erzeugt, keine Dateien nötig) ===== */
 let AC = null, master = null, muted = false, vol = 70, seen = '', trk = null, pendingOffer = null, offerId = null;
 const gainOf = () => Math.pow(vol / 100, 1.5) * 1.8;
-try { muted = localStorage.getItem('mute') === '1'; const v = localStorage.getItem('vol'); if (v !== null) vol = Math.min(100, Math.max(0, Number(v) || 0)); } catch {}
+function loadLocalPrefs() { try { muted = ['1', 'true'].includes(localStorage.getItem('mute')); const v = localStorage.getItem('vol'); vol = v !== null ? Math.min(100, Math.max(0, Number(v) || 0)) : 70; } catch {} }
+loadLocalPrefs();
 function actx() { if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); master = AC.createGain(); master.gain.value = gainOf(); master.connect(AC.destination); } catch { return null; } } if (AC.state === 'suspended') AC.resume(); return AC; }
 function tone(f, d, type = 'sine', v = .12, at = 0, f2) {
   const a = muted ? null : actx(); if (!a) return;
@@ -382,13 +538,13 @@ function notify(g) {
 }
 document.addEventListener('pointerdown', () => { if (!muted) actx(); }, { once: true });
 const icon = () => { $('mute').textContent = muted || vol === 0 ? '🔇' : '🔊'; };
-const saveMute = () => { try { localStorage.setItem('mute', muted ? '1' : '0'); } catch {} };
+const saveMute = () => savePref('mute', muted);
 $('vol').value = vol; icon();
 $('mute').onclick = () => { muted = !muted; saveMute(); icon(); if (!muted) sfx('tick'); };
 let vt; $('vol').oninput = () => {
   vol = Number($('vol').value); if (master) master.gain.value = gainOf();
   if (muted && vol > 0) { muted = false; saveMute(); }
-  try { localStorage.setItem('vol', vol); } catch {} icon();
+  savePref('vol', vol); icon();
   clearTimeout(vt); vt = setTimeout(() => sfx('tick'), 120);
 };
 
@@ -442,7 +598,7 @@ function renderGame() {
     d.append(el('div', 'ic', f.t === 'r' && g.map === 'klassisch' ? '✈' : ICON[f.t] || ''));
     if (f.p && !corner) d.append(el('div', 'pr', f.p));
     if (g.auction && g.auction.pos === i) d.classList.add('auc');
-    if (i === 20 && g.rules.vacation) d.append(el('div', 'pr', g.pot + ' €')); // Urlaubs-Topf
+    if (i === 20 && g.rules.vacation) d.append(el('div', 'pot', g.pot + ' €')); // Urlaubs-Topf gut sichtbar
     d.append(el('div', 'nm', f.n));
     if (g.houses[i]) d.append(el('b', 'hs', g.houses[i] === 5 ? '🏨' : '🏠' + g.houses[i]));
     if (g.mort[i]) d.style.opacity = '.45';
@@ -452,7 +608,8 @@ function renderGame() {
   notify(g); syncGame(g);
 
   // Mitte: Logo, Status, Aktionen
-  const cx = $('cx'); cx.textContent = ''; const lg0 = el('img', 'clogo'); lg0.src = 'logo.png'; lg0.alt = 'Inkogniflix'; cx.append(lg0);
+  const cx = $('cx'); cx.textContent = ''; const lg0 = el('img', 'clogo'); lg0.src = 'logo.png'; lg0.alt = 'Inkogniflix';
+  const ctop = el('div', 'ctop'); ctop.append(lg0); if (g.rules.vacation) ctop.append(el('div', 'potline', '🏝 Urlaubsgeld: ' + g.pot + ' €')); cx.append(ctop);
   const low = el('div', 'low'), row = el('div', 'row'); row.style.justifyContent = 'center';
   const btn = (txt, t, ghost) => { const b = el('button', ghost ? 'ghost' : '', txt); b.onclick = () => out({ type: t }); row.append(b); return b; };
   if (g.phase === 'over') {
@@ -503,7 +660,7 @@ function renderGame() {
       ['einem Haus', 'zwei Häusern', 'drei Häusern', 'vier Häusern', 'einem Hotel'].forEach((t, k) => rr('mit ' + t, [5, 15, 45, 80, 125][k] * b + ' €'));
     } else if (f.t === 'r') (air ? ['1 Flughafen', '2 Flughäfen', '3 Flughäfen', '4 Flughäfen'] : ['1 Bahnhof', '2 Bahnhöfen', '3 Bahnhöfen', '4 Bahnhöfen']).forEach((t, k) => rr('mit ' + t, 25 * 2 ** k + ' €'));
     else if (f.t === 'u') { rr('mit einem Werk', '4× Würfel'); rr('mit zwei Werken', '10× Würfel'); }
-    else tb.append(el('span', '', 'Sonderfeld'));
+    else { const sp = el('span', '', i === 20 ? (g.rules.vacation ? 'Urlaubsgeld im Topf: ' + g.pot + ' €. Wer hier landet, bekommt es.' : 'Urlaubsgeld ist ausgeschaltet.') : 'Sonderfeld'); sp.style.gridColumn = '1 / -1'; tb.append(sp); }
     pop.append(tb);
     if (f.p) {
       const ft = el('div', 'pf'), cell = (a, c) => { const d = el('div'); d.append(el('span', '', a), el('b', '', c)); ft.append(d); };
@@ -657,7 +814,7 @@ function openTrade(pre) {
   ok.onclick = () => { out({ type: 'trade', to: who.value, gm: L.rng.value, tm: R.rng.value, gp: [...L.sel], tp: [...R.sel], replace: pre && pre.replace }); close(); };
   box.append(ok);
 }
-try { if (urlCode && localStorage.getItem('room') === urlCode && $('name').value.trim()) $('joinBtn').click(); } catch {} // Seite neu geladen: automatisch zurück in den Raum
+initAuth().then(() => { try { if (urlCode && localStorage.getItem('room') === urlCode && $('name').value.trim() && (!auth.session || auth.username)) $('joinBtn').click(); } catch {} }); // Seite neu geladen: automatisch zurück in den Raum
 </script>
 </body>
 </html>
