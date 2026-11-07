@@ -206,6 +206,11 @@ function tradeAct(g, pid, a) {
 }
 function act(g, pid, a) {
   if (String(a.type).startsWith('trade')) { tradeAct(g, pid, a); chk(g); return; }
+  if (a.type === 'giveup') { // Aufgeben geht jederzeit, auch wenn man nicht am Zug ist
+    const q = g.players.find((x) => x.id === pid);
+    if (q && !q.out && g.phase !== 'over') { say(g, `${q.name} gibt auf`); drop(g, pid); }
+    return;
+  }
   if (a.type === 'bid' || a.type === 'pass') { auctionAct(g, pid, a); return; }
   if (['build', 'sell', 'mortgage'].includes(a.type)) { // Bauen und Hypotheken gehen jederzeit, nicht nur im eigenen Zug
     const q = g.players.find((x) => x.id === pid);

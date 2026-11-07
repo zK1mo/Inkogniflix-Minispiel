@@ -28,7 +28,7 @@ const nextHost = (room) => ([...room.players.values()].find((p) => p.ws) || [...
 function broadcast(room) {
   const base = {
     type: 'room', now: Date.now(), chat: room.chat, specs: [...room.spec.values()].map((x) => x.name), game: room.game ? G.view(room.game) : null, code: room.code, hostId: room.hostId, settings: room.settings, need: needVotes(room),
-    players: [...room.players.values()].map((p) => ({ id: p.id, name: p.name, guest: p.guest, color: p.color, trading: !!p.trading, dc: p.ws ? null : p.dc, votes: [...p.votes] })),
+    players: [...room.players.values()].map((p) => ({ id: p.id, name: p.name, guest: p.guest, color: p.color, trading: !!p.trading, watch: !!p.watch, dc: p.ws ? null : p.dc, votes: [...p.votes] })),
   };
   room.players.forEach((p) => send(p.ws, { ...base, you: p.id }));
   room.spec.forEach((x) => send(x.ws, { ...base, you: x.id, spec: true })); // Zuschauer sehen alles, können aber nichts tun
@@ -37,7 +37,7 @@ function broadcast(room) {
 function leave(ws) {
   const room = rooms.get(ws.room);
   if (!room) return;
-  if (ws.spec) { room.spec.delete(ws.pid); ws.room = null; return broadcast(room); }
+  if (ws.spec) { room.spec.delete(ws.pid); ws.room = null; if (room.hostId === ws.pid) room.hostId = nextHost(room); return broadcast(room); }
   room.players.delete(ws.pid);
   if (room.game) G.drop(room.game, ws.pid);
   ws.room = null;
@@ -49,7 +49,7 @@ function leave(ws) {
 // Verbindung weg: Im laufenden Spiel bleibt der Platz 3 Minuten frei (Wiederverbinden oder Votekick)
 function disconnect(ws) {
   const room = rooms.get(ws.room), p = room && room.players.get(ws.pid);
-  if (room && ws.spec) { room.spec.delete(ws.pid); return broadcast(room); }
+  if (room && ws.spec) { room.spec.delete(ws.pid); if (room.hostId === ws.pid) room.hostId = nextHost(room); return broadcast(room); }
   if (!p) return;
   if (p.ws !== ws) return; // alte Verbindung wurde schon ersetzt
   if (room.game && room.game.phase !== 'over' && !isOut(room, p.id)) {
@@ -75,7 +75,7 @@ function enter(ws, room, msg, id) {
   ws.pid = Math.random().toString(36).slice(2, 10);
   ws.room = room.code;
   const color = freeColor(room);
-  room.players.set(ws.pid, { id: ws.pid, name, color, guest: id.guest, uid: id.uid, cid: String(msg.cid || ''), ws, dc: null, votes: new Set() });
+  room.players.set(ws.pid, { id: ws.pid, name, color, guest: id.guest, uid: id.uid, cid: String(msg.cid || ''), ws, dc: null, votes: new Set(), watch: false });
   if (!room.hostId) room.hostId = ws.pid;
   broadcast(room);
 }
@@ -139,15 +139,16 @@ wss.on('connection', (ws) => {
       G.act(room.game, ws.pid, m);
       broadcast(room);
     } else if (room && ws.pid === room.hostId) {
-      if (m.type === 'start' && !room.game && room.players.size >= 2) {
-        const ps = [...room.players.values()];
+      if (m.type === 'start' && !room.game && [...room.players.values()].filter((p) => !p.watch).length >= 2) {
+        const all = [...room.players.values()], ps = all.filter((p) => !p.watch); // Zuschauer spielen nicht mit
         if (room.settings.rules.randomOrder) for (let i = ps.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [ps[i], ps[j]] = [ps[j], ps[i]]; }
         room.game = G.newGame(ps, room.settings);
+        all.filter((p) => p.watch).forEach((p) => { room.players.delete(p.id); room.spec.set(p.id, { id: p.id, name: p.name, guest: p.guest, uid: p.uid, cid: p.cid, ws: p.ws, chosen: true }); if (p.ws) p.ws.spec = true; });
         broadcast(room);
       } else if (m.type === 'lobby' && room.game && room.game.phase === 'over') {
         room.game = null;
         room.spec.forEach((x) => {
-          if (room.players.size < room.settings.max) { room.players.set(x.id, { id: x.id, name: x.name, color: freeColor(room), guest: x.guest, uid: x.uid, cid: x.cid, ws: x.ws, dc: null, votes: new Set() }); x.ws.spec = false; }
+          if (room.players.size < room.settings.max) { room.players.set(x.id, { id: x.id, name: x.name, color: freeColor(room), guest: x.guest, uid: x.uid, cid: x.cid, ws: x.ws, dc: null, votes: new Set(), watch: !!x.chosen }); x.ws.spec = false; }
           else { send(x.ws, { type: 'error', text: 'Der Raum ist voll.' }); x.ws.room = null; }
         });
         room.spec.clear();
@@ -179,6 +180,7 @@ wss.on('connection', (ws) => {
         if (t.votes.size >= needVotes(room)) removePlayer(room, t, 'Votekick'); else broadcast(room);
       }
     }
+    if (m.type === 'watch' && room && !room.game && room.players.has(ws.pid)) { room.players.get(ws.pid).watch = !!m.on; broadcast(room); } // in der Lobby nur zuschauen
     if (m.type === 'trading' && room && room.players.has(ws.pid)) { room.players.get(ws.pid).trading = !!m.on; broadcast(room); }
     if (m.type === 'chat' && room && (room.players.has(ws.pid) || room.spec.has(ws.pid))) {
       const t = String(m.text || '').replace(/[<>]/g, '').trim().slice(0, 200), who = room.players.get(ws.pid) || room.spec.get(ws.pid);
