@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-93aC2pI62JwWMg7EznlBp31aibORyYQMn5Ah/eME5Ew='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https://hzvnbtksanoonvkblded.supabase.co wss://inkogniflix-minispiel.onrender.com ws://localhost:3000; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-g5Tf5b9UDcIcHR9dps+vsl5uMwDuWQWbYGn1G+3oOLE='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https://hzvnbtksanoonvkblded.supabase.co wss://inkogniflix-minispiel.onrender.com ws://localhost:3000; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Inkogniflix</title>
 <link rel="icon" href="logo.png">
@@ -518,7 +518,7 @@ function propMark(g, k) {
   return symIcon(f, k, g.map, 16) || el('span', 'dot2');
 }
 const SPEC = { id: '-', name: 'Zuschauer', money: 0, out: true, pos: 0, jail: 0, color: 0, pardon: 0 }; // Platzhalter für Zuschauer
-let holding = false, queued = null, flash = {}, sel = null, busy = false, lastKey = '', shown = {}, tokEl = {}, timers = [];
+let holding = false, holdBase = null, holdMsg = null, holdRollShown = false, flash = {}, sel = null, busy = false, lastKey = '', shown = {}, tokEl = {}, timers = [];
 
 const grpIds = (g, gi) => g.board.map((x, k) => k).filter((k) => g.board[k].g === gi);
 function buildInfo(g, me, i) {
@@ -607,7 +607,7 @@ let vt; $('vol').oninput = () => {
 };
 
 function resetGame() {
-  timers.forEach(clearTimeout); timers = []; busy = false; lastKey = ''; seen = ''; trk = null; pendingOffer = null; offerId = null; shown = {}; tokEl = {}; sel = null; flash = {}; holding = false; queued = null;
+  timers.forEach(clearTimeout); timers = []; busy = false; lastKey = ''; seen = ''; trk = null; pendingOffer = null; offerId = null; shown = {}; tokEl = {}; sel = null; flash = {}; holding = false; holdBase = null; holdMsg = null;
   $('tokens').textContent = ''; $('modal').classList.add('hide');
 }
 function place(t, pos, k) {
@@ -627,18 +627,26 @@ function rollDice(v) {
    Damit das nicht vorgreift, zeigen wir während Würfel- und Figuren-Animation weiter den alten Stand und
    übernehmen den neuen erst, wenn die Figur angekommen ist (bei Karten/Gefängnis: erst auf dem Landefeld, dann weiter). */
 function markCell(pos) { flash[pos] = Date.now() + 1300; const c = $('board').children[pos]; if (c) { c.classList.remove('flash'); void c.offsetWidth; c.classList.add('flash'); } }
+// Während der Animation sofort zeigen: Chat, Handelsangebote, Zuschauer/Verbindungen, Besitz, die Würfel-Zeile und Handel-Zeilen.
+// Zurückhalten: Geld, Position, Gefängnis, Phase, Auktion, Miete/Karten-Zeilen (kommen erst nach der Landung).
+function overlayState(m) {
+  const g = m.game, b = holdBase, last = b.log[b.log.length - 1], ix = g.log.lastIndexOf(last), nl = ix >= 0 ? g.log.slice(ix + 1) : g.log.slice(-3);
+  const show = nl.filter((l, i) => (i === 0 && holdRollShown) || (i > 0 && /^Handel:/.test(l)));
+  return { ...m, game: { ...b, trades: g.trades, tid: g.tid, owners: g.owners, houses: g.houses, mort: g.mort, rn: g.rn, log: b.log.concat(show) } };
+}
 function incoming(m) {
-  if (holding) { queued = m; return; } // Animation läuft: später anzeigen (der neueste Stand gewinnt)
+  if (holding) { holdMsg = m; state = overlayState(m); render(); return; } // Animation läuft: nur die unkritischen Teile sofort zeigen
   const g = m.game, old = state && state.game;
   if (g && old && g.rn !== undefined && g.rn === lastKey + 1 && g.dice[0] && lastKey !== '' && g.players.length === old.players.length) { startHold(m); return; }
   state = m; render();
 }
-function lockUI() { document.querySelectorAll('#cx button, #prCard button, #pop button').forEach((b) => { b.disabled = true; }); }
 function startHold(m) {
-  const g = m.game; holding = true; busy = true; queued = null; lastKey = g.rn; lockUI();
+  const g = m.game; holdBase = state.game; holdMsg = m; holdRollShown = false; holding = true; busy = true; lastKey = g.rn;
+  state = overlayState(m); render(); // Chat, Handel usw. sofort; Knöpfe sind wegen "busy" gesperrt
   rollDice(g.dice); if (g.players[g.turn].id === state.you) sfx('dice');
+  timers.push(setTimeout(() => { holdRollShown = true; if (holding) { state = overlayState(holdMsg); render(); } }, 950)); // Würfel liegen: Würfel-Zeile in den Verlauf
   const end = planMoves(g, 950);
-  timers.push(setTimeout(() => { holding = false; busy = false; const next = queued || m; queued = null; state = next; render(); }, end + 250));
+  timers.push(setTimeout(() => { holding = false; busy = false; state = holdMsg; holdBase = null; render(); }, end + 250));
 }
 function planMoves(g, t0) {
   let end = t0; const sum = g.dice[0] + g.dice[1], roller = g.players[g.turn];
@@ -675,6 +683,7 @@ function syncGame(g) {
     let t = tokEl[q.id];
     if (!t) { t = tokEl[q.id] = el('div', 'ptok'); $('tokens').append(t); shown[q.id] = q.pos; place(t, q.pos, k); }
     t.style.background = COL[q.color]; t.textContent = q.name[0].toUpperCase(); t.style.display = q.out ? 'none' : '';
+    if (holding) return; // Bewegung wird gerade von planMoves gesteuert
     if (shown[q.id] !== q.pos) {
       const from = shown[q.id], d = (q.pos - from + 40) % 40; shown[q.id] = q.pos;
       const jump = q.jail > 0 && q.pos === 10; // ins Gefängnis: direkt, sonst immer Feld für Feld (auch weite Wege, z. B. "Gehe zum Start")
