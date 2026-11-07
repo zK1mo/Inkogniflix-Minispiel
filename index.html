@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-x9E2GXBXg49L7iJ5u2WcQ19WbXOc6HlM46aU0gTf2Sg='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https://hzvnbtksanoonvkblded.supabase.co wss://inkogniflix-minispiel.onrender.com ws://localhost:3000; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-H3t8Lr7piC2qDndpHT6KhbLsPlO4WycdMHH4ut0TcAE='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https://hzvnbtksanoonvkblded.supabase.co wss://inkogniflix-minispiel.onrender.com ws://localhost:3000; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Inkogniflix</title>
 <link rel="icon" href="logo.png">
@@ -12,7 +12,7 @@
 *{box-sizing:border-box}
 body{margin:0;min-height:100vh;font-family:Outfit,system-ui,sans-serif;color:var(--text);background:radial-gradient(900px 500px at 70% 100%,#4c1d7a66,transparent),var(--bg)}
 main{max-width:520px;margin:0 auto;padding:28px 18px 60px}
-body.ingame main{max-width:1500px;padding:14px}
+body.ingame main{max-width:1760px;padding:10px 14px}
 body.ingame h1,body.ingame p.sub{display:none}
 h1{font-size:44px;font-weight:800;letter-spacing:1px;margin:8px 0 6px;text-align:center;background:linear-gradient(90deg,#f3dcff,#b36cf5);-webkit-background-clip:text;background-clip:text;color:transparent}
 p.sub{text-align:center;color:var(--dim);margin:0 0 26px;line-height:1.5}
@@ -33,11 +33,11 @@ button:disabled{opacity:.45;cursor:not-allowed}
 #err{color:var(--bad);text-align:center;min-height:22px;margin-bottom:8px}
 .hide{display:none!important}
 /* ===== Spielansicht ===== */
-#game{display:grid;grid-template-columns:minmax(250px,1fr) minmax(0,740px) minmax(250px,1fr);gap:14px;align-items:start;justify-content:center}
+#game{display:grid;grid-template-columns:minmax(230px,300px) minmax(0,1fr) minmax(230px,300px);gap:14px;align-items:start;justify-content:center}
 @media(max-width:1080px){#game{grid-template-columns:1fr}#colC{order:-1}#colL{order:1}}
-#bw{position:relative;aspect-ratio:1;width:min(100%,calc(100vh - 100px));margin:0 auto;container-type:inline-size;border-radius:18px;overflow:hidden;border:1px solid var(--line);background:radial-gradient(circle,#2c1258,#0b0718 75%);box-shadow:0 0 40px #9b5cf633}
+#bw{position:relative;aspect-ratio:1;width:min(100%,calc(100vh - 84px));margin:0 auto;container-type:inline-size;border-radius:18px;overflow:hidden;border:1px solid var(--line);background:radial-gradient(circle,#2c1258,#0b0718 75%);box-shadow:0 0 40px #9b5cf633}
 #board{position:absolute;inset:0;display:grid;grid-template:repeat(11,1fr)/repeat(11,1fr)}
-.cell{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;padding-top:22%;border:1px solid #2e215088;background:#1a123688;color:var(--dim);text-align:center;line-height:1.1;cursor:pointer;min-width:0}
+.cell{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0;border:1px solid #2e215088;background:#1a123688;color:var(--dim);text-align:center;line-height:1.1;cursor:pointer;min-width:0}
 .cell.sel{outline:2px solid var(--p1);outline-offset:-2px;z-index:3}
 .cell .bar{position:absolute;top:0;left:0;right:0;height:24%}
 .cell .ic{font-size:max(11px,2.2cqw)}.cell .pr{font-size:max(8px,1.6cqw);color:var(--text)}.cell .nm{font-size:1.15cqw;max-width:100%;overflow:hidden;padding:0 1px}
@@ -53,7 +53,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .die i{border-radius:50%}.die i.on{background:#1a1236}
 .die.roll{animation:tumble .9s ease-out}
 @keyframes tumble{0%{transform:translateY(-120%) rotate(0) scale(1.4)}35%{transform:translateY(0) rotate(400deg) scale(1)}55%{transform:translateY(-35%) rotate(560deg)}75%{transform:translateY(0) rotate(680deg)}88%{transform:translateY(-8%) rotate(720deg)}100%{transform:none}}
-#cx{position:absolute;inset:11.5%;display:flex;flex-direction:column;align-items:center;justify-content:space-between;text-align:center;padding:2% 0;pointer-events:none}
+#cx{position:absolute;inset:11.5%;display:flex;flex-direction:column;align-items:center;text-align:center;pointer-events:none}
 #cx button{pointer-events:auto}
 .brand{font-weight:800;letter-spacing:.2em;font-size:max(14px,3.6cqw);background:linear-gradient(90deg,#f3dcff,#b36cf5);-webkit-background-clip:text;background-clip:text;color:transparent}
 .low{display:flex;flex-direction:column;align-items:center;gap:8px;width:100%}
@@ -115,9 +115,9 @@ input[type=range]{accent-color:var(--p2);padding:0;margin:4px 0;border:0;backgro
 .tsend{display:block;margin:20px auto 0}
 
 /* Brett: Balken zeigen zur Brettmitte */
-.cell.top{padding-top:0;padding-bottom:22%}.cell.top .bar{top:auto;bottom:0}.cell.top .own{bottom:auto;top:0}
-.cell.left{padding-top:0;padding-right:22%}.cell.left .bar{top:0;bottom:0;left:auto;right:0;width:24%;height:auto}.cell.left .own{top:0;bottom:0;left:0;right:auto;width:4px;height:auto}
-.cell.right{padding-top:0;padding-left:22%}.cell.right .bar{top:0;bottom:0;left:0;right:auto;width:24%;height:auto}.cell.right .own{top:0;bottom:0;right:0;left:auto;width:4px;height:auto}
+.cell.prop.top{padding-bottom:22%}.cell.prop.bottom{padding-top:22%}.cell.top .bar{top:auto;bottom:0}.cell.top .own{bottom:auto;top:0}
+.cell.prop.left{padding-right:22%}.cell.left .bar{top:0;bottom:0;left:auto;right:0;width:24%;height:auto}.cell.left .own{top:0;bottom:0;left:0;right:auto;width:4px;height:auto}
+.cell.prop.right{padding-left:22%}.cell.right .bar{top:0;bottom:0;left:0;right:auto;width:24%;height:auto}.cell.right .own{top:0;bottom:0;right:0;left:auto;width:4px;height:auto}
 .pflag{height:10px;border-radius:6px;margin:0 0 8px;box-shadow:0 0 0 1px #fff3}.ptop{padding-bottom:6px!important;margin-bottom:0!important}
 .tag.why{color:#fbbf24;margin-top:8px}button:disabled{box-shadow:none;filter:saturate(.35)}
 nav #vol{width:100px;margin:0;flex:none}
@@ -146,6 +146,21 @@ nav #vol{width:100px;margin:0;flex:none}
 .abox{width:min(440px,100%)}.abox input{margin-bottom:10px}.abox .chk{display:flex;gap:8px;align-items:flex-start;font-size:13px;color:var(--dim)}.abox a{color:var(--p1)}
 .who{font-size:14px;font-weight:600;white-space:nowrap;max-width:150px;overflow:hidden;text-overflow:ellipsis}
 @media(max-width:460px){.navbrand b{display:none}}
+/* Mitte: Knöpfe haben einen festen Platz, nur der Text darunter ändert sich */
+.ctop{flex:0 0 auto;height:23%;margin-top:2%}.cgap{flex:0 0 auto;height:28%}
+.cbtns{flex:0 0 auto;min-height:13%;width:100%;display:flex;flex-direction:column;align-items:center}
+.cbtns .row{justify-content:center;gap:8px}.cbtns .row>*{flex:0 1 auto}
+.cbtns button{padding:8px 14px;font-size:max(12px,1.8cqw)}
+.cinfo{flex:1;min-height:0;overflow:hidden;gap:4px;justify-content:flex-start}
+/* Symbole auf dem Brett */
+.cell .ic{display:grid;place-items:center;line-height:1}.cell .ic svg{width:max(16px,3.1cqw);height:max(16px,3.1cqw)}
+.cell.corner .ic svg{width:max(24px,4.8cqw);height:max(24px,4.8cqw)}
+.chip svg,.pl svg{flex:none}
+/* Geld eintippen */
+.pw{align-self:center;display:flex;align-items:center;gap:6px;background:var(--p2);border-radius:999px;padding:2px 16px 2px 6px}
+.pw input{width:96px;margin:0;padding:6px 8px;background:transparent;border:0;color:#fff;font-weight:700;text-align:right;font-size:17px;border-radius:999px}
+.pw span{font-weight:700}
+@media(max-width:700px){body.ingame main{padding:8px 6px}}
 </style>
 </head>
 <body>
@@ -192,7 +207,7 @@ nav #vol{width:100px;margin:0;flex:none}
 
   <section id="game" class="hide">
     <div id="colL">
-      <div class="card"><div class="hd"><span>Raum <b id="rc"></b></span><button id="copy2" class="small ghost">Link kopieren</button></div></div>
+      <div class="card"><div class="hd"><span>Raum <b id="rc"></b></span><button id="copy2" class="small ghost">Link kopieren</button></div><div id="specInfo" class="tag"></div></div>
       <div class="card"><div class="hd">Verlauf</div><div id="lg" class="tag"></div></div>
       <div class="card chat"><div class="hd">Chat</div><div id="msgs"></div>
         <div class="row"><input id="chatIn" maxlength="200" placeholder="Nachricht …" autocomplete="off"><button id="chatBtn" class="small" aria-label="Senden">➤</button></div></div>
@@ -460,6 +475,35 @@ const BC = [50, 50, 100, 100, 150, 150, 200, 200];
 const PIPS = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
 // Start oben links, im Uhrzeigersinn (wie bei Richup)
 const cellPos = (i) => i <= 10 ? [0, i] : i <= 20 ? [i - 10, 10] : i <= 30 ? [10, 10 - (i - 20)] : [10 - (i - 30), 0];
+
+/* ===== Symbole für Sonderfelder (selbst gezeichnet) ===== */
+const SVG = {
+  c: '<path d="M3 10h18v9H3z" fill="#b45309" stroke="#fcd34d" stroke-width="1.5"/><path d="M3 10a9 5 0 0118 0" fill="#d97706" stroke="#fcd34d" stroke-width="1.5"/><rect x="10.5" y="11" width="3" height="4" rx=".6" fill="#fcd34d"/>',
+  ch: '<circle cx="12" cy="12" r="9" fill="#be185d"/><path d="M9.2 9.2a2.9 2.9 0 115.4 1.4c-.7 1.1-2.1 1.5-2.1 3" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"/><circle cx="12.5" cy="17" r="1.2" fill="#fff"/>',
+  tax: '<circle cx="12" cy="12" r="9" fill="#a16207" stroke="#fcd34d" stroke-width="1.5"/><path d="M14.5 9.2c-.4-1-1.4-1.5-2.5-1.5-1.4 0-2.4.7-2.4 1.8 0 2.3 5 1.2 5 3.7 0 1.2-1.1 1.9-2.6 1.9-1.2 0-2.3-.5-2.7-1.6M12 6.5v11" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/>',
+  r: '<path d="M21 15.5v-1.7l-8-5V4.5a1.5 1.5 0 00-3 0v4.3l-8 5v1.7l8-2.5v4.3l-2 1.5V21l3.5-1 3.5 1v-1.2l-2-1.5v-4.3z" fill="#e0e7ff" stroke="#818cf8" stroke-width=".8"/>',
+  u1: '<path d="M13 2L5 13.5h5.5L9.5 22 19 9.5h-5.7z" fill="#facc15" stroke="#a16207" stroke-width="1"/>',
+  u2: '<path d="M12 3C9 7.5 6 10.5 6 14.2A6 6 0 0018 14.2C18 10.5 15 7.5 12 3z" fill="#38bdf8" stroke="#0369a1" stroke-width="1"/>',
+  jail: '<rect x="3" y="4" width="18" height="16" rx="2" fill="#7c2d12" stroke="#fdba74" stroke-width="1.4"/><path d="M8 4v16M12 4v16M16 4v16" stroke="#fdba74" stroke-width="1.6"/>',
+  go: '<circle cx="12" cy="12" r="10" fill="#15803d"/><path d="M7 12h9M13 8l4 4-4 4" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>',
+  free: '<path d="M3 19h18" stroke="#fde68a" stroke-width="2.4" stroke-linecap="round"/><path d="M12 19V9" stroke="#92400e" stroke-width="2"/><path d="M12 9c-1-3-4-4-7-3 3 0 5 1 7 3zM12 9c1-3 4-4 7-3-3 0-5 1-7 3zM12 9c-3-1-5 1-6 3 2-1 4-1 6-3zM12 9c3-1 5 1 6 3-2-1-4-1-6-3z" fill="#22c55e"/>',
+  gojail: '<path d="M6 18v-5a6 6 0 0112 0v5z" fill="#ef4444" stroke="#fecaca" stroke-width="1.4"/><rect x="4" y="18" width="16" height="3" rx="1" fill="#991b1b"/><path d="M12 3v2M4.5 7l1.4 1.4M19.5 7l-1.4 1.4" stroke="#fecaca" stroke-width="1.6" stroke-linecap="round"/>',
+};
+function symIcon(f, i, map, size) {
+  const key = f.t === 'r' ? (map === 'klassisch' ? 'r' : null) : f.t === 'u' ? (i === 12 ? 'u1' : 'u2') : f.t;
+  if (!key || !SVG[key]) return null;
+  const n = new DOMParser().parseFromString('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">' + SVG[key] + '</svg>', 'image/svg+xml').documentElement;
+  const sv = document.importNode(n, true); sv.setAttribute('aria-hidden', 'true');
+  if (size) { sv.setAttribute('width', size); sv.setAttribute('height', size); }
+  return sv;
+}
+// Markierung vor einem Grundstück: Flagge (Land) oder Symbol (Flughafen, Werk)
+function propMark(g, k) {
+  const f = g.board[k];
+  if (f.g != null) { const d = el('span', 'dot2'); d.style.background = gc(f.g); return d; }
+  return symIcon(f, k, g.map, 16) || el('span', 'dot2');
+}
+const SPEC = { id: '-', name: 'Zuschauer', money: 0, out: true, pos: 0, jail: 0, color: 0, pardon: 0 }; // Platzhalter für Zuschauer
 let sel = null, busy = false, lastKey = '', shown = {}, tokEl = {}, timers = [];
 
 const grpIds = (g, gi) => g.board.map((x, k) => k).filter((k) => g.board[k].g === gi);
@@ -526,7 +570,7 @@ const sfx = (n) => { try { SFX[n](); } catch {} };
 const lineSfx = (t) => /bankrott/.test(t) ? 'bad' : /^(?!Niemand).*ersteigert/.test(t) ? 'buy' : /bietet/.test(t) ? 'tick' : /nimmt eine Hypothek/.test(t) ? 'ding' : /kauft/.test(t) ? 'buy' : /baut|verkauft|löst/.test(t) ? 'build' : /im Minus/.test(t) ? 'bad' : /Handel:/.test(t) ? 'trade' : /Gefängnis/.test(t) ? 'jail' : /zahlt/.test(t) ? 'rent' : null;
 function notify(g) {
   const me = state.you, tid = g.players[g.turn].id, inc = g.trades.filter((t) => t.to === me).map((t) => t.id), n = state.chat.length;
-  const myName = g.players.find((x) => x.id === me).name;
+  const myName = (g.players.find((x) => x.id === me) || SPEC).name;
   if (trk) {
     if (tid !== trk.tid && tid === me && g.phase !== 'over') timers.push(setTimeout(() => sfx('turn'), 500));
     if (inc.some((i) => !trk.inc.includes(i))) sfx('trade');
@@ -574,9 +618,10 @@ function syncGame(g) {
     t.style.background = COL[q.color]; t.textContent = q.name[0].toUpperCase(); t.style.display = q.out ? 'none' : '';
     if (shown[q.id] !== q.pos) {
       const from = shown[q.id], d = (q.pos - from + 40) % 40; shown[q.id] = q.pos;
-      const path = d > 0 && d <= 12 ? Array.from({ length: d }, (_, s) => (from + s + 1) % 40) : [q.pos];
-      path.forEach((pos, s) => timers.push(setTimeout(() => { place(t, pos, k); if (q.id === state.you) sfx('tick'); }, t0 + s * 160)));
-      end = Math.max(end, t0 + path.length * 160 + 150);
+      const jump = q.jail > 0 && q.pos === 10; // ins Gefängnis: direkt, sonst immer Feld für Feld (auch weite Wege, z. B. "Gehe zum Start")
+      const path = !jump && d > 0 ? Array.from({ length: d }, (_, s) => (from + s + 1) % 40) : [q.pos], step = d <= 12 ? 160 : Math.max(55, Math.floor(1700 / d));
+      path.forEach((pos, s) => timers.push(setTimeout(() => { place(t, pos, k); if (q.id === state.you) sfx('tick'); }, t0 + s * step)));
+      end = Math.max(end, t0 + path.length * step + 150);
     }
   });
   const L = g.log, ix = L.lastIndexOf(seen), nl = first ? [] : ix < 0 ? L.slice(-3) : L.slice(ix + 1); seen = L[L.length - 1];
@@ -585,24 +630,25 @@ function syncGame(g) {
 }
 
 function renderGame() {
-  const g = state.game, me = state.you, p = g.players[g.turn], mine = p.id === me, host = me === state.hostId;
+  const g = state.game, me = state.you, p = g.players[g.turn], mine = p.id === me, host = me === state.hostId, spec = !!state.spec;
   const idx = (id) => g.players.findIndex((x) => x.id === id), nm = (id) => g.players.find((x) => x.id === id).name;
   $('rc').textContent = state.code;
+  $('specInfo').textContent = spec ? '👁 Du schaust zu.' : state.specs && state.specs.length ? '👁 Zuschauer: ' + state.specs.join(', ') : '';
   const bd = $('board'); bd.textContent = '';
   g.board.forEach((f, i) => {
     const [r, c] = cellPos(i), corner = i % 10 === 0, side = corner ? '' : r === 0 ? ' top' : r === 10 ? ' bottom' : c === 0 ? ' left' : ' right';
-    const d = el('div', 'cell' + side + (corner ? ' corner t-' + f.t : '') + (sel === i ? ' sel' : ''));
+    const d = el('div', 'cell' + side + (corner ? ' corner t-' + f.t : '') + (f.g != null ? ' prop' : '') + (sel === i ? ' sel' : ''));
     d.style.gridArea = (r + 1) + '/' + (c + 1);
     d.onclick = () => { sel = sel === i ? null : i; renderGame(); };
     if (f.g != null) { const b = el('div', 'bar'); b.style.background = gc(f.g); d.append(b); }
-    d.append(el('div', 'ic', f.t === 'r' && g.map === 'klassisch' ? '✈' : ICON[f.t] || ''));
+    const ic = el('div', 'ic'), sv = symIcon(f, i, g.map); if (sv) ic.append(sv); else ic.textContent = ICON[f.t] || ''; d.append(ic);
     if (f.p && !corner) d.append(el('div', 'pr', f.p));
     if (g.auction && g.auction.pos === i) d.classList.add('auc');
     if (i === 20 && g.rules.vacation) d.append(el('div', 'pot', g.pot + ' €')); // Urlaubs-Topf gut sichtbar
     d.append(el('div', 'nm', f.n));
     if (g.houses[i]) d.append(el('b', 'hs', g.houses[i] === 5 ? '🏨' : '🏠' + g.houses[i]));
     if (g.mort[i]) d.style.opacity = '.45';
-    if (g.owners[i]) { const o = el('div', 'own'); o.style.background = COL[g.players[idx(g.owners[i])].color]; d.append(o); }
+    if (g.owners[i]) { const col = COL[g.players[idx(g.owners[i])].color], o = el('div', 'own'); o.style.background = col; d.append(o); d.style.background = 'linear-gradient(150deg,' + col + '88,' + col + '1c 78%)'; } // Farbverlauf in der Farbe des Besitzers
     bd.append(d);
   });
   notify(g); syncGame(g);
@@ -610,7 +656,7 @@ function renderGame() {
   // Mitte: Logo, Status, Aktionen
   const cx = $('cx'); cx.textContent = ''; const lg0 = el('img', 'clogo'); lg0.src = 'logo.png'; lg0.alt = 'Inkogniflix';
   const ctop = el('div', 'ctop'); ctop.append(lg0); if (g.rules.vacation) ctop.append(el('div', 'potline', '🏝 Urlaubsgeld: ' + g.pot + ' €')); cx.append(ctop);
-  const low = el('div', 'low'), row = el('div', 'row'); row.style.justifyContent = 'center';
+  const low = el('div', 'low cinfo'), row = el('div', 'row');
   const btn = (txt, t, ghost) => { const b = el('button', ghost ? 'ghost' : '', txt); b.onclick = () => out({ type: t }); row.append(b); return b; };
   if (g.phase === 'over') {
     low.append(el('div', 'brand', '🏆 ' + nm(g.winner) + ' gewinnt!'));
@@ -618,7 +664,7 @@ function renderGame() {
   } else {
     if (!g.auction) low.append(el('div', 'tag', p.name + (mine ? ' (du)' : '') + ' ist am Zug'), el('div', 'tag', g.log[g.log.length - 1])); // bei Auktion zu wenig Platz
     if (g.auction) { // Auktion: alle können bieten
-      const au = g.auction, f = g.board[au.pos], ame = g.players.find((x) => x.id === me), passed = au.passed.includes(me);
+      const au = g.auction, f = g.board[au.pos], ame = g.players.find((x) => x.id === me) || SPEC, passed = au.passed.includes(me);
       const t = el('div', 'tag'), cd = el('b', '', ''); cd.id = 'acd';
       t.append(document.createTextNode('🔨 ' + f.n + ' · ' + (au.bidder ? (au.bidder === me ? 'Du bietest ' : nm(au.bidder) + ' bietet ') + au.bid + ' € · ' : 'noch kein Gebot · ')), cd);
       low.append(t);
@@ -636,18 +682,18 @@ function renderGame() {
     }
     const f = g.board[p.pos];
     if (mine && !busy) {
-      if (g.phase === 'roll') { btn('Würfeln', 'roll').disabled = p.money < 0; if (p.jail) btn('50 € zahlen', 'jailpay', true).disabled = p.money < 50; }
+      if (g.phase === 'roll') { btn('Würfeln', 'roll').disabled = p.money < 0; if (p.jail) { btn('50 € zahlen', 'jailpay', true).disabled = p.money < 50; if (p.pardon > 0) btn('🃏 Pardon', 'jailcard', true); low.append(el('div', 'tag', 'Im Gefängnis: Pasch würfeln oder freikaufen (dann setzt du eine Runde aus).')); } }
       else if (g.phase === 'buy') { btn('Kaufen für ' + f.p + ' €', 'buy').disabled = p.money < f.p; btn(g.rules.auction ? 'Versteigern' : 'Nicht kaufen', 'skip', true); }
       else if (g.phase === 'end') btn('Zug beenden', 'end').disabled = p.money < 0;
       if (p.money < 0) { const gb = btn('Aufgeben', 'giveup', true); gb.className = 'danger'; gb.onclick = () => { if (confirm('Wirklich aufgeben?')) out({ type: 'giveup' }); }; }
     }
   }
-  low.append(row); cx.append(low);
+  const bts = el('div', 'cbtns'); bts.append(row); cx.append(el('div', 'cgap'), bts, low);
 
   // Feld-Karte (Klick auf ein Feld)
   const pop = $('pop'); pop.textContent = ''; pop.classList.toggle('hide', sel == null);
   pop.onclick = () => { sel = null; renderGame(); };
-  const can = !busy && g.phase !== 'over';
+  const can = !busy && g.phase !== 'over', act = can && mine; // Bauen, Verkaufen, Hypotheken nur im eigenen Zug
   if (sel != null) {
     const i = sel, f = g.board[i], b = f.r, h = g.houses[i] || 0, air = g.map === 'klassisch';
     const fl = el('div', 'pflag'); fl.style.background = f.g != null ? gc(f.g) : '#9ca3af';
@@ -667,10 +713,11 @@ function renderGame() {
       cell('Preis', f.p + ' €'); if (f.t === 'p') { cell('🏠 Haus', BC[f.g] + ' €'); cell('🏨 Hotel', BC[f.g] + ' €'); } else cell('Hypothek', f.p / 2 + ' €');
       pop.append(ft);
       pop.append(el('div', 'tag', (g.owners[i] ? 'Besitzer: ' + nm(g.owners[i]) : 'Noch frei') + (f.t === 'p' && g.owners[i] ? ' · Häuser: ' + h + '/5' : '') + (g.mort[i] ? ' · beliehen' : '')));
-      if (g.owners[i] === me && can) {
+      if (g.owners[i] === me) {
         const ac = el('div', 'pact'), ab = (t, a, gh, dis) => { const x = el('button', gh ? 'ghost' : '', t); x.disabled = !!dis; x.onclick = (e) => { e.stopPropagation(); out({ type: a, pos: i }); }; ac.append(x); };
-        if (f.t === 'p') { const bi = buildInfo(g, me, i); ab('Bauen ' + BC[f.g] + ' €', 'build', 0, !bi.can); ab('Verkaufen', 'sell', 1, !canSell(g, i)); if (!bi.can) pop.append(el('div', 'tag why', bi.why)); }
-        ab(g.mort[i] ? 'Auslösen ' + Math.ceil(f.p / 2 * 1.1) + ' €' : 'Hypothek +' + f.p / 2 + ' €', 'mortgage', 1, f.t === 'p' && !g.mort[i] && grpIds(g, f.g).some((k) => g.houses[k]));
+        if (f.t === 'p') { const bi = buildInfo(g, me, i); ab('Bauen ' + BC[f.g] + ' €', 'build', 0, !act || !bi.can); ab('Verkaufen', 'sell', 1, !act || !canSell(g, i)); if (act && !bi.can) pop.append(el('div', 'tag why', bi.why)); }
+        ab(g.mort[i] ? 'Auslösen ' + Math.ceil(f.p / 2 * 1.1) + ' €' : 'Hypothek +' + f.p / 2 + ' €', 'mortgage', 1, !(act || (g.phase === 'auction' && !g.mort[i] && !busy)) || (f.t === 'p' && !g.mort[i] && grpIds(g, f.g).some((k) => g.houses[k])));
+        if (!act) pop.append(el('div', 'tag', 'Bauen, Verkaufen und Hypotheken gehen nur in deinem Zug.'));
         pop.append(ac);
       }
     }
@@ -681,13 +728,13 @@ function renderGame() {
   g.players.forEach((q, k) => {
     const r = el('div', 'pl' + (k === g.turn && g.phase !== 'over' ? ' turn' : '') + (q.out ? ' out' : '')), t = el('div', 'ptok', q.name[0].toUpperCase());
     t.style.background = COL[q.color];
-    r.append(t, el('span', '', q.name + (q.id === me ? ' (du)' : '') + (q.id === state.hostId ? ' 👑' : '') + (q.jail ? ' ⛓' : '')), (() => { const m = el('span', 'm', q.money + ' €'); if (q.money < 0) m.style.color = '#ff6b8b'; return m; })());
-    dcRow(r, q, me); pl.append(r);
+    r.append(t, el('span', '', q.name + (q.id === me ? ' (du)' : '') + (q.id === state.hostId ? ' 👑' : '') + (q.jail ? ' ⛓' : '') + (q.pardon ? ' 🃏' + q.pardon : '')), (() => { const m = el('span', 'm', q.money + ' €'); if (q.money < 0) m.style.color = '#ff6b8b'; return m; })());
+    dcRow(r, q, me); tradeBadge(r, q); pl.append(r);
   });
   if (mine && !busy && g.phase !== 'over') { const b = el('button', 'small danger', 'Aufgeben'); b.style.marginTop = '8px'; b.onclick = () => { if (confirm('Wirklich aufgeben?')) out({ type: 'giveup' }); }; pl.append(b); }
 
   // Rechts: Handel
-  const tr = $('trCard'); tr.textContent = ''; const hd = el('div', 'hd', 'Handel'); const nb = el('button', 'small', '＋ Erstellen'); nb.onclick = () => openTrade(); hd.append(nb); tr.append(hd);
+  const tr = $('trCard'); tr.textContent = ''; const hd = el('div', 'hd', 'Handel'); const nb = el('button', 'small', '＋ Erstellen'); nb.onclick = () => openTrade(); if (!spec) hd.append(nb); tr.append(hd);
   const desc = (m, ps) => [m ? m + ' €' : '', ...ps.map((k) => g.board[k].n)].filter(Boolean).join(' + ') || 'nichts';
   const mt = g.trades.filter((t) => t.from === me || t.to === me);
   if (!mt.length) tr.append(el('div', 'tag', 'Keine offenen Angebote'));
@@ -705,16 +752,17 @@ function renderGame() {
   const my = Object.keys(g.owners).filter((k) => g.owners[k] === me).map(Number).sort((a, b) => a - b);
   pr.append(el('div', 'hd', 'Meine Grundstücke (' + my.length + ')'));
   my.forEach((i) => {
-    const f = g.board[i], r = el('div', 'pl'), dot = el('span', 'ptok'), h = g.houses[i] || 0;
-    dot.style.background = f.g != null ? gc(f.g) : '#9ca3af'; dot.style.width = dot.style.height = '14px';
+    const f = g.board[i], r = el('div', 'pl'), dot = propMark(g, i), h = g.houses[i] || 0;
     r.append(dot, el('span', '', f.n + (g.mort[i] ? ' (Hypothek)' : h ? (h === 5 ? ' 🏨' : ' 🏠' + h) : '')));
-    if (can) {
+    if (!spec) { // Knöpfe bleiben sichtbar, sind aber ausgegraut, wenn du nicht dran bist oder gerade gewürfelt wird
       const box = el('span', 'sq'), b = (t, a, dis, why) => { const x = el('button', 'small ghost', t); x.disabled = !!dis; if (why) x.title = why; x.onclick = () => out({ type: a, pos: i }); box.append(x); };
-      if (f.t === 'p') { const bi = buildInfo(g, me, i); b('＋ ' + BC[f.g], 'build', !bi.can, bi.why); b('－', 'sell', !canSell(g, i)); }
-      b(g.mort[i] ? 'Auslösen' : 'Hypothek', 'mortgage', f.t === 'p' && !g.mort[i] && grpIds(g, f.g).some((k) => g.houses[k])); r.append(box);
+      if (f.t === 'p') { const bi = buildInfo(g, me, i); b('＋ ' + BC[f.g], 'build', !act || !bi.can, act ? bi.why : 'Nur in deinem Zug'); b('－', 'sell', !act || !canSell(g, i)); }
+      b(g.mort[i] ? 'Auslösen' : 'Hypothek', 'mortgage', !(act || (g.phase === 'auction' && !g.mort[i] && !busy)) || (f.t === 'p' && !g.mort[i] && grpIds(g, f.g).some((k) => g.houses[k]))); r.append(box);
     }
     pr.append(r);
   });
+
+  $('prCard').classList.toggle('hide', spec); $('trCard').classList.toggle('hide', spec);
 
   // Links: Verlauf und Chat
   const lg = $('lg'), keep = lg.scrollTop, atEnd = lg.scrollHeight - lg.scrollTop - lg.clientHeight < 30;
@@ -733,13 +781,17 @@ function tickCd() {
   const ea = $('acd'); if (ea && state && state.game && state.game.auction) ea.textContent = Math.max(0, Math.ceil((state.game.auction.until - (Date.now() + skew)) / 1000)) + ' s';
   document.querySelectorAll('.dcc').forEach((d) => { d.textContent = mmss(Number(d.dataset.until)); });
 }
+function tradeBadge(r, q) { // zeigt, wer gerade das Handelsmenü offen hat
+  const sp = state.players.find((x) => x.id === q.id);
+  if (sp && sp.trading) { const b = el('div', 'dcrow', '💱 handelt gerade …'); b.style.color = '#93c5fd'; r.append(b); }
+}
 // Zeile unter einem getrennten Spieler: Countdown und Votekick
 function dcRow(r, q, me) {
   const sp = state.players.find((x) => x.id === q.id);
   if (!sp || !sp.dc) return;
   const ln = el('div', 'dcrow'), b = el('b', 'dcc', ''); b.dataset.until = sp.dc;
   ln.append(document.createTextNode('⚠ getrennt – noch '), b);
-  if (q.id !== me) {
+  if (q.id !== me && !state.spec) {
     const voted = sp.votes.includes(me), bt = el('button', 'small danger', (voted ? 'Abgestimmt ' : 'Votekick ') + sp.votes.length + '/' + state.need);
     bt.disabled = voted; bt.onclick = () => out({ type: 'votekick', id: q.id }); ln.append(bt);
   }
@@ -760,7 +812,7 @@ function showOffer(id) {
   const col = (pid, title, money, props) => {
     const w = el('div', 'tside'), hd = el('div', 'thead'), tk = el('div', 'ptok', nm(pid)[0].toUpperCase()), chips = el('div', 'chips');
     tk.style.background = COL[g.players.find((q) => q.id === pid).color]; hd.append(tk, el('b', '', title));
-    props.forEach((k) => { const c = el('div', 'chip static'), d = el('span', 'dot2'); d.style.background = g.board[k].g != null ? gc(g.board[k].g) : '#9ca3af'; c.append(d, document.createTextNode(g.board[k].n + ' · ' + g.board[k].p + ' €')); chips.append(c); });
+    props.forEach((k) => { const c = el('div', 'chip static'); c.append(propMark(g, k), document.createTextNode(g.board[k].n + ' · ' + g.board[k].p + ' €')); chips.append(c); });
     if (!props.length) chips.append(el('div', 'tag', 'Keine Grundstücke'));
     w.append(hd, el('div', 'pill', money + ' €'), chips); return w;
   };
@@ -777,31 +829,36 @@ function showOffer(id) {
 function openTrade(pre) {
   const g = state.game, me = state.you, others = g.players.filter((x) => !x.out && x.id !== me);
   if (!others.length) return;
-  const m = $('modal'); m.textContent = ''; m.classList.remove('hide');
-  const close = () => m.classList.add('hide'); m.onclick = (e) => { if (e.target === m) close(); };
+  const m = $('modal'); m.textContent = ''; m.classList.remove('hide'); out({ type: 'trading', on: true });
+  const close = () => { m.classList.add('hide'); out({ type: 'trading', on: false }); }; m.onclick = (e) => { if (e.target === m) close(); };
   const box = el('div', 'tbox'); m.append(box);
   const x = el('button', 'tx ghost', '✕'); x.setAttribute('aria-label', 'Schließen'); x.onclick = close;
   box.append(x, el('div', 'ttl', pre ? 'Gegenangebot' : 'Handel erstellen'));
   const hasB = (k) => g.board.some((f, i) => f.g != null && f.g === g.board[k].g && g.houses[i]);
   const mkSide = (head, who) => {
-    const w = el('div', 'tside'), rng = document.createElement('input'), pill = el('div', 'pill', '0 €'), lbl = el('div', 'rl'), chips = el('div', 'chips'), sel = new Set();
-    rng.type = 'range'; rng.min = 0; rng.step = 10; rng.value = 0; w.append(head, rng, lbl, pill, chips);
-    rng.oninput = () => { pill.textContent = rng.value + ' €'; };
+    const w = el('div', 'tside'), rng = document.createElement('input'), lbl = el('div', 'rl'), chips = el('div', 'chips'), sel = new Set();
+    const pw = el('div', 'pw'), pill = document.createElement('input'); // Betrag: Regler oder direkt eintippen
+    pill.type = 'number'; pill.min = 0; pill.step = 1; pill.value = 0; pill.inputMode = 'numeric'; pill.setAttribute('aria-label', 'Betrag in Euro'); pw.append(pill, el('span', '', '€'));
+    rng.type = 'range'; rng.min = 0; rng.step = 10; rng.value = 0; w.append(head, rng, lbl, pw, chips);
+    const money = () => Math.max(0, Math.min(Math.floor(Number(pill.value) || 0), Number(rng.max) || 0));
+    rng.oninput = () => { pill.value = rng.value; };
+    pill.oninput = () => { rng.value = money(); };
+    pill.onchange = () => { pill.value = money(); rng.value = pill.value; };
     const refresh = () => {
-      const q = who(); rng.max = Math.max(0, Math.floor(q.money / 10) * 10); rng.value = 0; pill.textContent = '0 €'; lbl.textContent = '0 – ' + rng.max + ' €';
+      const q = who(); rng.max = Math.max(0, q.money); rng.value = 0; pill.value = 0; lbl.textContent = '0 – ' + rng.max + ' €';
       sel.clear(); chips.textContent = '';
       Object.keys(g.owners).filter((k) => g.owners[k] === q.id && !hasB(k)).forEach((k) => {
-        const c = el('button', 'chip ghost'), d = el('span', 'dot2'); d.style.background = g.board[k].g != null ? gc(g.board[k].g) : '#9ca3af';
-        c.dataset.k = k; c.append(d, document.createTextNode(g.board[k].n + ' · ' + g.board[k].p + ' €'));
+        const c = el('button', 'chip ghost');
+        c.dataset.k = k; c.append(propMark(g, k), document.createTextNode(g.board[k].n + ' · ' + g.board[k].p + ' €'));
         c.onclick = () => { if (sel.has(k)) sel.delete(k); else sel.add(k); c.classList.toggle('on'); }; chips.append(c);
       });
       if (!chips.children.length) chips.append(el('div', 'tag', 'Keine tauschbaren Grundstücke'));
     };
     const apply = (mn, keys) => {
-      rng.value = Math.min(mn, rng.max); pill.textContent = rng.value + ' €';
+      rng.value = Math.min(mn, Number(rng.max)); pill.value = Math.min(mn, Number(rng.max));
       chips.querySelectorAll('.chip').forEach((c) => { if (keys.map(Number).includes(Number(c.dataset.k))) { sel.add(c.dataset.k); c.classList.add('on'); } });
     };
-    return { w, rng, sel, refresh, apply };
+    return { w, rng, sel, refresh, apply, money };
   };
   const meP = g.players.find((q) => q.id === me), hl = el('div', 'thead'), tk = el('div', 'ptok', meP.name[0].toUpperCase());
   tk.style.background = COL[meP.color]; hl.append(tk, el('b', '', meP.name + ' (du)'));
@@ -811,9 +868,12 @@ function openTrade(pre) {
   who.onchange = () => R.refresh(); if (pre) who.value = pre.to; L.refresh(); R.refresh(); if (pre) { L.apply(pre.gm, pre.gp); R.apply(pre.tm, pre.tp); }
   const cols = el('div', 'tcols'); cols.append(L.w, el('div', 'tmid', '⇄'), R.w); box.append(cols);
   const ok = el('button', 'tsend', '➤ Handel senden');
-  ok.onclick = () => { out({ type: 'trade', to: who.value, gm: L.rng.value, tm: R.rng.value, gp: [...L.sel], tp: [...R.sel], replace: pre && pre.replace }); close(); };
+  ok.onclick = () => { out({ type: 'trade', to: who.value, gm: L.money(), tm: R.money(), gp: [...L.sel], tp: [...R.sel], replace: pre && pre.replace }); close(); };
   box.append(ok);
 }
+document.addEventListener('click', (e) => { // Klick neben die Feld-Karte schließt sie
+  if (sel != null && state && state.game && !e.target.closest('#pop') && !e.target.closest('.cell')) { sel = null; renderGame(); }
+});
 initAuth().then(() => { try { if (urlCode && localStorage.getItem('room') === urlCode && $('name').value.trim() && (!auth.session || auth.username)) $('joinBtn').click(); } catch {} }); // Seite neu geladen: automatisch zurück in den Raum
 </script>
 </body>
