@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-jLYJpYm/4bQjUyY4NeTRoc7b5Hz/CZ2WqX43Iq5DJMQ='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https://hzvnbtksanoonvkblded.supabase.co wss://inkogniflix-minispiel.onrender.com ws://localhost:3000; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-93aC2pI62JwWMg7EznlBp31aibORyYQMn5Ah/eME5Ew='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https://hzvnbtksanoonvkblded.supabase.co wss://inkogniflix-minispiel.onrender.com ws://localhost:3000; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Inkogniflix</title>
 <link rel="icon" href="logo.png">
@@ -277,7 +277,7 @@ function connect(first) {
         applySaved = false;
         try { const s = loadPref('hostSettings'); if (s) out(s); } catch {}
       }
-      skew = m.now - Date.now(); state = m; retry = m.code; try { localStorage.setItem('room', m.code); } catch {} render(); }
+      skew = m.now - Date.now(); retry = m.code; try { localStorage.setItem('room', m.code); } catch {} incoming(m); }
   };
   ws.onerror = () => { $('err').textContent = 'Keine Verbindung zum Server.'; };
   const mine = ws; // Verbindung weg (z. B. WLAN-Aussetzer): automatisch wieder in den Raum
@@ -518,7 +518,7 @@ function propMark(g, k) {
   return symIcon(f, k, g.map, 16) || el('span', 'dot2');
 }
 const SPEC = { id: '-', name: 'Zuschauer', money: 0, out: true, pos: 0, jail: 0, color: 0, pardon: 0 }; // Platzhalter für Zuschauer
-let flash = {}, sel = null, busy = false, lastKey = '', shown = {}, tokEl = {}, timers = [];
+let holding = false, queued = null, flash = {}, sel = null, busy = false, lastKey = '', shown = {}, tokEl = {}, timers = [];
 
 const grpIds = (g, gi) => g.board.map((x, k) => k).filter((k) => g.board[k].g === gi);
 function buildInfo(g, me, i) {
@@ -607,7 +607,7 @@ let vt; $('vol').oninput = () => {
 };
 
 function resetGame() {
-  timers.forEach(clearTimeout); timers = []; busy = false; lastKey = ''; seen = ''; trk = null; pendingOffer = null; offerId = null; shown = {}; tokEl = {}; sel = null; flash = {};
+  timers.forEach(clearTimeout); timers = []; busy = false; lastKey = ''; seen = ''; trk = null; pendingOffer = null; offerId = null; shown = {}; tokEl = {}; sel = null; flash = {}; holding = false; queued = null;
   $('tokens').textContent = ''; $('modal').classList.add('hide');
 }
 function place(t, pos, k) {
@@ -620,6 +620,51 @@ const dieEls = () => document.querySelectorAll('#dice .die');
 function rollDice(v) {
   const ds = dieEls(); ds.forEach((d) => { d.classList.remove('roll'); void d.offsetWidth; d.classList.add('roll'); });
   let n = 0; const iv = setInterval(() => { ds.forEach((d) => showDie(d, 1 + Math.floor(Math.random() * 6))); if (++n > 9) { clearInterval(iv); ds.forEach((d, i) => showDie(d, v[i])); } }, 85);
+}
+
+/* ===== Zug erst zeigen, dann wirken lassen =====
+   Der Server kennt nach dem Würfeln schon das Endergebnis (Miete, Gefängnis, Karte, Minus ...).
+   Damit das nicht vorgreift, zeigen wir während Würfel- und Figuren-Animation weiter den alten Stand und
+   übernehmen den neuen erst, wenn die Figur angekommen ist (bei Karten/Gefängnis: erst auf dem Landefeld, dann weiter). */
+function markCell(pos) { flash[pos] = Date.now() + 1300; const c = $('board').children[pos]; if (c) { c.classList.remove('flash'); void c.offsetWidth; c.classList.add('flash'); } }
+function incoming(m) {
+  if (holding) { queued = m; return; } // Animation läuft: später anzeigen (der neueste Stand gewinnt)
+  const g = m.game, old = state && state.game;
+  if (g && old && g.rn !== undefined && g.rn === lastKey + 1 && g.dice[0] && lastKey !== '' && g.players.length === old.players.length) { startHold(m); return; }
+  state = m; render();
+}
+function lockUI() { document.querySelectorAll('#cx button, #prCard button, #pop button').forEach((b) => { b.disabled = true; }); }
+function startHold(m) {
+  const g = m.game; holding = true; busy = true; queued = null; lastKey = g.rn; lockUI();
+  rollDice(g.dice); if (g.players[g.turn].id === state.you) sfx('dice');
+  const end = planMoves(g, 950);
+  timers.push(setTimeout(() => { holding = false; busy = false; const next = queued || m; queued = null; state = next; render(); }, end + 250));
+}
+function planMoves(g, t0) {
+  let end = t0; const sum = g.dice[0] + g.dice[1], roller = g.players[g.turn];
+  g.players.forEach((q, k) => {
+    const t = tokEl[q.id]; if (!t) return;
+    const from = shown[q.id], threeDoubles = q.id === roller.id && g.dbl >= 3 && q.jail > 0; // dreimal Pasch: direkt ins Gefängnis
+    if (from === q.pos && !threeDoubles) return;
+    let cur = from, tt = t0;
+    const walk = (to) => {
+      const d = (to - cur + 40) % 40, step = d <= 12 ? 160 : Math.max(55, Math.floor(1700 / d));
+      for (let i = 1; i <= d; i++) { const pos = (cur + i) % 40; timers.push(setTimeout(() => { place(t, pos, k); if (q.id === state.you) sfx('tick'); }, tt + (i - 1) * step)); }
+      tt += d * step; cur = to;
+    };
+    const warp = (to) => { timers.push(setTimeout(() => { t.classList.add('warp'); place(t, to, k); markCell(to); setTimeout(() => t.classList.remove('warp'), 950); }, tt)); tt += 1100; cur = to; };
+    const landing = q.id === roller.id && !threeDoubles ? (from + sum) % 40 : null; // Feld, auf dem der Würfelwurf endet
+    if (landing !== null && landing !== from) {
+      walk(landing);
+      if (landing !== q.pos) { // danach wirkt das Feld (Gefängnis, Karte): erst kurz sichtbar auf dem Landefeld stehen bleiben
+        const lp = landing; timers.push(setTimeout(() => markCell(lp), tt)); tt += 700;
+        if (q.jail > 0 && q.pos === 10) warp(q.pos); else walk(q.pos);
+      }
+    } else if (q.jail > 0 && q.pos === 10) warp(q.pos);
+    else walk(q.pos);
+    shown[q.id] = q.pos; end = Math.max(end, tt);
+  });
+  return end;
 }
 function syncGame(g) {
   const key = g.rn !== undefined ? g.rn : g.dice.join() + g.turn, fresh = key !== lastKey && g.dice[0] && lastKey !== '';
