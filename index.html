@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-H3t8Lr7piC2qDndpHT6KhbLsPlO4WycdMHH4ut0TcAE='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https://hzvnbtksanoonvkblded.supabase.co wss://inkogniflix-minispiel.onrender.com ws://localhost:3000; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-jLYJpYm/4bQjUyY4NeTRoc7b5Hz/CZ2WqX43Iq5DJMQ='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https://hzvnbtksanoonvkblded.supabase.co wss://inkogniflix-minispiel.onrender.com ws://localhost:3000; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Inkogniflix</title>
 <link rel="icon" href="logo.png">
@@ -35,7 +35,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
 /* ===== Spielansicht ===== */
 #game{display:grid;grid-template-columns:minmax(230px,300px) minmax(0,1fr) minmax(230px,300px);gap:14px;align-items:start;justify-content:center}
 @media(max-width:1080px){#game{grid-template-columns:1fr}#colC{order:-1}#colL{order:1}}
-#bw{position:relative;aspect-ratio:1;width:min(100%,calc(100vh - 84px));margin:0 auto;container-type:inline-size;border-radius:18px;overflow:hidden;border:1px solid var(--line);background:radial-gradient(circle,#2c1258,#0b0718 75%);box-shadow:0 0 40px #9b5cf633}
+#bw{position:relative;aspect-ratio:1;width:min(100%,calc(100vh - 92px));width:min(100%,calc(100dvh - 92px));margin:0 auto;container-type:inline-size;border-radius:18px;overflow:hidden;border:1px solid var(--line);background:radial-gradient(circle,#2c1258,#0b0718 75%);box-shadow:0 0 40px #9b5cf633}
 #board{position:absolute;inset:0;display:grid;grid-template:repeat(11,1fr)/repeat(11,1fr)}
 .cell{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0;border:1px solid #2e215088;background:#1a123688;color:var(--dim);text-align:center;line-height:1.1;cursor:pointer;min-width:0}
 .cell.sel{outline:2px solid var(--p1);outline-offset:-2px;z-index:3}
@@ -161,6 +161,17 @@ nav #vol{width:100px;margin:0;flex:none}
 .pw input{width:96px;margin:0;padding:6px 8px;background:transparent;border:0;color:#fff;font-weight:700;text-align:right;font-size:17px;border-radius:999px}
 .pw span{font-weight:700}
 @media(max-width:700px){body.ingame main{padding:8px 6px}}
+body.ingame #err:empty{display:none}
+/* Urlaubsfeld: Betrag schlicht in Weiß */
+.pot{background:none!important;color:#fff!important;font-weight:600!important;padding:0!important;font-size:max(9px,1.7cqw)!important;opacity:.95}
+/* Teleport (z. B. ins Gefängnis): Figur fliegt sichtbar, Ziel blitzt auf */
+.ptok.warp{transition:left .85s cubic-bezier(.55,0,.25,1),top .85s cubic-bezier(.55,0,.25,1);animation:warp .85s ease-in-out;z-index:9}
+@keyframes warp{0%,100%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(2.2);box-shadow:0 0 30px #fff,0 0 50px currentColor}}
+.cell.flash{animation:flash 1.3s ease-out;z-index:4}
+@keyframes flash{0%{box-shadow:inset 0 0 0 3px #fff,0 0 26px #fff;background-color:#ffffff55}100%{box-shadow:inset 0 0 0 0 #fff0,0 0 0 #fff0}}
+@media(prefers-reduced-motion:reduce){.ptok.warp,.cell.flash{animation:none}}
+.pw input{-moz-appearance:textfield;appearance:textfield}
+.pw input::-webkit-outer-spin-button,.pw input::-webkit-inner-spin-button{-webkit-appearance:none;appearance:none;margin:0}
 </style>
 </head>
 <body>
@@ -191,7 +202,8 @@ nav #vol{width:100px;margin:0;flex:none}
       <div class="code" id="code"></div>
       <button id="copyBtn" class="ghost" style="width:100%">Einladungslink kopieren</button>
     </div>
-    <div class="card"><label>Spieler</label><div id="players"></div><label style="margin:14px 0 8px">Deine Farbe</label><div id="colors" class="colors"></div></div>
+    <div class="card"><label>Spieler</label><div id="players"></div><label style="margin:14px 0 8px">Deine Farbe</label><div id="colors" class="colors"></div>
+      <label class="rule" style="margin:16px 0 0"><span class="rtx"><b>Nur zuschauen</b><small>Du spielst nicht mit, siehst aber alles. Zum Start braucht es trotzdem mindestens 2 Mitspieler.</small></span><input type="checkbox" id="watchCb"><span class="sw"></span></label></div>
     <div class="card" id="settings">
       <label for="max">Maximale Spielerzahl</label>
       <select id="max"><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option></select>
@@ -304,7 +316,7 @@ RULES.forEach(([k, t, d]) => {
   cb.type = 'checkbox'; cb.id = 'r_' + k; cb.onchange = sendSettings; tx.append(el('b', '', t), el('small', '', d)); l.append(tx, cb, el('span', 'sw')); $('rules').append(l);
 });
 for (let i = 0; i < 12; i++) { const b = el('button', 'cbtn'); b.style.background = ['#c471f0', '#38bdf8', '#f59e0b', '#34d399', '#fb7185', '#a3e635', '#f472b6', '#e5e7eb', '#facc15', '#f97316', '#14b8a6', '#a16207'][i]; b.setAttribute('aria-label', 'Farbe ' + (i + 1)); b.onclick = () => out({ type: 'color', color: i }); $('colors').append(b); }
-$('startBtn').onclick = () => out({ type: 'start' });
+$('startBtn').onclick = () => out({ type: 'start' }); $('watchCb').onchange = () => out({ type: 'watch', on: $('watchCb').checked });
 $('budget').onchange = sendSettings; $('map').onchange = sendSettings; $('max').onchange = sendSettings;
 const sendChat = () => { const t = $('chatIn').value.trim(); if (t) out({ type: 'chat', text: t }); $('chatIn').value = ''; };
 $('chatBtn').onclick = sendChat; $('chatIn').onkeydown = (e) => { if (e.key === 'Enter') sendChat(); };
@@ -325,14 +337,16 @@ function render() {
   $('max').value = state.settings.max; RULES.forEach(([k]) => { $('r_' + k).checked = !!state.settings.rules[k]; $('r_' + k).disabled = !host; });
   $('budget').disabled = $('map').disabled = $('max').disabled = !host;
   [...$('colors').children].forEach((b, i) => { const o = state.players.find((p) => p.color === i); b.classList.toggle('me', !!o && o.id === state.you); b.classList.toggle('taken', !!o && o.id !== state.you); b.disabled = !!o && o.id !== state.you; });
-  $('startBtn').disabled = !(host && state.players.length >= 2);
-  $('startBtn').textContent = state.players.length >= 2 ? 'Monopoly starten' : 'Warte auf weitere Spieler …';
+  const playing = state.players.filter((p) => !p.watch).length; // Zuschauer zählen nicht als Spieler
+  $('startBtn').disabled = !(host && playing >= 2);
+  $('startBtn').textContent = playing >= 2 ? 'Monopoly starten' : 'Warte auf weitere Mitspieler (mindestens 2) …';
+  $('watchCb').checked = !!(state.players.find((p) => p.id === state.you) || {}).watch;
   const box = $('players'); box.textContent = '';
   state.players.forEach((p) => {
     const row = el('div', 'player');
     const av = el('div', 'av', p.name[0].toUpperCase()); av.style.background = COL[p.color]; av.style.color = '#0b0718';
     row.append(av, el('div', 'name', p.name + (p.id === state.you ? ' (du)' : '')),
-      el('div', 'tag', p.id === state.hostId ? 'Host' : p.guest ? 'Gast' : ''));
+      el('div', 'tag', [p.id === state.hostId ? 'Host' : '', p.watch ? '👁 Zuschauer' : '', !p.watch && p.guest && p.id !== state.hostId ? 'Gast' : ''].filter(Boolean).join(' · ')));
     if (host && p.id !== state.you) { const k = el('button', 'small danger', 'Kicken'); k.onclick = () => out({ type: 'kick', id: p.id }); row.append(k); }
     box.append(row);
   });
@@ -504,7 +518,7 @@ function propMark(g, k) {
   return symIcon(f, k, g.map, 16) || el('span', 'dot2');
 }
 const SPEC = { id: '-', name: 'Zuschauer', money: 0, out: true, pos: 0, jail: 0, color: 0, pardon: 0 }; // Platzhalter für Zuschauer
-let sel = null, busy = false, lastKey = '', shown = {}, tokEl = {}, timers = [];
+let flash = {}, sel = null, busy = false, lastKey = '', shown = {}, tokEl = {}, timers = [];
 
 const grpIds = (g, gi) => g.board.map((x, k) => k).filter((k) => g.board[k].g === gi);
 function buildInfo(g, me, i) {
@@ -593,7 +607,7 @@ let vt; $('vol').oninput = () => {
 };
 
 function resetGame() {
-  timers.forEach(clearTimeout); timers = []; busy = false; lastKey = ''; seen = ''; trk = null; pendingOffer = null; offerId = null; shown = {}; tokEl = {}; sel = null;
+  timers.forEach(clearTimeout); timers = []; busy = false; lastKey = ''; seen = ''; trk = null; pendingOffer = null; offerId = null; shown = {}; tokEl = {}; sel = null; flash = {};
   $('tokens').textContent = ''; $('modal').classList.add('hide');
 }
 function place(t, pos, k) {
@@ -620,8 +634,14 @@ function syncGame(g) {
       const from = shown[q.id], d = (q.pos - from + 40) % 40; shown[q.id] = q.pos;
       const jump = q.jail > 0 && q.pos === 10; // ins Gefängnis: direkt, sonst immer Feld für Feld (auch weite Wege, z. B. "Gehe zum Start")
       const path = !jump && d > 0 ? Array.from({ length: d }, (_, s) => (from + s + 1) % 40) : [q.pos], step = d <= 12 ? 160 : Math.max(55, Math.floor(1700 / d));
-      path.forEach((pos, s) => timers.push(setTimeout(() => { place(t, pos, k); if (q.id === state.you) sfx('tick'); }, t0 + s * step)));
-      end = Math.max(end, t0 + path.length * step + 150);
+      const mark = (pos) => { flash[pos] = Date.now() + 1300; const c = $('board').children[pos]; if (c) { c.classList.remove('flash'); void c.offsetWidth; c.classList.add('flash'); } }; // Ziel blitzt auf
+      if (jump) { // Teleport: Figur fliegt groß und leuchtend quer über das Brett
+        timers.push(setTimeout(() => { t.classList.add('warp'); place(t, q.pos, k); mark(q.pos); setTimeout(() => t.classList.remove('warp'), 950); }, t0));
+        end = Math.max(end, t0 + 1100);
+      } else {
+        path.forEach((pos, s) => timers.push(setTimeout(() => { place(t, pos, k); if (q.id === state.you) sfx('tick'); if (s === path.length - 1 && d > 12) mark(pos); }, t0 + s * step)));
+        end = Math.max(end, t0 + path.length * step + 150);
+      }
     }
   });
   const L = g.log, ix = L.lastIndexOf(seen), nl = first ? [] : ix < 0 ? L.slice(-3) : L.slice(ix + 1); seen = L[L.length - 1];
@@ -637,14 +657,14 @@ function renderGame() {
   const bd = $('board'); bd.textContent = '';
   g.board.forEach((f, i) => {
     const [r, c] = cellPos(i), corner = i % 10 === 0, side = corner ? '' : r === 0 ? ' top' : r === 10 ? ' bottom' : c === 0 ? ' left' : ' right';
-    const d = el('div', 'cell' + side + (corner ? ' corner t-' + f.t : '') + (f.g != null ? ' prop' : '') + (sel === i ? ' sel' : ''));
+    const d = el('div', 'cell' + side + (corner ? ' corner t-' + f.t : '') + (f.g != null ? ' prop' : '') + (sel === i ? ' sel' : '') + (flash[i] && Date.now() < flash[i] ? ' flash' : ''));
     d.style.gridArea = (r + 1) + '/' + (c + 1);
     d.onclick = () => { sel = sel === i ? null : i; renderGame(); };
     if (f.g != null) { const b = el('div', 'bar'); b.style.background = gc(f.g); d.append(b); }
     const ic = el('div', 'ic'), sv = symIcon(f, i, g.map); if (sv) ic.append(sv); else ic.textContent = ICON[f.t] || ''; d.append(ic);
     if (f.p && !corner) d.append(el('div', 'pr', f.p));
     if (g.auction && g.auction.pos === i) d.classList.add('auc');
-    if (i === 20 && g.rules.vacation) d.append(el('div', 'pot', g.pot + ' €')); // Urlaubs-Topf gut sichtbar
+    if (i === 20 && g.rules.vacation) d.append(el('div', 'pot', g.pot + ' €')); // Urlaubs-Topf, dezent in Weiß
     d.append(el('div', 'nm', f.n));
     if (g.houses[i]) d.append(el('b', 'hs', g.houses[i] === 5 ? '🏨' : '🏠' + g.houses[i]));
     if (g.mort[i]) d.style.opacity = '.45';
@@ -655,7 +675,7 @@ function renderGame() {
 
   // Mitte: Logo, Status, Aktionen
   const cx = $('cx'); cx.textContent = ''; const lg0 = el('img', 'clogo'); lg0.src = 'logo.png'; lg0.alt = 'Inkogniflix';
-  const ctop = el('div', 'ctop'); ctop.append(lg0); if (g.rules.vacation) ctop.append(el('div', 'potline', '🏝 Urlaubsgeld: ' + g.pot + ' €')); cx.append(ctop);
+  const ctop = el('div', 'ctop'); ctop.append(lg0); cx.append(ctop);
   const low = el('div', 'low cinfo'), row = el('div', 'row');
   const btn = (txt, t, ghost) => { const b = el('button', ghost ? 'ghost' : '', txt); b.onclick = () => out({ type: t }); row.append(b); return b; };
   if (g.phase === 'over') {
@@ -731,7 +751,7 @@ function renderGame() {
     r.append(t, el('span', '', q.name + (q.id === me ? ' (du)' : '') + (q.id === state.hostId ? ' 👑' : '') + (q.jail ? ' ⛓' : '') + (q.pardon ? ' 🃏' + q.pardon : '')), (() => { const m = el('span', 'm', q.money + ' €'); if (q.money < 0) m.style.color = '#ff6b8b'; return m; })());
     dcRow(r, q, me); tradeBadge(r, q); pl.append(r);
   });
-  if (mine && !busy && g.phase !== 'over') { const b = el('button', 'small danger', 'Aufgeben'); b.style.marginTop = '8px'; b.onclick = () => { if (confirm('Wirklich aufgeben?')) out({ type: 'giveup' }); }; pl.append(b); }
+  if (!spec && g.phase !== 'over' && !(g.players.find((x) => x.id === me) || SPEC).out) { const b = el('button', 'small danger', 'Aufgeben'); b.style.marginTop = '8px'; b.onclick = () => { if (confirm('Wirklich aufgeben?')) out({ type: 'giveup' }); }; pl.append(b); }
 
   // Rechts: Handel
   const tr = $('trCard'); tr.textContent = ''; const hd = el('div', 'hd', 'Handel'); const nb = el('button', 'small', '＋ Erstellen'); nb.onclick = () => openTrade(); if (!spec) hd.append(nb); tr.append(hd);
@@ -841,6 +861,7 @@ function openTrade(pre) {
     pill.type = 'number'; pill.min = 0; pill.step = 1; pill.value = 0; pill.inputMode = 'numeric'; pill.setAttribute('aria-label', 'Betrag in Euro'); pw.append(pill, el('span', '', '€'));
     rng.type = 'range'; rng.min = 0; rng.step = 10; rng.value = 0; w.append(head, rng, lbl, pw, chips);
     const money = () => Math.max(0, Math.min(Math.floor(Number(pill.value) || 0), Number(rng.max) || 0));
+    pill.onfocus = () => pill.select(); // Antippen: Zahl ist sofort markiert und überschreibbar
     rng.oninput = () => { pill.value = rng.value; };
     pill.oninput = () => { rng.value = money(); };
     pill.onchange = () => { pill.value = money(); rng.value = pill.value; };
