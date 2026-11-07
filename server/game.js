@@ -13,16 +13,16 @@ const GN = {
   minecraft: ['Dorf', 'Ebene', 'Wald', 'Gebirge', 'Wüste', 'Ozean', 'Nether', 'Ende'],
 };
 const CARDS = [['Bankirrtum zu deinen Gunsten: +150',{m:150}],['Strafzettel: -50',{m:-50}],['Geburtstag: +100',{m:100}],
-['Gehe direkt zum Start',{go:0}],['Gehe ins Gefängnis',{jail:1}],['Reise zum letzten Feld',{go:39}],['Arztrechnung: -100',{m:-100}],['Lotteriegewinn: +200',{m:200}]];
+['Gehe direkt zum Start',{go:0}],['Gehe ins Gefängnis',{jail:1}],['Reise zum letzten Feld',{go:39}],['Arztrechnung: -100',{m:-100}],['Lotteriegewinn: +200',{m:200}],['Du kommst aus dem Gefängnis frei (Pardon-Karte, wird aufbewahrt)',{pardon:1}]];
 
 const rnd = () => 1 + Math.floor(Math.random() * 6);
 const cur = (g) => g.players[g.turn];
 const say = (g, t) => { g.log.push(t); if (g.log.length > 120) g.log.shift(); };
 
-const DEFAULT_RULES = { doubleRent: true, vacation: true, noRentPrison: true, evenBuild: true, randomOrder: false, auction: false };
+const DEFAULT_RULES = { doubleRent: true, vacation: true, noRentPrison: true, evenBuild: true, randomOrder: true, auction: false };
 function newGame(players, settings) {
   return { map: settings.map, rules: { ...DEFAULT_RULES, ...(settings.rules || {}) }, pot: 0, owners: {}, houses: {}, mort: {}, minus: null, trades: [], tid: 0, rn: 0, turn: 0, phase: 'roll', dice: [0, 0], dbl: 0, again: false, winner: null, log: ['Das Spiel beginnt!'],
-    players: players.map((p) => ({ id: p.id, name: p.name, color: p.color || 0, money: settings.budget, pos: 0, jail: 0, out: false })) };
+    players: players.map((p) => ({ id: p.id, name: p.name, color: p.color || 0, pardon: 0, money: settings.budget, pos: 0, jail: 0, out: false })) };
 }
 function view(g) {
   return { ...g, groups: GN[g.map], board: B.map((f, i) => ({ n: NAMES[g.map][i], t: f[0], g: f[0] === 'p' ? f[3] : null, p: f[1] || 0, r: f[2] || 0 })) };
@@ -118,6 +118,7 @@ function land(g, p) {
     const c = CARDS[Math.floor(Math.random() * CARDS.length)], e = c[1];
     say(g, `${p.name}: ${c[0]}`);
     if (e.m > 0) p.money += e.m; else if (e.m < 0) pay(g, p, -e.m, null);
+    else if (e.pardon) p.pardon = (p.pardon || 0) + 1;
     else if ('go' in e) move(g, p, e.go); else toJail(g, p);
   }
   if (g.phase === 'end' && g.again && !p.out) g.phase = 'roll';
@@ -129,13 +130,18 @@ function next(g) {
 function act0(g, pid, a) {
   const p = cur(g);
   if (g.phase === 'over' || p.id !== pid) return;
-  if (a.type === 'jailpay' && g.phase === 'roll' && p.jail && p.money >= 50) { pay(g, p, 50, null); p.jail = 0; if (p.out) g.phase = 'end'; }
-  else if (a.type === 'roll' && g.phase === 'roll' && p.money >= 0) { // im Minus darf man nicht würfeln
+  if (a.type === 'jailpay' && g.phase === 'roll' && p.jail && p.money >= 50) {
+    pay(g, p, 50, null); p.jail = 0; g.again = false; g.phase = 'end';
+    say(g, `${p.name} kauft sich frei und setzt diese Runde aus`);
+  } else if (a.type === 'jailcard' && g.phase === 'roll' && p.jail && p.pardon > 0) {
+    p.pardon--; p.jail = 0; g.again = false; g.phase = 'end';
+    say(g, `${p.name} nutzt eine Pardon-Karte und setzt diese Runde aus`);
+  } else if (a.type === 'roll' && g.phase === 'roll' && p.money >= 0) { // im Minus darf man nicht würfeln
     g.dice = [rnd(), rnd()]; g.rn++; // Wurfzähler: nur ein neuer Wurf startet die Würfel-Animation
     const dbl = g.dice[0] === g.dice[1];
     say(g, `${p.name} würfelt ${g.dice[0]} + ${g.dice[1]}`);
     if (p.jail) {
-      if (dbl) { p.jail = 0; g.again = false; }
+      if (dbl) { p.jail = 0; g.again = false; } // Pasch: frei und sofort ziehen
       else if (++p.jail > 3) { pay(g, p, 50, null); p.jail = 0; g.again = false; if (p.out) { g.phase = 'end'; return; } }
       else { g.phase = 'end'; return; }
     } else if (dbl) {
@@ -203,7 +209,8 @@ function act(g, pid, a) {
   if (a.type === 'bid' || a.type === 'pass') { auctionAct(g, pid, a); return; }
   if (['build', 'sell', 'mortgage'].includes(a.type)) { // Bauen und Hypotheken gehen jederzeit, nicht nur im eigenen Zug
     const q = g.players.find((x) => x.id === pid);
-    if (q && !q.out && g.phase !== 'over') manage(g, q, a);
+    const myTurn = cur(g).id === pid, mortInAuction = a.type === 'mortgage' && g.phase === 'auction' && !g.mort[Number(a.pos)];
+    if (q && !q.out && g.phase !== 'over' && (myTurn || mortInAuction)) manage(g, q, a);
     chk(g); return;
   }
   act0(g, pid, a); chk(g);

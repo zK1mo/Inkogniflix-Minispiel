@@ -19,6 +19,7 @@ const newCode = () => {
   for (let i = 0; i < 5; i++) s += c[Math.floor(Math.random() * c.length)];
   return rooms.has(s) ? newCode() : s;
 };
+const freeColor = (room) => { const used = new Set([...room.players.values()].map((p) => p.color)); let c = 0; while (used.has(c)) c++; return c; };
 const isOut = (room, id) => { const gp = room.game && room.game.players.find((x) => x.id === id); return !!(gp && gp.out); };
 // Votekick: 3/4 der verbundenen, noch aktiven Spieler müssen zustimmen
 const needVotes = (room) => Math.max(1, Math.ceil(0.75 * [...room.players.values()].filter((p) => p.ws && !isOut(room, p.id)).length));
@@ -26,15 +27,17 @@ const nextHost = (room) => ([...room.players.values()].find((p) => p.ws) || [...
 
 function broadcast(room) {
   const base = {
-    type: 'room', now: Date.now(), chat: room.chat, game: room.game ? G.view(room.game) : null, code: room.code, hostId: room.hostId, settings: room.settings, need: needVotes(room),
-    players: [...room.players.values()].map((p) => ({ id: p.id, name: p.name, guest: p.guest, color: p.color, dc: p.ws ? null : p.dc, votes: [...p.votes] })),
+    type: 'room', now: Date.now(), chat: room.chat, specs: [...room.spec.values()].map((x) => x.name), game: room.game ? G.view(room.game) : null, code: room.code, hostId: room.hostId, settings: room.settings, need: needVotes(room),
+    players: [...room.players.values()].map((p) => ({ id: p.id, name: p.name, guest: p.guest, color: p.color, trading: !!p.trading, dc: p.ws ? null : p.dc, votes: [...p.votes] })),
   };
   room.players.forEach((p) => send(p.ws, { ...base, you: p.id }));
+  room.spec.forEach((x) => send(x.ws, { ...base, you: x.id, spec: true })); // Zuschauer sehen alles, können aber nichts tun
 }
 
 function leave(ws) {
   const room = rooms.get(ws.room);
   if (!room) return;
+  if (ws.spec) { room.spec.delete(ws.pid); ws.room = null; return broadcast(room); }
   room.players.delete(ws.pid);
   if (room.game) G.drop(room.game, ws.pid);
   ws.room = null;
@@ -46,10 +49,11 @@ function leave(ws) {
 // Verbindung weg: Im laufenden Spiel bleibt der Platz 3 Minuten frei (Wiederverbinden oder Votekick)
 function disconnect(ws) {
   const room = rooms.get(ws.room), p = room && room.players.get(ws.pid);
+  if (room && ws.spec) { room.spec.delete(ws.pid); return broadcast(room); }
   if (!p) return;
   if (p.ws !== ws) return; // alte Verbindung wurde schon ersetzt
   if (room.game && room.game.phase !== 'over' && !isOut(room, p.id)) {
-    p.ws = null; p.dc = Date.now() + DC_MS; p.votes.clear();
+    p.ws = null; p.dc = Date.now() + DC_MS; p.votes.clear(); p.trading = false;
     G.note(room.game, `${p.name} hat die Verbindung verloren`);
     broadcast(room);
   } else leave(ws);
@@ -70,7 +74,7 @@ function enter(ws, room, msg, id) {
   if (!name) return send(ws, { type: 'error', text: 'Bitte gib einen Namen ein.' });
   ws.pid = Math.random().toString(36).slice(2, 10);
   ws.room = room.code;
-  const used = new Set([...room.players.values()].map((p) => p.color)); let color = 0; while (used.has(color)) color++;
+  const color = freeColor(room);
   room.players.set(ws.pid, { id: ws.pid, name, color, guest: id.guest, uid: id.uid, cid: String(msg.cid || ''), ws, dc: null, votes: new Set() });
   if (!room.hostId) room.hostId = ws.pid;
   broadcast(room);
@@ -95,7 +99,7 @@ async function identify(m) {
 function entry(ws, m, id) {
   const cid = String(m.cid || '');
   if (m.type === 'create') {
-    const r = { code: newCode(), hostId: null, players: new Map(), banned: new Set(), settings: { budget: 1500, map: 'klassisch', max: 8, rules: { doubleRent: true, vacation: true, noRentPrison: true, evenBuild: true, randomOrder: true, auction: false } }, chat: [] };
+    const r = { code: newCode(), hostId: null, players: new Map(), spec: new Map(), banned: new Set(), settings: { budget: 1500, map: 'klassisch', max: 8, rules: { doubleRent: true, vacation: true, noRentPrison: true, evenBuild: true, randomOrder: true, auction: false } }, chat: [] };
     rooms.set(r.code, r);
     return enter(ws, r, m, id);
   }
@@ -104,10 +108,15 @@ function entry(ws, m, id) {
   if (r.banned.has(cid) || (id.uid && r.banned.has(id.uid))) return send(ws, { type: 'error', text: 'Du wurdest aus diesem Raum entfernt.' });
   // gleiches Gerät oder gleiches Konto = derselbe Spieler (Wiederverbinden, auch von einem anderen Gerät)
   const same = [...r.players.values()].find((x) => (x.cid && x.cid === cid) || (id.uid && x.uid === id.uid));
-  if (r.game && !same) return send(ws, { type: 'error', text: 'Das Spiel läuft bereits.' });
+  if (r.game && !same) { // Spiel läuft schon: als Zuschauer dazukommen
+    if (!id.name) return send(ws, { type: 'error', text: 'Bitte gib einen Namen ein.' });
+    ws.pid = 's' + Math.random().toString(36).slice(2, 9); ws.room = r.code; ws.spec = true;
+    r.spec.set(ws.pid, { id: ws.pid, name: id.name, guest: id.guest, uid: id.uid, cid, ws });
+    return broadcast(r);
+  }
   if (same) {
     if (same.ws && same.ws !== ws) { same.ws.room = null; try { same.ws.close(); } catch {} }
-    same.ws = ws; same.dc = null; same.votes.clear(); ws.pid = same.id; ws.room = r.code;
+    same.ws = ws; same.dc = null; same.votes.clear(); same.trading = false; ws.pid = same.id; ws.room = r.code;
     if (r.game) G.note(r.game, `${same.name} ist zurück`);
     return broadcast(r);
   }
@@ -126,7 +135,7 @@ wss.on('connection', (ws) => {
       identify(m).then((id) => { ws.busy = false; if (ws.room) return; if (id.error) return send(ws, { type: 'error', text: id.error }); entry(ws, m, id); })
         .catch(() => { ws.busy = false; send(ws, { type: 'error', text: 'Anmeldung konnte nicht geprüft werden. Bitte versuche es gleich noch einmal.' }); });
       return;
-    } else if (room && room.game && ['roll', 'jailpay', 'buy', 'skip', 'end', 'build', 'sell', 'mortgage', 'giveup', 'bid', 'pass', 'trade', 'tradeok', 'tradeno'].includes(m.type)) {
+    } else if (room && room.game && ['roll', 'jailpay', 'buy', 'skip', 'end', 'build', 'sell', 'mortgage', 'giveup', 'jailcard', 'bid', 'pass', 'trade', 'tradeok', 'tradeno'].includes(m.type)) {
       G.act(room.game, ws.pid, m);
       broadcast(room);
     } else if (room && ws.pid === room.hostId) {
@@ -137,6 +146,11 @@ wss.on('connection', (ws) => {
         broadcast(room);
       } else if (m.type === 'lobby' && room.game && room.game.phase === 'over') {
         room.game = null;
+        room.spec.forEach((x) => {
+          if (room.players.size < room.settings.max) { room.players.set(x.id, { id: x.id, name: x.name, color: freeColor(room), guest: x.guest, uid: x.uid, cid: x.cid, ws: x.ws, dc: null, votes: new Set() }); x.ws.spec = false; }
+          else { send(x.ws, { type: 'error', text: 'Der Raum ist voll.' }); x.ws.room = null; }
+        });
+        room.spec.clear();
         [...room.players.values()].filter((p) => !p.ws).forEach((p) => room.players.delete(p.id)); // Getrennte fliegen nach dem Spiel raus
         broadcast(room);
       } else if (m.type === 'settings' && !room.game) {
@@ -165,9 +179,10 @@ wss.on('connection', (ws) => {
         if (t.votes.size >= needVotes(room)) removePlayer(room, t, 'Votekick'); else broadcast(room);
       }
     }
-    if (m.type === 'chat' && room && room.players.has(ws.pid)) {
-      const t = String(m.text || '').replace(/[<>]/g, '').trim().slice(0, 200);
-      if (t) { room.chat.push({ n: room.players.get(ws.pid).name, t }); if (room.chat.length > 50) room.chat.shift(); broadcast(room); }
+    if (m.type === 'trading' && room && room.players.has(ws.pid)) { room.players.get(ws.pid).trading = !!m.on; broadcast(room); }
+    if (m.type === 'chat' && room && (room.players.has(ws.pid) || room.spec.has(ws.pid))) {
+      const t = String(m.text || '').replace(/[<>]/g, '').trim().slice(0, 200), who = room.players.get(ws.pid) || room.spec.get(ws.pid);
+      if (t) { room.chat.push({ n: who.name + (ws.spec ? ' 👁' : ''), t }); if (room.chat.length > 50) room.chat.shift(); broadcast(room); }
     }
     if (m.type === 'leave') leave(ws);
   });
