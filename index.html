@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-g5Tf5b9UDcIcHR9dps+vsl5uMwDuWQWbYGn1G+3oOLE='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https://hzvnbtksanoonvkblded.supabase.co wss://inkogniflix-minispiel.onrender.com ws://localhost:3000; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-YGlhWailQ14MJ+zNnLzMPCMTBYXyj/ayj8HMbwC61Co='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https://hzvnbtksanoonvkblded.supabase.co wss://inkogniflix-minispiel.onrender.com ws://localhost:3000; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Inkogniflix</title>
 <link rel="icon" href="logo.png">
@@ -172,10 +172,25 @@ body.ingame #err:empty{display:none}
 @media(prefers-reduced-motion:reduce){.ptok.warp,.cell.flash{animation:none}}
 .pw input{-moz-appearance:textfield;appearance:textfield}
 .pw input::-webkit-outer-spin-button,.pw input::-webkit-inner-spin-button{-webkit-appearance:none;appearance:none;margin:0}
+/* Avatar-Editor */
+#avmodal{position:fixed;inset:0;background:#000b;display:grid;place-items:center;z-index:60;padding:14px}
+.avbox{width:min(780px,100%);max-height:94vh;overflow:auto}
+.avgrid{display:grid;grid-template-columns:210px 1fr;gap:18px;margin-bottom:10px}
+@media(max-width:620px){.avgrid{grid-template-columns:1fr}}
+.avprev{text-align:center}#avPreview svg{width:170px;height:170px;border-radius:24px;background:radial-gradient(circle,#3b1573,#150f2a);border:1px solid var(--line);box-shadow:var(--glow)}
+.avcoins{font-weight:800;font-size:20px;margin:8px 0}
+.avtabs{margin-bottom:10px;gap:6px}.avtabs button{flex:0 1 auto}
+.avitems{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px;max-height:330px;overflow:auto;padding:2px}
+button.avit{display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:8px 4px;font-size:12px;font-weight:600;box-shadow:none;color:var(--text)}
+button.avit svg{width:56px;height:56px;border-radius:12px;background:#150f2a}
+button.avit.sel{border-color:var(--p1);box-shadow:0 0 14px #e879f966}button.avit.lock svg{opacity:.75}
+.avit .pr2{font-weight:400;color:var(--dim)}.avit.lock .pr2{color:#facc15;font-weight:600}
+.who{display:inline-flex;align-items:center;gap:6px;max-width:210px}.who svg{border-radius:7px;flex:none}
+.avw{overflow:hidden;background:#150f2a;flex:none;display:grid;place-items:center}.avw svg{display:block}
 </style>
 </head>
 <body>
-<nav><a class="navbrand" href="."><img src="logo.png" alt=""><b>INKOGNIFLIX</b></a><button id="mute" class="small ghost" aria-label="Ton an/aus">🔊</button><input id="vol" type="range" min="0" max="100" aria-label="Lautstärke"><span id="who" class="who hide"></span><button id="authBtn" class="small">Anmelden</button><a class="ext" href="https://zk1mo.github.io/Inkogniflix/">Zur Website</a></nav>
+<nav><a class="navbrand" href="."><img src="logo.png" alt=""><b>INKOGNIFLIX</b></a><button id="mute" class="small ghost" aria-label="Ton an/aus">🔊</button><input id="vol" type="range" min="0" max="100" aria-label="Lautstärke"><button id="who" class="small ghost who hide" title="Avatar und Coins"></button><button id="authBtn" class="small">Anmelden</button><a class="ext" href="https://zk1mo.github.io/Inkogniflix/">Zur Website</a></nav>
 <main>
   <div class="hero" id="hero">
     <div class="cube" style="width:70px;height:70px;left:4%;top:30px"></div><div class="cube" style="width:46px;height:46px;right:6%;top:120px;animation-delay:-2s"></div>
@@ -247,6 +262,17 @@ body.ingame #err:empty{display:none}
   <p id="amsg" class="tag why" role="alert"></p>
   <button id="ago" style="width:100%">Anmelden</button>
   <p class="tag" style="margin-top:12px">Dein Konto ist dasselbe wie auf der Website und wird sicher bei Supabase gespeichert. <a id="forgot" href="https://zk1mo.github.io/Inkogniflix/" target="_blank" rel="noopener">Passwort vergessen? Auf der Website zurücksetzen.</a></p>
+</div></div>
+
+<div id="avmodal" class="hide" role="dialog" aria-modal="true" aria-label="Avatar"><div class="tbox avbox">
+  <button id="avclose" class="tx ghost" aria-label="Schließen">✕</button>
+  <div class="ttl">Dein Avatar</div>
+  <div class="avgrid">
+    <div class="avprev"><div id="avPreview"></div><div id="avCoins" class="avcoins"></div><p class="tag">Coins bekommst du für Siege und gute Platzierungen.</p></div>
+    <div><div id="avTabs" class="row avtabs"></div><div id="avItems" class="avitems"></div></div>
+  </div>
+  <p id="avMsg" class="tag why" role="alert"></p>
+  <div class="row"><button id="avSave">Speichern</button><button id="avCancel" class="ghost">Abbrechen</button></div>
 </div></div>
 
 <script>
@@ -344,7 +370,7 @@ function render() {
   const box = $('players'); box.textContent = '';
   state.players.forEach((p) => {
     const row = el('div', 'player');
-    const av = el('div', 'av', p.name[0].toUpperCase()); av.style.background = COL[p.color]; av.style.color = '#0b0718';
+    let av; if (p.avatar) av = avWrap(p.avatar, COL[p.color], 40); else { av = el('div', 'av', p.name[0].toUpperCase()); av.style.background = COL[p.color]; av.style.color = '#0b0718'; }
     row.append(av, el('div', 'name', p.name + (p.id === state.you ? ' (du)' : '')),
       el('div', 'tag', [p.id === state.hostId ? 'Host' : '', p.watch ? '👁 Zuschauer' : '', !p.watch && p.guest && p.id !== state.hostId ? 'Gast' : ''].filter(Boolean).join(' · ')));
     if (host && p.id !== state.you) { const k = el('button', 'small danger', 'Kicken'); k.onclick = () => out({ type: 'kick', id: p.id }); row.append(k); }
@@ -360,7 +386,7 @@ function render() {
 const SB_URL = 'https://hzvnbtksanoonvkblded.supabase.co', SB_KEY = 'sb_publishable_BXqu2VmFxndAXpF4FAqlAg_3Dpr4Lsf', ALIAS = 'zk1mo.github.io', SKEY = 'sbSession';
 const NAME_RE = /^[A-Za-z0-9][A-Za-z0-9_.äöüÄÖÜß-]{2,19}$/;
 const alias = (n) => n.toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss').replace(/[^a-z0-9_-]/g, '-') + '@' + ALIAS;
-const auth = { session: null, username: '', gp: null };
+const auth = { session: null, username: '', gp: null, items: null };
 let prefs = {}, prefTimer = null, refreshing = null, mode = 'login';
 async function sbx(path, { method = 'GET', token, body, prefer } = {}) {
   const h = { apikey: SB_KEY, 'Content-Type': 'application/json' };
@@ -412,13 +438,15 @@ async function doRegister(u, password) {
 async function loadAccount() {
   const token = await getToken();
   if (!token) { auth.username = ''; auth.gp = null; prefs = {}; uiAuth(); return; }
-  const uid = auth.session.uid, gpq = '/rest/v1/game_profiles?select=coins,avatar,settings&user_id=eq.' + encodeURIComponent(uid);
+  const uid = auth.session.uid, gpq = '/rest/v1/game_profiles?select=coins,avatar,unlocked,settings&user_id=eq.' + encodeURIComponent(uid);
   const pr = await sbx('/rest/v1/profiles?select=username&user_id=eq.' + encodeURIComponent(uid), { token });
   if (pr.status === 401) { setSession(null); auth.username = ''; auth.gp = null; uiAuth(); return; }
   auth.username = pr.ok && pr.data && pr.data[0] ? String(pr.data[0].username || '') : '';
   let g = await sbx(gpq, { token });
   if (g.ok && Array.isArray(g.data) && !g.data.length) { await sbx('/rest/v1/rpc/game_init', { method: 'POST', token, body: {} }); g = await sbx(gpq, { token }); }
   auth.gp = g.ok && Array.isArray(g.data) && g.data[0] ? g.data[0] : null;
+  const it = await sbx('/rest/v1/game_items?select=id,price'); // Preise stammen aus der Datenbank
+  auth.items = it.ok && Array.isArray(it.data) && it.data.length ? Object.fromEntries(it.data.map((x) => [x.id, x.price])) : null;
   prefs = (auth.gp && auth.gp.settings) || {};
   if (typeof prefs.vol === 'number') vol = Math.min(100, Math.max(0, prefs.vol));
   if (typeof prefs.mute === 'boolean') muted = prefs.mute;
@@ -438,7 +466,8 @@ function loadPref(k) {
 function uiAuth() {
   const on = !!auth.session && !!auth.username;
   $('authBtn').textContent = on ? 'Abmelden' : 'Anmelden'; $('authBtn').classList.toggle('ghost', on);
-  $('who').classList.toggle('hide', !on); $('who').textContent = on ? auth.username + (auth.gp ? ' · 🪙 ' + auth.gp.coins : '') : '';
+  $('who').classList.toggle('hide', !on); $('who').textContent = '';
+  if (on) $('who').append(avatarSvg(auth.gp && auth.gp.avatar, 22), document.createTextNode(auth.username + (auth.gp ? ' · 🪙 ' + auth.gp.coins : '')));
   $('name').readOnly = on;
   if (on) $('name').value = auth.username; else { try { $('name').value = localStorage.getItem('name') || ''; } catch {} }
   $('homeNote').textContent = on ? 'Eingeloggt als ' + auth.username + '. Deine Einstellungen werden sicher in deinem Konto gespeichert.' : 'Ohne Login spielst du als Gast. Mit einem Konto speichern wir deine Einstellungen sicher und später auch Coins und Avatar.';
@@ -477,6 +506,91 @@ async function initAuth() {
   uiAuth();
   if (auth.session) await loadAccount();
 }
+
+/* ===== Avatare (selbst gezeichnet, blockig wie das Inkogniflix-Logo) =====
+   Kaufen und Anziehen läuft nur über die Datenbank-Funktionen game_buy / game_equip. */
+const AV_SLOTS = [['skin', 'Haut'], ['eyes', 'Augen'], ['mouth', 'Mund'], ['hat', 'Hut'], ['glasses', 'Brille']];
+const AV_DEFAULT = { skin: 'skin_lila', eyes: 'eyes_quadrat', mouth: 'mouth_strich', hat: 'hat_kein', glasses: 'glasses_keine' };
+const INK = '#1a1236';
+const AV_ITEMS = [ // id, Slot, Name, Preis (nur Vorgabe, maßgeblich ist die Datenbank), Zeichnung
+  ['skin_lila', 'skin', 'Lila', 0, '#c084fc'], ['skin_mint', 'skin', 'Mint', 60, '#6ee7b7'], ['skin_himmel', 'skin', 'Himmel', 60, '#7dd3fc'], ['skin_pfirsich', 'skin', 'Pfirsich', 60, '#fdba74'],
+  ['skin_rose', 'skin', 'Rosé', 90, '#fb7185'], ['skin_schatten', 'skin', 'Schatten', 200, '#4b5563'], ['skin_neon', 'skin', 'Neon', 250, '#4ade80'], ['skin_gold', 'skin', 'Gold', 500, '#facc15'],
+  ['eyes_quadrat', 'eyes', 'Quadrate', 0, `<rect x="10.5" y="16" width="3.4" height="3.4" fill="${INK}"/><rect x="18.1" y="16" width="3.4" height="3.4" fill="${INK}"/>`],
+  ['eyes_rund', 'eyes', 'Rund', 40, `<circle cx="12.2" cy="17.5" r="2.5" fill="#fff"/><circle cx="12.7" cy="17.8" r="1.2" fill="${INK}"/><circle cx="19.8" cy="17.5" r="2.5" fill="#fff"/><circle cx="20.3" cy="17.8" r="1.2" fill="${INK}"/>`],
+  ['eyes_muede', 'eyes', 'Müde', 40, `<path d="M10 18h4.4M17.6 18H22" stroke="${INK}" stroke-width="1.7" stroke-linecap="round"/>`],
+  ['eyes_boese', 'eyes', 'Böse', 80, `<rect x="11" y="17.2" width="3" height="3" fill="${INK}"/><rect x="18" y="17.2" width="3" height="3" fill="${INK}"/><path d="M9.5 14.6l5 1.7M22.5 14.6l-5 1.7" stroke="${INK}" stroke-width="1.7" stroke-linecap="round"/>`],
+  ['eyes_froh', 'eyes', 'Fröhlich', 80, `<path d="M10 19c.6-2.7 3.4-2.7 4 0M18 19c.6-2.7 3.4-2.7 4 0" fill="none" stroke="${INK}" stroke-width="1.8" stroke-linecap="round"/>`],
+  ['eyes_zyklop', 'eyes', 'Zyklop', 150, `<circle cx="16" cy="17.5" r="3.8" fill="#fff"/><circle cx="16.5" cy="17.8" r="1.9" fill="${INK}"/>`],
+  ['eyes_sterne', 'eyes', 'Sterne', 250, `<path d="M12 14.4l1 2.3 2.3 1-2.3 1-1 2.3-1-2.3-2.3-1 2.3-1z M20 14.4l1 2.3 2.3 1-2.3 1-1 2.3-1-2.3-2.3-1 2.3-1z" fill="#facc15" stroke="#a16207" stroke-width=".5"/>`],
+  ['mouth_strich', 'mouth', 'Strich', 0, `<rect x="13" y="23" width="6" height="1.9" rx=".6" fill="${INK}"/>`],
+  ['mouth_laecheln', 'mouth', 'Lächeln', 40, `<path d="M12 22.5c1.5 2.5 6.5 2.5 8 0" fill="none" stroke="${INK}" stroke-width="1.8" stroke-linecap="round"/>`],
+  ['mouth_grinsen', 'mouth', 'Grinsen', 60, `<path d="M11.5 22h9c0 3-2 4.6-4.5 4.6S11.5 25 11.5 22z" fill="${INK}"/><path d="M12.6 22.7h6.8" stroke="#fff" stroke-width="1.2"/>`],
+  ['mouth_o', 'mouth', 'Staunen', 60, `<ellipse cx="16" cy="24" rx="2" ry="2.5" fill="${INK}"/>`],
+  ['mouth_zunge', 'mouth', 'Zunge', 120, `<path d="M12 22.5c1.5 2.5 6.5 2.5 8 0" fill="none" stroke="${INK}" stroke-width="1.8" stroke-linecap="round"/><path d="M16.6 24.3h3.2v2a1.6 1.6 0 01-3.2 0z" fill="#fb7185"/>`],
+  ['mouth_zaehne', 'mouth', 'Zähne', 200, `<rect x="11.5" y="22" width="9" height="4.2" rx="1" fill="#fff" stroke="${INK}" stroke-width="1.2"/><path d="M14.5 22v4.2M17.5 22v4.2" stroke="${INK}" stroke-width="1"/>`],
+  ['hat_kein', 'hat', 'Kein Hut', 0, ''],
+  ['hat_kappe', 'hat', 'Kappe', 100, '<path d="M7 10c0-5 4-7.5 9-7.5s9 2.5 9 7.5z" fill="#ef4444"/><rect x="16" y="9" width="14" height="2.4" rx="1.2" fill="#b91c1c"/>'],
+  ['hat_muetze', 'hat', 'Mütze', 100, '<path d="M7 10c0-6 4-8 9-8s9 2 9 8z" fill="#38bdf8"/><rect x="6" y="8.5" width="20" height="3" rx="1.5" fill="#0ea5e9"/><circle cx="16" cy="2" r="2" fill="#e0f2fe"/>'],
+  ['hat_fedora', 'hat', 'Fedora', 180, '<path d="M10 9.5l1-6h10l1 6z" fill="#7c3aed"/><path d="M10.2 7.8h11.6" stroke="#ddd6fe" stroke-width="1.2"/><path d="M4 10.5c0-1.4 4-2.2 12-2.2s12 .8 12 2.2c0 1.2-4 1.8-12 1.8s-12-.6-12-1.8z" fill="#8b5cf6" stroke="#ddd6fe" stroke-width=".8"/>'],
+  ['hat_zylinder', 'hat', 'Zylinder', 250, '<rect x="10" y="0.5" width="12" height="9" rx="1" fill="#111827"/><rect x="10" y="6" width="12" height="2" fill="#c084fc"/><rect x="5" y="9" width="22" height="2.4" rx="1.2" fill="#111827"/>'],
+  ['hat_kopfhoerer', 'hat', 'Kopfhörer', 300, '<path d="M7 17v-4a9 9 0 0118 0v4" fill="none" stroke="#1f2937" stroke-width="2.2"/><rect x="4.6" y="15" width="4" height="7" rx="1.6" fill="#fb7185"/><rect x="23.4" y="15" width="4" height="7" rx="1.6" fill="#fb7185"/>'],
+  ['hat_zauberer', 'hat', 'Zauberhut', 450, '<path d="M16 0.5l8 9H8z" fill="#4c1d95"/><path d="M5 10c2.5-1.2 7-1.6 11-1.6s8.5.4 11 1.6c-1 1.6-5.5 2-11 2s-10-.4-11-2z" fill="#6d28d9"/><circle cx="16" cy="5.5" r="1.1" fill="#facc15"/>'],
+  ['hat_krone', 'hat', 'Krone', 900, '<path d="M8 9.5l-1-7 5 3.5 4-5 4 5 5-3.5-1 7z" fill="#facc15" stroke="#a16207" stroke-width=".9"/><circle cx="16" cy="6.5" r="1.1" fill="#ef4444"/>'],
+  ['glasses_keine', 'glasses', 'Keine Brille', 0, ''],
+  ['glasses_rund', 'glasses', 'Rund', 80, `<circle cx="12.2" cy="17.6" r="3.5" fill="none" stroke="${INK}" stroke-width="1.3"/><circle cx="19.8" cy="17.6" r="3.5" fill="none" stroke="${INK}" stroke-width="1.3"/><path d="M15.7 17.4h.6" stroke="${INK}" stroke-width="1.3"/>`],
+  ['glasses_sonne', 'glasses', 'Sonnenbrille', 150, '<rect x="8" y="15.2" width="7.6" height="5" rx="1.6" fill="#0b0718"/><rect x="16.4" y="15.2" width="7.6" height="5" rx="1.6" fill="#0b0718"/><path d="M15.6 16.4h.8" stroke="#0b0718" stroke-width="1.4"/>'],
+  ['glasses_visier', 'glasses', 'Neon-Visier', 300, '<rect x="7" y="15" width="18" height="5" rx="2.2" fill="#22d3ee" opacity=".85" stroke="#fff" stroke-width=".8"/>'],
+  ['glasses_herz', 'glasses', 'Herzchen', 200, '<path d="M12 21l-3-3a1.9 1.9 0 112.7-2.6l.3.3.3-.3a1.9 1.9 0 112.7 2.6z M20 21l-3-3a1.9 1.9 0 112.7-2.6l.3.3.3-.3a1.9 1.9 0 112.7 2.6z" fill="#fb7185" stroke="#be123c" stroke-width=".6"/>'],
+];
+const AV_BY_ID = Object.fromEntries(AV_ITEMS.map((x) => [x[0], { id: x[0], slot: x[1], name: x[2], price: x[3], art: x[4] }]));
+// Zeichnet einen Avatar; unbekannte Teile werden ignoriert (es kommt nur Zeichnung aus diesem Katalog in die Seite)
+function avatarSvg(av, size) {
+  const a = {}; AV_SLOTS.forEach(([k]) => { const it = AV_BY_ID[(av || {})[k]]; a[k] = it && it.slot === k ? it : AV_BY_ID[AV_DEFAULT[k]]; });
+  const sk = a.skin.art, svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><path d="M3 32c1-5 5-6.5 13-6.5S29 27 29 32z" fill="' + sk + '" opacity=".75"/><rect x="6" y="9" width="20" height="19" rx="3" fill="' + sk + '" stroke="#0b071866"/>' + a.eyes.art + a.mouth.art + a.glasses.art + a.hat.art + '</svg>';
+  const e = document.importNode(new DOMParser().parseFromString(svg, 'image/svg+xml').documentElement, true);
+  e.setAttribute('aria-hidden', 'true'); if (size) { e.setAttribute('width', size); e.setAttribute('height', size); } return e;
+}
+function avWrap(av, color, size) { // Avatar mit Rahmen in der Spielerfarbe
+  const w = el('div', 'avw'); w.style.cssText = 'width:' + size + 'px;height:' + size + 'px;border-radius:' + Math.round(size / 3.2) + 'px;border:2px solid ' + color; w.append(avatarSvg(av, size - 4)); return w;
+}
+const itemPrice = (id) => (auth.items && auth.items[id] != null ? auth.items[id] : AV_BY_ID[id].price);
+const owned = (id) => itemPrice(id) === 0 || ((auth.gp && auth.gp.unlocked) || []).includes(id);
+const avEd = { draft: {}, slot: 'skin' };
+function openAvatar() {
+  if (!auth.session || !auth.gp) return;
+  avEd.draft = { ...AV_DEFAULT, ...(auth.gp.avatar || {}) }; avEd.slot = 'skin'; $('avMsg').textContent = ''; $('avmodal').classList.remove('hide'); drawAvatar();
+}
+function drawAvatar() {
+  $('avPreview').textContent = ''; $('avPreview').append(avatarSvg(avEd.draft, 170)); $('avCoins').textContent = '🪙 ' + auth.gp.coins;
+  const tabs = $('avTabs'); tabs.textContent = '';
+  AV_SLOTS.forEach(([k, n]) => { const b = el('button', 'small' + (avEd.slot === k ? '' : ' ghost'), n); b.onclick = () => { avEd.slot = k; drawAvatar(); }; tabs.append(b); });
+  const box = $('avItems'); box.textContent = '';
+  AV_ITEMS.filter((x) => x[1] === avEd.slot).forEach((x) => {
+    const id = x[0], have = owned(id), on = avEd.draft[avEd.slot] === id, b = el('button', 'avit' + (on ? ' sel' : '') + (have ? '' : ' lock'));
+    b.append(avatarSvg({ ...avEd.draft, [avEd.slot]: id }, 56), el('div', '', AV_BY_ID[id].name), el('div', 'pr2', have ? (on ? '✓ aktiv' : 'frei') : '🪙 ' + itemPrice(id)));
+    b.onclick = () => pickItem(id, have); box.append(b);
+  });
+}
+async function pickItem(id, have) {
+  const msg = (t) => { $('avMsg').textContent = t; }; msg('');
+  if (!have) {
+    if (!auth.items) return msg('Der Shop ist noch nicht eingerichtet (das SQL-Skript in Supabase ausführen).');
+    const pr = itemPrice(id); if (auth.gp.coins < pr) return msg('Dir fehlen ' + (pr - auth.gp.coins) + ' 🪙 für „' + AV_BY_ID[id].name + '“.');
+    if (!confirm('„' + AV_BY_ID[id].name + '“ für ' + pr + ' Coins kaufen?')) return;
+    const r = await sbx('/rest/v1/rpc/game_buy', { method: 'POST', token: await getToken(), body: { p_item: id } });
+    if (!r.ok) return msg((r.data && r.data.message) || 'Der Kauf hat nicht geklappt.');
+    auth.gp.coins = Number(r.data); auth.gp.unlocked = [...(auth.gp.unlocked || []), id]; uiAuth();
+  }
+  avEd.draft[avEd.slot] = id; drawAvatar();
+}
+const closeAv = () => $('avmodal').classList.add('hide');
+$('avclose').onclick = closeAv; $('avCancel').onclick = closeAv; $('avmodal').onclick = (e) => { if (e.target === $('avmodal')) closeAv(); };
+$('who').onclick = openAvatar;
+$('avSave').onclick = async () => {
+  $('avSave').disabled = true; const r = await sbx('/rest/v1/rpc/game_equip', { method: 'POST', token: await getToken(), body: { p_avatar: avEd.draft } }); $('avSave').disabled = false;
+  if (!r.ok) { $('avMsg').textContent = (r.data && r.data.message) || 'Speichern hat nicht geklappt.'; return; }
+  auth.gp.avatar = r.data; uiAuth(); closeAv();
+};
 
 const COL = ['#c471f0', '#38bdf8', '#f59e0b', '#34d399', '#fb7185', '#a3e635', '#f472b6', '#e5e7eb', '#facc15', '#f97316', '#14b8a6', '#a16207'];
 const GC = ['#8b5a2b', '#7dd3fc', '#f472b6', '#fb923c', '#ef4444', '#facc15', '#22c55e', '#3b5bdb'];
@@ -518,7 +632,7 @@ function propMark(g, k) {
   return symIcon(f, k, g.map, 16) || el('span', 'dot2');
 }
 const SPEC = { id: '-', name: 'Zuschauer', money: 0, out: true, pos: 0, jail: 0, color: 0, pardon: 0 }; // Platzhalter für Zuschauer
-let holding = false, holdBase = null, holdMsg = null, holdRollShown = false, flash = {}, sel = null, busy = false, lastKey = '', shown = {}, tokEl = {}, timers = [];
+let overSeen = false, holding = false, holdBase = null, holdMsg = null, holdRollShown = false, flash = {}, sel = null, busy = false, lastKey = '', shown = {}, tokEl = {}, timers = [];
 
 const grpIds = (g, gi) => g.board.map((x, k) => k).filter((k) => g.board[k].g === gi);
 function buildInfo(g, me, i) {
@@ -707,6 +821,7 @@ function renderGame() {
   const g = state.game, me = state.you, p = g.players[g.turn], mine = p.id === me, host = me === state.hostId, spec = !!state.spec;
   const idx = (id) => g.players.findIndex((x) => x.id === id), nm = (id) => g.players.find((x) => x.id === id).name;
   $('rc').textContent = state.code;
+  if (g.phase === 'over') { if (!overSeen) { overSeen = true; if (auth.session) { setTimeout(loadAccount, 2500); setTimeout(loadAccount, 7000); } } } else overSeen = false; // Coins nach dem Spiel neu laden
   $('specInfo').textContent = spec ? '👁 Du schaust zu.' : state.specs && state.specs.length ? '👁 Zuschauer: ' + state.specs.join(', ') : '';
   const bd = $('board'); bd.textContent = '';
   g.board.forEach((f, i) => {
@@ -800,10 +915,10 @@ function renderGame() {
   // Rechts: Spieler
   const pl = $('plCard'); pl.textContent = ''; pl.append(el('div', 'hd', 'Spieler'));
   g.players.forEach((q, k) => {
-    const r = el('div', 'pl' + (k === g.turn && g.phase !== 'over' ? ' turn' : '') + (q.out ? ' out' : '')), t = el('div', 'ptok', q.name[0].toUpperCase());
-    t.style.background = COL[q.color];
+    const r = el('div', 'pl' + (k === g.turn && g.phase !== 'over' ? ' turn' : '') + (q.out ? ' out' : '')), spq = state.players.find((x) => x.id === q.id), t = spq && spq.avatar ? avWrap(spq.avatar, COL[q.color], 28) : el('div', 'ptok', q.name[0].toUpperCase());
+    if (!(spq && spq.avatar)) t.style.background = COL[q.color];
     r.append(t, el('span', '', q.name + (q.id === me ? ' (du)' : '') + (q.id === state.hostId ? ' 👑' : '') + (q.jail ? ' ⛓' : '') + (q.pardon ? ' 🃏' + q.pardon : '')), (() => { const m = el('span', 'm', q.money + ' €'); if (q.money < 0) m.style.color = '#ff6b8b'; return m; })());
-    dcRow(r, q, me); tradeBadge(r, q); pl.append(r);
+    dcRow(r, q, me); tradeBadge(r, q); payBadge(r, q, g); pl.append(r);
   });
   if (!spec && g.phase !== 'over' && !(g.players.find((x) => x.id === me) || SPEC).out) { const b = el('button', 'small danger', 'Aufgeben'); b.style.marginTop = '8px'; b.onclick = () => { if (confirm('Wirklich aufgeben?')) out({ type: 'giveup' }); }; pl.append(b); }
 
@@ -855,6 +970,11 @@ function tickCd() {
   const ea = $('acd'); if (ea && state && state.game && state.game.auction) ea.textContent = Math.max(0, Math.ceil((state.game.auction.until - (Date.now() + skew)) / 1000)) + ' s';
   document.querySelectorAll('.dcc').forEach((d) => { d.textContent = mmss(Number(d.dataset.until)); });
 }
+function payBadge(r, q, g) { // Platzierung und Coins am Spielende
+  const po = g.payout && g.payout[q.id]; if (!po) return;
+  const sp = state.players.find((x) => x.id === q.id), acct = sp && !sp.guest;
+  const b = el('div', 'dcrow', po.place + '. Platz' + (po.coins ? (acct ? ' · +' + po.coins + ' 🪙' : ' · (' + po.coins + ' 🪙 gibt es nur mit Konto)') : '')); b.style.color = po.place === 1 ? '#facc15' : '#c9b3ee'; r.append(b);
+}
 function tradeBadge(r, q) { // zeigt, wer gerade das Handelsmenü offen hat
   const sp = state.players.find((x) => x.id === q.id);
   if (sp && sp.trading) { const b = el('div', 'dcrow', '💱 handelt gerade …'); b.style.color = '#93c5fd'; r.append(b); }
@@ -894,7 +1014,7 @@ function showOffer(id) {
   const row = el('div', 'row'); row.style.marginTop = '20px';
   const b = (txt, cls, fn, dis) => { const e = el('button', cls, txt); e.disabled = !!dis; e.onclick = fn; row.append(e); };
   b('Annehmen', '', () => { out({ type: 'tradeok', id }); close(); }, t.tm > 0 && meP.money < t.tm);
-  b('Gegenangebot', 'ghost', () => { close(); openTrade({ to: t.from, gm: t.tm, gp: t.tp, tm: t.gm, tp: t.gp, replace: id }); });
+  b('Gegenangebot', 'ghost', () => { const dsc = (m, ps) => [m ? m + ' €' : '', ...ps.map((k) => g.board[k].n)].filter(Boolean).join(' + ') || 'nichts'; close(); openTrade({ to: t.from, gm: t.tm, gp: t.tp, tm: t.gm, tp: t.gp, replace: id, note: 'Ursprüngliches Angebot: ' + nm(t.from) + ' gibt ' + dsc(t.gm, t.gp) + ', du gibst ' + dsc(t.tm, t.tp) + '.' }); });
   b('Ablehnen', 'danger', () => { out({ type: 'tradeno', id }); close(); });
   box.append(row);
   if (t.tm > 0 && meP.money < t.tm) box.append(el('div', 'tag why', 'Dir fehlen ' + (t.tm - meP.money) + ' € für dieses Angebot.'));
@@ -908,6 +1028,7 @@ function openTrade(pre) {
   const box = el('div', 'tbox'); m.append(box);
   const x = el('button', 'tx ghost', '✕'); x.setAttribute('aria-label', 'Schließen'); x.onclick = close;
   box.append(x, el('div', 'ttl', pre ? 'Gegenangebot' : 'Handel erstellen'));
+  if (pre) { const nt = el('div', 'tag', (pre.note || '') + ' Du kannst Geld und Grundstücke auf beiden Seiten ändern: Geld dazugeben, Geld verlangen oder Grundstücke tauschen.'); nt.style.cssText = 'text-align:center;margin:-8px 0 14px'; box.append(nt); }
   const hasB = (k) => g.board.some((f, i) => f.g != null && f.g === g.board[k].g && g.houses[i]);
   const mkSide = (head, who) => {
     const w = el('div', 'tside'), rng = document.createElement('input'), lbl = el('div', 'rl'), chips = el('div', 'chips'), sel = new Set();
