@@ -25,10 +25,19 @@ const isOut = (room, id) => { const gp = room.game && room.game.players.find((x)
 const needVotes = (room) => Math.max(1, Math.ceil(0.75 * [...room.players.values()].filter((p) => p.ws && !isOut(room, p.id)).length));
 const nextHost = (room) => ([...room.players.values()].find((p) => p.ws) || [...room.players.values()][0] || {}).id;
 
+// Spielende: Coins an angemeldete Spieler auszahlen (nur einmal pro Spiel)
+function settle(room) {
+  const g = room.game; g.paid = true;
+  for (const p of G.payouts(g)) {
+    const uid = room.uids && room.uids[p.id];
+    if (uid) db.award(uid, p.coins, p.place === 1).catch((e) => console.log('Coins konnten nicht gutgeschrieben werden:', e.message));
+  }
+}
 function broadcast(room) {
+  if (room.game && room.game.phase === 'over' && !room.game.paid) settle(room);
   const base = {
     type: 'room', now: Date.now(), chat: room.chat, specs: [...room.spec.values()].map((x) => x.name), game: room.game ? G.view(room.game) : null, code: room.code, hostId: room.hostId, settings: room.settings, need: needVotes(room),
-    players: [...room.players.values()].map((p) => ({ id: p.id, name: p.name, guest: p.guest, color: p.color, trading: !!p.trading, watch: !!p.watch, dc: p.ws ? null : p.dc, votes: [...p.votes] })),
+    players: [...room.players.values()].map((p) => ({ id: p.id, name: p.name, guest: p.guest, color: p.color, trading: !!p.trading, watch: !!p.watch, avatar: p.avatar || null, dc: p.ws ? null : p.dc, votes: [...p.votes] })),
   };
   room.players.forEach((p) => send(p.ws, { ...base, you: p.id }));
   room.spec.forEach((x) => send(x.ws, { ...base, you: x.id, spec: true })); // Zuschauer sehen alles, können aber nichts tun
@@ -75,7 +84,7 @@ function enter(ws, room, msg, id) {
   ws.pid = Math.random().toString(36).slice(2, 10);
   ws.room = room.code;
   const color = freeColor(room);
-  room.players.set(ws.pid, { id: ws.pid, name, color, guest: id.guest, uid: id.uid, cid: String(msg.cid || ''), ws, dc: null, votes: new Set(), watch: false });
+  room.players.set(ws.pid, { id: ws.pid, name, color, guest: id.guest, uid: id.uid, avatar: id.avatar || null, cid: String(msg.cid || ''), ws, dc: null, votes: new Set(), watch: false });
   if (!room.hostId) room.hostId = ws.pid;
   broadcast(room);
 }
@@ -88,7 +97,7 @@ async function identify(m) {
     if (await db.isBanned(m.token, u.id)) return { error: 'Dein Konto ist gesperrt.' };
     const name = clean(await db.username(m.token, u.id));
     if (!name) return { error: 'Zu deinem Konto gibt es noch keinen Benutzernamen.' };
-    return { name, guest: false, uid: u.id };
+    return { name, guest: false, uid: u.id, avatar: await db.avatarOf(m.token, u.id) };
   }
   const name = clean(m.name);
   if (name && await db.nameTaken(name)) return { error: 'Dieser Name gehört einem registrierten Spieler. Wähle einen anderen oder melde dich an.' };
@@ -116,7 +125,7 @@ function entry(ws, m, id) {
   }
   if (same) {
     if (same.ws && same.ws !== ws) { same.ws.room = null; try { same.ws.close(); } catch {} }
-    same.ws = ws; same.dc = null; same.votes.clear(); same.trading = false; ws.pid = same.id; ws.room = r.code;
+    same.ws = ws; same.dc = null; same.votes.clear(); same.trading = false; if (id.uid) same.avatar = id.avatar || null; ws.pid = same.id; ws.room = r.code;
     if (r.game) G.note(r.game, `${same.name} ist zurück`);
     return broadcast(r);
   }
@@ -143,6 +152,7 @@ wss.on('connection', (ws) => {
         const all = [...room.players.values()], ps = all.filter((p) => !p.watch); // Zuschauer spielen nicht mit
         if (room.settings.rules.randomOrder) for (let i = ps.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [ps[i], ps[j]] = [ps[j], ps[i]]; }
         room.game = G.newGame(ps, room.settings);
+        room.uids = {}; ps.forEach((p) => { if (p.uid) room.uids[p.id] = p.uid; }); // wer ein Konto hat (für die Coins)
         all.filter((p) => p.watch).forEach((p) => { room.players.delete(p.id); room.spec.set(p.id, { id: p.id, name: p.name, guest: p.guest, uid: p.uid, cid: p.cid, ws: p.ws, chosen: true }); if (p.ws) p.ws.spec = true; });
         broadcast(room);
       } else if (m.type === 'lobby' && room.game && room.game.phase === 'over') {

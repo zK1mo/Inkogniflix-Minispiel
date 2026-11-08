@@ -21,15 +21,25 @@ const say = (g, t) => { g.log.push(t); if (g.log.length > 120) g.log.shift(); };
 
 const DEFAULT_RULES = { doubleRent: true, vacation: true, noRentPrison: true, evenBuild: true, randomOrder: true, auction: false };
 function newGame(players, settings) {
-  return { map: settings.map, rules: { ...DEFAULT_RULES, ...(settings.rules || {}) }, pot: 0, owners: {}, houses: {}, mort: {}, minus: null, trades: [], tid: 0, rn: 0, turn: 0, phase: 'roll', dice: [0, 0], dbl: 0, again: false, winner: null, log: ['Das Spiel beginnt!'],
+  return { map: settings.map, rules: { ...DEFAULT_RULES, ...(settings.rules || {}) }, pot: 0, owners: {}, houses: {}, mort: {}, minus: null, outOrder: [], trades: [], tid: 0, rn: 0, turn: 0, phase: 'roll', dice: [0, 0], dbl: 0, again: false, winner: null, log: ['Das Spiel beginnt!'],
     players: players.map((p) => ({ id: p.id, name: p.name, color: p.color || 0, pardon: 0, money: settings.budget, pos: 0, jail: 0, out: false })) };
 }
+// Coins nach Platz: Sieger bekommt am meisten, jeder weitere Platz die Hälfte des Vorgängers, der Letzte nichts.
+// Zu kurze Spiele (unter 12 Würfen) geben keine Coins, damit man sie nicht mit Zweitkonten erfarmen kann.
+const MIN_ROLLS = 12;
+function payouts(g) {
+  const n = g.players.length, win = 100 + 40 * (n - 2), long = g.rn >= MIN_ROLLS;
+  return [g.winner, ...[...g.outOrder].reverse()].filter(Boolean).map((id, i) => {
+    const place = i + 1, raw = place < n ? win * Math.pow(0.5, place - 1) : 0;
+    return { id, place, coins: long ? Math.round(raw / 5) * 5 : 0 };
+  });
+}
 function view(g) {
-  return { ...g, groups: GN[g.map], board: B.map((f, i) => ({ n: NAMES[g.map][i], t: f[0], g: f[0] === 'p' ? f[3] : null, p: f[1] || 0, r: f[2] || 0 })) };
+  return { ...g, payout: g.phase === 'over' ? Object.fromEntries(payouts(g).map((x) => [x.id, { place: x.place, coins: x.coins }])) : null, groups: GN[g.map], board: B.map((f, i) => ({ n: NAMES[g.map][i], t: f[0], g: f[0] === 'p' ? f[3] : null, p: f[1] || 0, r: f[2] || 0 })) };
 }
 function bankrupt(g, p, to) {
   if (to) to.money += Math.max(p.money, 0);
-  p.money = 0; p.out = true;
+  p.money = 0; p.out = true; g.outOrder.push(p.id);
   g.trades = g.trades.filter((t) => t.from !== p.id && t.to !== p.id);
   for (const k in g.owners) if (g.owners[k] === p.id) { delete g.houses[k]; if (to) g.owners[k] = to.id; else { delete g.owners[k]; delete g.mort[k]; } }
   say(g, p.name + ' ist bankrott!');
@@ -228,4 +238,4 @@ function drop(g, pid) {
   if (g.phase !== 'over' && was) next(g);
   chk(g);
 }
-module.exports = { newGame, act, drop, view, tick, note: say };
+module.exports = { newGame, act, drop, view, tick, payouts, note: say };
