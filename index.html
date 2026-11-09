@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-YGlhWailQ14MJ+zNnLzMPCMTBYXyj/ayj8HMbwC61Co='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https://hzvnbtksanoonvkblded.supabase.co wss://inkogniflix-minispiel.onrender.com ws://localhost:3000; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-o3IyWWEfDiQSKFmX4uWnUbBOGJ1/lNyyeo/qCqqRshw='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https://hzvnbtksanoonvkblded.supabase.co wss://inkogniflix-minispiel.onrender.com ws://localhost:3000; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Inkogniflix</title>
 <link rel="icon" href="logo.png">
@@ -47,7 +47,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .own{position:absolute;bottom:0;left:0;right:0;height:4px}
 .hs{position:absolute;bottom:3px;right:2px;font-size:max(8px,1.4cqw);color:#facc15}
 #tokens{position:absolute;inset:0;pointer-events:none}
-.ptok{position:absolute;width:max(14px,3.2cqw);height:max(14px,3.2cqw);font-size:max(8px,1.8cqw);font-weight:800;color:#0b0718;display:grid;place-items:center;border-radius:50%;border:2px solid #fff;transform:translate(-50%,-50%);transition:left .15s linear,top .15s linear;box-shadow:0 0 10px #000,0 0 14px currentColor;z-index:5}
+.ptok{position:absolute;width:max(14px,3.2cqw);height:max(14px,3.2cqw);font-size:max(8px,1.8cqw);font-weight:800;color:#0b0718;display:grid;place-items:center;border-radius:50%;border:2px solid #fff;transform:translate(-50%,-50%);transition:left .15s cubic-bezier(.3,.75,.35,1),top .15s cubic-bezier(.3,.75,.35,1);box-shadow:0 0 10px #000,0 0 14px currentColor;z-index:5}
 #dice{position:absolute;left:50%;top:45%;transform:translate(-50%,-50%);display:flex;gap:max(10px,2cqw);z-index:4}
 .die{width:max(36px,7cqw);aspect-ratio:1;background:#f5ecff;border-radius:18%;display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);padding:17%;box-shadow:0 0 18px #c471f0}
 .die i{border-radius:50%}.die i.on{background:#1a1236}
@@ -187,6 +187,18 @@ button.avit.sel{border-color:var(--p1);box-shadow:0 0 14px #e879f966}button.avit
 .avit .pr2{font-weight:400;color:var(--dim)}.avit.lock .pr2{color:#facc15;font-weight:600}
 .who{display:inline-flex;align-items:center;gap:6px;max-width:210px}.who svg{border-radius:7px;flex:none}
 .avw{overflow:hidden;background:#150f2a;flex:none;display:grid;place-items:center}.avw svg{display:block}
+/* Felder: abgerundet, Flagge als Milchglas, dickerer Besitzer-Strich */
+.cell{margin:max(1px,.16cqw);border-radius:max(6px,1.05cqw);overflow:hidden}
+.flagbg{position:absolute;inset:-14%;opacity:.36;filter:blur(7px) saturate(1.2);pointer-events:none;z-index:0}
+.cell.prop::after{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:0;background:linear-gradient(135deg,rgba(255,255,255,.16),rgba(255,255,255,.03));border:1px solid rgba(255,255,255,.2);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
+.cell .ic,.cell .pr,.cell .nm{position:relative;z-index:1}.cell .bar,.cell .hs{z-index:1}
+.own{height:max(6px,1.35cqw);border-radius:99px;z-index:1}
+.cell.left .own,.cell.right .own{width:max(6px,1.35cqw);height:auto}
+/* Geld-Änderung */
+.pl .m{position:relative}.delta{position:absolute;right:0;top:-4px;font-size:12px;font-weight:800;pointer-events:none;animation:dfloat 1.5s ease-out forwards}
+.delta.up{color:#4ade80}.delta.down{color:#fb7185}
+@keyframes dfloat{0%{opacity:0;transform:translateY(8px)}15%{opacity:1}100%{opacity:0;transform:translateY(-20px)}}
+#toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:70;max-width:min(560px,92vw);padding:12px 18px;border-radius:16px;background:rgba(30,20,56,.96);border:1px solid var(--line);box-shadow:var(--glow);font-weight:600;text-align:center}
 </style>
 </head>
 <body>
@@ -251,6 +263,7 @@ button.avit.sel{border-color:var(--p1);box-shadow:0 0 14px #e879f966}button.avit
   </section>
 </main>
 <div id="modal" class="hide"></div>
+<div id="toast" class="hide" role="status"></div>
 <div id="amodal" class="hide" role="dialog" aria-modal="true" aria-label="Konto"><div class="tbox abox">
   <button id="aclose" class="tx ghost" aria-label="Schließen">✕</button>
   <div class="ttl">Konto</div>
@@ -298,6 +311,10 @@ function connect(first) {
     const m = JSON.parse(e.data);
     if (m.type === 'error') { const was = retry; $('err').textContent = m.text; if (was) { forget(); state = null; show(false); $('err').textContent = m.text; } }
     if (m.type === 'kicked') { forget(); show(false); $('err').textContent = 'Der Host hat dich aus dem Raum entfernt.'; ws.close(); }
+    if (m.type === 'award') { // Ergebnis der Coins-Gutschrift vom Server
+      if (m.ok) { if (m.coins > 0) toast('+' + m.coins + ' 🪙 deinem Konto gutgeschrieben'); setTimeout(loadAccount, 600); }
+      else if (m.coins > 0) toast('Die Coins konnten nicht gutgeschrieben werden: ' + (m.error === 'no-key' ? 'Dem Spielserver fehlt der Service-Schlüssel (SUPABASE_SERVICE_KEY bei Render).' : m.error), 14000);
+    }
     if (m.type === 'room') {
       if (applySaved && m.hostId === m.you && !m.game) { // neuer Raum: gespeicherte Host-Einstellungen anwenden
         applySaved = false;
@@ -632,7 +649,7 @@ function propMark(g, k) {
   return symIcon(f, k, g.map, 16) || el('span', 'dot2');
 }
 const SPEC = { id: '-', name: 'Zuschauer', money: 0, out: true, pos: 0, jail: 0, color: 0, pardon: 0 }; // Platzhalter für Zuschauer
-let overSeen = false, holding = false, holdBase = null, holdMsg = null, holdRollShown = false, flash = {}, sel = null, busy = false, lastKey = '', shown = {}, tokEl = {}, timers = [];
+let prevOwners = null, shownMoney = {}, moneyAnim = {}, chips = {}, moneyRaf = 0, overSeen = false, holding = false, holdBase = null, holdMsg = null, holdRollShown = false, flash = {}, sel = null, busy = false, lastKey = '', shown = {}, tokEl = {}, timers = [];
 
 const grpIds = (g, gi) => g.board.map((x, k) => k).filter((k) => g.board[k].g === gi);
 function buildInfo(g, me, i) {
@@ -721,7 +738,7 @@ let vt; $('vol').oninput = () => {
 };
 
 function resetGame() {
-  timers.forEach(clearTimeout); timers = []; busy = false; lastKey = ''; seen = ''; trk = null; pendingOffer = null; offerId = null; shown = {}; tokEl = {}; sel = null; flash = {}; holding = false; holdBase = null; holdMsg = null;
+  timers.forEach(clearTimeout); timers = []; busy = false; lastKey = ''; seen = ''; trk = null; pendingOffer = null; offerId = null; shown = {}; tokEl = {}; sel = null; flash = {}; holding = false; holdBase = null; holdMsg = null; prevOwners = null; [shownMoney, moneyAnim, chips].forEach((o) => Object.keys(o).forEach((k) => delete o[k]));
   $('tokens').textContent = ''; $('modal').classList.add('hide');
 }
 function place(t, pos, k) {
@@ -762,6 +779,33 @@ function startHold(m) {
   const end = planMoves(g, 950);
   timers.push(setTimeout(() => { holding = false; busy = false; state = holdMsg; holdBase = null; render(); }, end + 250));
 }
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+function hop(t, dur) { if (REDUCED || !t.animate) return; t.animate([{ transform: 'translate(-50%,-50%) scale(1)' }, { transform: 'translate(-50%,-78%) scale(1.2)', offset: .45 }, { transform: 'translate(-50%,-50%) scale(1)' }], { duration: dur, easing: 'ease-out' }); }
+function landBounce(t) { if (REDUCED || !t.animate) return; t.animate([{ transform: 'translate(-50%,-50%) scale(1)' }, { transform: 'translate(-50%,-50%) scale(1.55,.65)', offset: .3 }, { transform: 'translate(-50%,-50%) scale(.9,1.2)', offset: .62 }, { transform: 'translate(-50%,-50%) scale(1)' }], { duration: 380 }); }
+function toast(text, ms) { const t = $('toast'); t.textContent = text; t.classList.remove('hide'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.add('hide'), ms || 6000); }
+// Geld zählt hoch/runter, dazu schwebt kurz die Änderung (+200 € / −50 €) auf
+function paintMoney(m, v) { m.firstChild.textContent = Math.round(v) + ' €'; m.style.color = v < 0 ? '#ff6b8b' : ''; }
+function moneyTick() {
+  const now = performance.now(); let active = false;
+  for (const id in moneyAnim) {
+    const a = moneyAnim[id], p = Math.min(1, (now - a.t0) / a.dur), v = a.from + (a.to - a.from) * (1 - Math.pow(1 - p, 3));
+    shownMoney[id] = v; document.querySelectorAll('[data-mid="' + id + '"]').forEach((m) => paintMoney(m, v));
+    if (p >= 1) delete moneyAnim[id]; else active = true;
+  }
+  moneyRaf = active ? requestAnimationFrame(moneyTick) : 0;
+}
+function moneySpan(q) {
+  const m = el('span', 'm'), cur = shownMoney[q.id]; m.dataset.mid = q.id; m.append(document.createTextNode(''));
+  if (cur === undefined || REDUCED) shownMoney[q.id] = q.money;
+  else if (Math.round(cur) !== q.money && !(moneyAnim[q.id] && moneyAnim[q.id].to === q.money)) {
+    moneyAnim[q.id] = { from: cur, to: q.money, t0: performance.now(), dur: 750 };
+    const d = q.money - Math.round(cur); chips[q.id] = { text: (d > 0 ? '+' : '−') + Math.abs(d) + ' €', up: d > 0, t0: Date.now() };
+    if (!moneyRaf) moneyRaf = requestAnimationFrame(moneyTick);
+  }
+  paintMoney(m, shownMoney[q.id]);
+  const c = chips[q.id]; if (c && Date.now() - c.t0 < 1500) { const ch = el('span', 'delta ' + (c.up ? 'up' : 'down'), c.text); ch.style.animationDelay = '-' + (Date.now() - c.t0) + 'ms'; m.append(ch); }
+  return m;
+}
 function planMoves(g, t0) {
   let end = t0; const sum = g.dice[0] + g.dice[1], roller = g.players[g.turn];
   g.players.forEach((q, k) => {
@@ -769,10 +813,14 @@ function planMoves(g, t0) {
     const from = shown[q.id], threeDoubles = q.id === roller.id && g.dbl >= 3 && q.jail > 0; // dreimal Pasch: direkt ins Gefängnis
     if (from === q.pos && !threeDoubles) return;
     let cur = from, tt = t0;
-    const walk = (to) => {
-      const d = (to - cur + 40) % 40, step = d <= 12 ? 160 : Math.max(55, Math.floor(1700 / d));
-      for (let i = 1; i <= d; i++) { const pos = (cur + i) % 40; timers.push(setTimeout(() => { place(t, pos, k); if (q.id === state.you) sfx('tick'); }, tt + (i - 1) * step)); }
-      tt += d * step; cur = to;
+    const walk = (to) => { // erst zügig, gegen Ende langsamer, jeder Schritt ein kleiner Hüpfer, am Ziel eine Landung
+      const d = (to - cur + 40) % 40, base = d <= 12 ? 105 : Math.max(42, Math.floor(1500 / d));
+      for (let i = 1; i <= d; i++) {
+        const rem = d - i, dur = rem === 0 ? 280 : rem === 1 ? 200 : rem === 2 ? 150 : base, pos = (cur + i) % 40;
+        timers.push(setTimeout(() => { t.style.transitionDuration = dur + 'ms'; place(t, pos, k); hop(t, dur); if (q.id === state.you) sfx('tick'); if (rem === 0) landBounce(t); }, tt));
+        tt += dur;
+      }
+      cur = to;
     };
     const warp = (to) => { timers.push(setTimeout(() => { t.classList.add('warp'); place(t, to, k); markCell(to); setTimeout(() => t.classList.remove('warp'), 950); }, tt)); tt += 1100; cur = to; };
     const landing = q.id === roller.id && !threeDoubles ? (from + sum) % 40 : null; // Feld, auf dem der Würfelwurf endet
@@ -823,13 +871,15 @@ function renderGame() {
   $('rc').textContent = state.code;
   if (g.phase === 'over') { if (!overSeen) { overSeen = true; if (auth.session) { setTimeout(loadAccount, 2500); setTimeout(loadAccount, 7000); } } } else overSeen = false; // Coins nach dem Spiel neu laden
   $('specInfo').textContent = spec ? '👁 Du schaust zu.' : state.specs && state.specs.length ? '👁 Zuschauer: ' + state.specs.join(', ') : '';
+  if (prevOwners) for (const k in g.owners) if (prevOwners[k] !== g.owners[k]) flash[k] = Date.now() + 1300; // frisch gekaufte oder getauschte Felder blitzen auf
+  prevOwners = { ...g.owners };
   const bd = $('board'); bd.textContent = '';
   g.board.forEach((f, i) => {
     const [r, c] = cellPos(i), corner = i % 10 === 0, side = corner ? '' : r === 0 ? ' top' : r === 10 ? ' bottom' : c === 0 ? ' left' : ' right';
     const d = el('div', 'cell' + side + (corner ? ' corner t-' + f.t : '') + (f.g != null ? ' prop' : '') + (sel === i ? ' sel' : '') + (flash[i] && Date.now() < flash[i] ? ' flash' : ''));
     d.style.gridArea = (r + 1) + '/' + (c + 1);
     d.onclick = () => { sel = sel === i ? null : i; renderGame(); };
-    if (f.g != null) { const b = el('div', 'bar'); b.style.background = gc(f.g); d.append(b); }
+    if (f.g != null) { const fb = el('div', 'flagbg'); fb.style.background = gc(f.g); d.append(fb); const b = el('div', 'bar'); b.style.background = gc(f.g); d.append(b); } // Flagge als Milchglas-Hintergrund + Streifen
     const ic = el('div', 'ic'), sv = symIcon(f, i, g.map); if (sv) ic.append(sv); else ic.textContent = ICON[f.t] || ''; d.append(ic);
     if (f.p && !corner) d.append(el('div', 'pr', f.p));
     if (g.auction && g.auction.pos === i) d.classList.add('auc');
@@ -917,7 +967,7 @@ function renderGame() {
   g.players.forEach((q, k) => {
     const r = el('div', 'pl' + (k === g.turn && g.phase !== 'over' ? ' turn' : '') + (q.out ? ' out' : '')), spq = state.players.find((x) => x.id === q.id), t = spq && spq.avatar ? avWrap(spq.avatar, COL[q.color], 28) : el('div', 'ptok', q.name[0].toUpperCase());
     if (!(spq && spq.avatar)) t.style.background = COL[q.color];
-    r.append(t, el('span', '', q.name + (q.id === me ? ' (du)' : '') + (q.id === state.hostId ? ' 👑' : '') + (q.jail ? ' ⛓' : '') + (q.pardon ? ' 🃏' + q.pardon : '')), (() => { const m = el('span', 'm', q.money + ' €'); if (q.money < 0) m.style.color = '#ff6b8b'; return m; })());
+    r.append(t, el('span', '', q.name + (q.id === me ? ' (du)' : '') + (q.id === state.hostId ? ' 👑' : '') + (q.jail ? ' ⛓' : '') + (q.pardon ? ' 🃏' + q.pardon : '')), moneySpan(q));
     dcRow(r, q, me); tradeBadge(r, q); payBadge(r, q, g); pl.append(r);
   });
   if (!spec && g.phase !== 'over' && !(g.players.find((x) => x.id === me) || SPEC).out) { const b = el('button', 'small danger', 'Aufgeben'); b.style.marginTop = '8px'; b.onclick = () => { if (confirm('Wirklich aufgeben?')) out({ type: 'giveup' }); }; pl.append(b); }
