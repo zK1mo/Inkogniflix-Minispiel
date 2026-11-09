@@ -48,11 +48,13 @@ async function avatarOf(token, uid) {
   try { const r = await sb(`/rest/v1/game_profiles?select=avatar&user_id=eq.${encodeURIComponent(uid)}`, { token }); return r.ok && Array.isArray(r.data) && r.data[0] ? cleanAvatar(r.data[0].avatar) : {}; }
   catch { return {}; }
 }
-// Coins und Sieg gutschreiben: nur der Server darf das (Service-Schlüssel)
+// Coins und Sieg gutschreiben: nur der Server darf das (Service-Schlüssel). Gibt { ok, error } zurück.
 let warned = false;
 async function award(uid, coins, win) {
-  if (!SERVICE) { if (!warned) { warned = true; console.log('Hinweis: SUPABASE_SERVICE_KEY fehlt, Coins werden nicht vergeben.'); } return false; }
-  const r = await sb('/rest/v1/rpc/game_award', { method: 'POST', key: SERVICE, body: { p_user: uid, p_coins: Math.max(0, Math.floor(coins)), p_win: !!win } });
-  return r.ok;
+  if (!SERVICE) { if (!warned) { warned = true; console.log('Hinweis: SUPABASE_SERVICE_KEY fehlt, Coins werden nicht vergeben.'); } return { ok: false, error: 'no-key' }; }
+  try {
+    const r = await sb('/rest/v1/rpc/game_award', { method: 'POST', key: SERVICE, body: { p_user: uid, p_coins: Math.max(0, Math.floor(coins)), p_win: !!win } });
+    return r.ok ? { ok: true } : { ok: false, error: 'HTTP ' + r.status + (r.data && r.data.message ? ': ' + r.data.message : '') };
+  } catch (e) { return { ok: false, error: 'Netzwerk: ' + e.message }; }
 }
 module.exports = { verifyUser, username, isBanned, nameTaken, avatarOf, cleanAvatar, award };

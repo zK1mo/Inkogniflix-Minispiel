@@ -29,8 +29,12 @@ const nextHost = (room) => ([...room.players.values()].find((p) => p.ws) || [...
 function settle(room) {
   const g = room.game; g.paid = true;
   for (const p of G.payouts(g)) {
-    const uid = room.uids && room.uids[p.id];
-    if (uid) db.award(uid, p.coins, p.place === 1).catch((e) => console.log('Coins konnten nicht gutgeschrieben werden:', e.message));
+    const uid = room.uids && room.uids[p.id]; if (!uid) continue;
+    const who = room.players.get(p.id) || room.spec.get(p.id);
+    db.award(uid, p.coins, p.place === 1).then((r) => {
+      if (!r.ok) console.log('Coins-Gutschrift fehlgeschlagen (' + uid + '): ' + r.error);
+      if (who && who.ws) send(who.ws, { type: 'award', coins: p.coins, ok: r.ok, error: r.ok ? undefined : r.error }); // der Spieler sieht, ob es geklappt hat
+    }).catch((e) => console.log('Coins-Gutschrift fehlgeschlagen:', e.message));
   }
 }
 function broadcast(room) {
