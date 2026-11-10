@@ -19,10 +19,10 @@ const rnd = () => 1 + Math.floor(Math.random() * 6);
 const cur = (g) => g.players[g.turn];
 const say = (g, t) => { g.log.push(t); if (g.log.length > 120) g.log.shift(); };
 
-const DEFAULT_RULES = { doubleRent: true, vacation: true, noRentPrison: true, evenBuild: true, randomOrder: true, auction: false };
+const DEFAULT_RULES = { doubleRent: true, vacation: true, noRentPrison: true, evenBuild: true, randomOrder: true, auction: false, vacationSkip: false };
 function newGame(players, settings) {
   return { map: settings.map, rules: { ...DEFAULT_RULES, ...(settings.rules || {}) }, pot: 0, owners: {}, houses: {}, mort: {}, minus: null, outOrder: [], trades: [], tid: 0, rn: 0, turn: 0, phase: 'roll', dice: [0, 0], dbl: 0, again: false, winner: null, log: ['Das Spiel beginnt!'],
-    players: players.map((p) => ({ id: p.id, name: p.name, color: p.color || 0, pardon: 0, money: settings.budget, pos: 0, jail: 0, out: false })) };
+    players: players.map((p) => ({ id: p.id, name: p.name, color: p.color || 0, pardon: 0, skip: 0, money: settings.budget, pos: 0, jail: 0, out: false })) };
 }
 // Coins nach Platz: Sieger bekommt am meisten, jeder weitere Platz die Hälfte des Vorgängers, der Letzte nichts.
 // Zu kurze Spiele (unter 12 Würfen) geben keine Coins, damit man sie nicht mit Zweitkonten erfarmen kann.
@@ -122,7 +122,11 @@ function land(g, p) {
       else { say(g, `${p.name} zahlt ${rent} Miete an ${ow.name} (${nm})`); pay(g, p, rent, ow); }
     }
   } else if (f[0] === 'tax') { say(g, `${p.name} zahlt ${f[1]} Steuern`); pay(g, p, f[1], null); }
-  else if (f[0] === 'free' && g.rules.vacation && g.pot > 0) { say(g, `${p.name} kassiert ${g.pot} € Urlaubsgeld`); p.money += g.pot; g.pot = 0; }
+  else if (f[0] === 'free') { // Urlaub: Topf kassieren, danach ist der Zug zu Ende (auch bei Pasch); optional zusätzlich nächste Runde aussetzen
+    if (g.rules.vacation && g.pot > 0) { say(g, `${p.name} kassiert ${g.pot} € Urlaubsgeld`); p.money += g.pot; g.pot = 0; }
+    g.again = false; say(g, `${p.name} macht Urlaub und läuft in dieser Runde nicht weiter`);
+    if (g.rules.vacationSkip) p.skip = (p.skip || 0) + 1;
+  }
   else if (f[0] === 'gojail') toJail(g, p);
   else if (f[0] === 'c' || f[0] === 'ch') {
     const c = CARDS[Math.floor(Math.random() * CARDS.length)], e = c[1];
@@ -135,6 +139,10 @@ function land(g, p) {
 }
 function next(g) {
   do { g.turn = (g.turn + 1) % g.players.length; } while (cur(g).out);
+  while (cur(g).skip > 0 && g.players.filter((x) => !x.out).length > 1) { // Urlaub: diese Runde aussetzen
+    cur(g).skip--; say(g, `${cur(g).name} setzt wegen Urlaub eine Runde aus`);
+    do { g.turn = (g.turn + 1) % g.players.length; } while (cur(g).out);
+  }
   g.phase = 'roll'; g.again = false; g.dbl = 0; g.auction = null;
 }
 function act0(g, pid, a) {
