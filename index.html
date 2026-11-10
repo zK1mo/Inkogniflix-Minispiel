@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-o3IyWWEfDiQSKFmX4uWnUbBOGJ1/lNyyeo/qCqqRshw='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https://hzvnbtksanoonvkblded.supabase.co wss://inkogniflix-minispiel.onrender.com ws://localhost:3000; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-KGWpW+EgGHN2JMgTE+sL93HTC/qsbTb87ZlyFsk5B5U='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https://hzvnbtksanoonvkblded.supabase.co wss://inkogniflix-minispiel.onrender.com ws://localhost:3000; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Inkogniflix</title>
 <link rel="icon" href="logo.png">
@@ -199,29 +199,82 @@ button.avit.sel{border-color:var(--p1);box-shadow:0 0 14px #e879f966}button.avit
 .delta.up{color:#4ade80}.delta.down{color:#fb7185}
 @keyframes dfloat{0%{opacity:0;transform:translateY(8px)}15%{opacity:1}100%{opacity:0;transform:translateY(-20px)}}
 #toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:70;max-width:min(560px,92vw);padding:12px 18px;border-radius:16px;background:rgba(30,20,56,.96);border:1px solid var(--line);box-shadow:var(--glow);font-weight:600;text-align:center}
+/* Startseite und Lobby: breite Bildschirme nutzen */
+body:not(.ingame) main{max-width:1100px}
+body::before{content:'';position:fixed;inset:-20%;z-index:-1;pointer-events:none;background:radial-gradient(40% 40% at 18% 28%,rgba(168,85,247,.22),transparent),radial-gradient(35% 35% at 82% 72%,rgba(232,121,249,.15),transparent);animation:orbs 18s ease-in-out infinite alternate}
+@keyframes orbs{to{transform:translate(4%,3%) scale(1.08)}}
+.homewrap{display:grid;gap:22px;align-items:center}
+.hchips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:16px}.hchips span{padding:6px 13px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.05);font-size:14px}
+.features{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-top:30px}
+.features .card{margin:0;transition:transform .2s,border-color .2s}.features .card:hover{transform:translateY(-4px);border-color:var(--p1)}
+.features b{display:block;margin:6px 0 4px}.ic2{font-size:28px}
+.hprof{display:flex;align-items:center;gap:14px;margin-bottom:16px}.hprof .hpt{flex:1;display:flex;flex-direction:column;min-width:0}.hprof b{font-size:20px;overflow:hidden;text-overflow:ellipsis}
+#hpAv svg{width:56px;height:56px;border-radius:16px;background:radial-gradient(circle,#3b1573,#150f2a);border:1px solid var(--line)}
+.homewrap .cube{z-index:-1}
+@media(min-width:900px){
+  .homewrap{grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:56px;min-height:min(500px,58vh)}
+  .homewrap .hero{text-align:left}.homewrap .hero .logo{width:min(230px,21vw)}
+  .homewrap .hero h1{font-size:clamp(44px,4.8vw,70px);text-align:left;line-height:1.02;margin-top:18px}
+  .homewrap .hero .sub{text-align:left;font-size:19px}.homewrap .hchips{justify-content:flex-start}
+  #lobby:not(.hide){display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);grid-template-rows:auto auto 1fr;gap:18px;align-items:start}
+  #lobby > .card{margin:0}#lobby > :nth-child(1){grid-column:1;grid-row:1}#lobby > :nth-child(2){grid-column:1;grid-row:2}
+  #lobby > :nth-child(3){grid-column:2;grid-row:1 / span 3}#lobby > :nth-child(4){grid-column:1;grid-row:3}
+}
+@media(max-width:899px){.homewrap,.features,#lobby{max-width:560px;margin-left:auto;margin-right:auto}}
+/* Visuelles Feedback: dezent, kurz, abschaltbar */
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+@keyframes boxin{from{opacity:0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:none}}
+@keyframes popin{from{opacity:0;transform:translate(-50%,-46%) scale(.96)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+@keyframes toastin{from{opacity:0;transform:translate(-50%,14px)}to{opacity:1;transform:translate(-50%,0)}}
+@keyframes newline{from{background:rgba(232,121,249,.3);transform:translateX(-6px);opacity:.3}to{background:transparent;transform:none;opacity:1}}
+@keyframes turnin{0%{box-shadow:0 0 0 0 rgba(232,121,249,.75)}100%{box-shadow:0 0 0 16px rgba(232,121,249,0)}}
+@keyframes attn{50%{transform:scale(1.08);box-shadow:0 0 34px #e879f9}}
+@keyframes slidein{from{opacity:0;transform:translateX(-14px)}to{opacity:1;transform:none}}
+@keyframes ownin{from{opacity:0;transform:scale(.2)}to{opacity:1;transform:none}}
+#modal,#amodal,#avmodal{animation:fadein .18s ease-out}
+.tbox{animation:boxin .24s cubic-bezier(.2,.8,.3,1)}
+#pop{animation:popin .16s ease-out}
+#toast{animation:toastin .26s ease-out}
+#lg div.new,#msgs div.new{animation:newline .9s ease-out}
+.pl.turnin{animation:turnin .9s ease-out}
+button.attn{animation:attn 1.2s ease-in-out 3}
+.player.new{animation:slidein .35s ease-out}
+.cell.flash .own{animation:ownin .6s cubic-bezier(.2,.8,.3,1)}
+.cell{transition:filter .15s}.cell:hover{filter:brightness(1.2)}
+@media(prefers-reduced-motion:reduce){#modal,#amodal,#avmodal,.tbox,#pop,#toast,#lg div.new,#msgs div.new,.pl.turnin,button.attn,.player.new,.cell.flash .own,body::before{animation:none!important}}
 </style>
 </head>
 <body>
 <nav><a class="navbrand" href="."><img src="logo.png" alt=""><b>INKOGNIFLIX</b></a><button id="mute" class="small ghost" aria-label="Ton an/aus">🔊</button><input id="vol" type="range" min="0" max="100" aria-label="Lautstärke"><button id="who" class="small ghost who hide" title="Avatar und Coins"></button><button id="authBtn" class="small">Anmelden</button><a class="ext" href="https://zk1mo.github.io/Inkogniflix/">Zur Website</a></nav>
 <main>
-  <div class="hero" id="hero">
-    <div class="cube" style="width:70px;height:70px;left:4%;top:30px"></div><div class="cube" style="width:46px;height:46px;right:6%;top:120px;animation-delay:-2s"></div>
-    <img class="logo" src="logo.png" alt="Inkogniflix">
-    <h1>INKOGNIFLIX</h1>
-    <p class="sub">Deine Spiele-Community im Verborgenen.</p>
-  </div>
   <div id="err" role="alert"></div>
+  <div class="homewrap" id="homewrap">
+    <div class="hero" id="hero">
+      <div class="cube" style="width:70px;height:70px;left:2%;top:10px"></div><div class="cube" style="width:46px;height:46px;right:8%;top:90px;animation-delay:-2s"></div>
+      <img class="logo" src="logo.png" alt="Inkogniflix">
+      <h1>INKOGNIFLIX</h1>
+      <p class="sub">Deine Spiele-Community im Verborgenen.</p>
+      <div class="hchips"><span>🎲 Monopoly</span><span>🤝 Handel &amp; Auktionen</span><span>🪙 Coins &amp; Avatare</span><span>👁 Zuschauen</span></div>
+    </div>
 
-  <section id="home">
-    <div class="card">
-      <label for="name">Dein Name</label>
-      <input id="name" maxlength="20" placeholder="z. B. Alex" autocomplete="nickname">
-      <div id="joinBox" class="hide"><p class="tag" style="margin:0 0 12px">Du wurdest in Raum <b id="joinCode"></b> eingeladen.</p>
+    <section id="home">
+      <div class="card">
+        <div id="homeProfile" class="hprof hide"><div id="hpAv"></div><div class="hpt"><b id="hpName"></b><span class="tag" id="hpCoins"></span></div><button id="hpEdit" class="small ghost">Avatar</button></div>
+        <div id="nameRow"><label for="name">Dein Name</label>
+        <input id="name" maxlength="20" placeholder="z. B. Alex" autocomplete="nickname"></div>
+        <div id="joinBox" class="hide"><p class="tag" style="margin:0 0 12px">Du wurdest in Raum <b id="joinCode"></b> eingeladen.</p>
         <button id="joinBtn" style="width:100%">Raum beitreten</button></div>
       <div id="createBox"><button id="createBtn" style="width:100%">Raum erstellen</button>
         <p class="tag" id="homeNote" style="text-align:center"></p></div>
     </div>
   </section>
+  </div>
+  <div class="features" id="features">
+    <div class="card"><div class="ic2">🎲</div><b>Monopoly online</b><span class="tag">Klassische Regeln auf einem Länder-Brett: Handel, Auktionen, Hypotheken und bis zu 8 Spieler.</span></div>
+    <div class="card"><div class="ic2">🔗</div><b>Per Link einladen</b><span class="tag">Raum erstellen, Link teilen, los geht's. Auch ohne Konto spielbar.</span></div>
+    <div class="card"><div class="ic2">🪙</div><b>Coins &amp; Avatare</b><span class="tag">Mit Konto Coins für Siege sammeln und deinen eigenen Avatar gestalten.</span></div>
+    <div class="card"><div class="ic2">❓</div><b>Bald: Wissensquiz</b><span class="tag">Allgemeinwissen gegen deine Freunde, direkt im selben Raum.</span></div>
+  </div>
 
   <section id="lobby" class="hide">
     <div class="card">
@@ -344,6 +397,7 @@ $('copyBtn').onclick = () => copyLink($('copyBtn')); $('copy2').onclick = () => 
 const RULES = [
   ['doubleRent', 'Doppelte Miete bei ganzem Land', 'Gehören einem Spieler alle Städte eines Landes, verdoppelt sich die Grundmiete.'],
   ['vacation', 'Urlaubsgeld', 'Steuern und Zahlungen an die Bank kommen in einen Topf. Wer auf Urlaub landet, bekommt ihn.'],
+  ['vacationSkip', 'Urlaub: Runde aussetzen', 'Wer auf Urlaub landet, setzt zusätzlich den nächsten eigenen Zug aus. (Der aktuelle Zug endet dort immer.)'],
   ['noRentPrison', 'Keine Miete im Gefängnis', 'Für Grundstücke von Spielern, die im Gefängnis sitzen, gibt es keine Miete.'],
   ['evenBuild', 'Gleichmäßig bauen', 'Häuser müssen innerhalb eines Landes gleichmäßig verteilt gebaut werden.'],
   ['auction', 'Auktion', 'Will jemand ein Grundstück nicht kaufen, wird es an den Höchstbietenden versteigert.'],
@@ -366,7 +420,7 @@ $('chatBtn').onclick = sendChat; $('chatIn').onkeydown = (e) => { if (e.key === 
 
 function show(inLobby) {
   document.body.classList.remove('ingame'); $('hero').classList.toggle('hide', inLobby);
-  $('home').classList.toggle('hide', inLobby); $('lobby').classList.toggle('hide', !inLobby); $('game').classList.add('hide');
+  $('homewrap').classList.toggle('hide', inLobby); $('home').classList.toggle('hide', inLobby); $('features').classList.toggle('hide', inLobby); if (!inLobby) prevLobbyIds = null; $('lobby').classList.toggle('hide', !inLobby); $('game').classList.add('hide');
   if (!inLobby) { curView = 'home'; toTop(); resetGame(); }
 }
 function render() {
@@ -386,13 +440,14 @@ function render() {
   $('watchCb').checked = !!(state.players.find((p) => p.id === state.you) || {}).watch;
   const box = $('players'); box.textContent = '';
   state.players.forEach((p) => {
-    const row = el('div', 'player');
+    const row = el('div', 'player' + (prevLobbyIds && !prevLobbyIds.has(p.id) ? ' new' : ''));
     let av; if (p.avatar) av = avWrap(p.avatar, COL[p.color], 40); else { av = el('div', 'av', p.name[0].toUpperCase()); av.style.background = COL[p.color]; av.style.color = '#0b0718'; }
     row.append(av, el('div', 'name', p.name + (p.id === state.you ? ' (du)' : '')),
       el('div', 'tag', [p.id === state.hostId ? 'Host' : '', p.watch ? '👁 Zuschauer' : '', !p.watch && p.guest && p.id !== state.hostId ? 'Gast' : ''].filter(Boolean).join(' · ')));
     if (host && p.id !== state.you) { const k = el('button', 'small danger', 'Kicken'); k.onclick = () => out({ type: 'kick', id: p.id }); row.append(k); }
     box.append(row);
   });
+  prevLobbyIds = new Set(state.players.map((p) => p.id));
   if (location.search !== '?room=' + state.code) history.replaceState(null, '', '?room=' + state.code);
 }
 
@@ -485,7 +540,8 @@ function uiAuth() {
   $('authBtn').textContent = on ? 'Abmelden' : 'Anmelden'; $('authBtn').classList.toggle('ghost', on);
   $('who').classList.toggle('hide', !on); $('who').textContent = '';
   if (on) $('who').append(avatarSvg(auth.gp && auth.gp.avatar, 22), document.createTextNode(auth.username + (auth.gp ? ' · 🪙 ' + auth.gp.coins : '')));
-  $('name').readOnly = on;
+  $('name').readOnly = on; $('nameRow').classList.toggle('hide', on); $('homeProfile').classList.toggle('hide', !on);
+  if (on) { $('hpAv').textContent = ''; $('hpAv').append(avatarSvg(auth.gp && auth.gp.avatar, 56)); $('hpName').textContent = auth.username; $('hpCoins').textContent = auth.gp ? '🪙 ' + auth.gp.coins + ' Coins' : ''; }
   if (on) $('name').value = auth.username; else { try { $('name').value = localStorage.getItem('name') || ''; } catch {} }
   $('homeNote').textContent = on ? 'Eingeloggt als ' + auth.username + '. Deine Einstellungen werden sicher in deinem Konto gespeichert.' : 'Ohne Login spielst du als Gast. Mit einem Konto speichern wir deine Einstellungen sicher und später auch Coins und Avatar.';
 }
@@ -602,7 +658,7 @@ async function pickItem(id, have) {
 }
 const closeAv = () => $('avmodal').classList.add('hide');
 $('avclose').onclick = closeAv; $('avCancel').onclick = closeAv; $('avmodal').onclick = (e) => { if (e.target === $('avmodal')) closeAv(); };
-$('who').onclick = openAvatar;
+$('who').onclick = openAvatar; $('hpEdit').onclick = openAvatar;
 $('avSave').onclick = async () => {
   $('avSave').disabled = true; const r = await sbx('/rest/v1/rpc/game_equip', { method: 'POST', token: await getToken(), body: { p_avatar: avEd.draft } }); $('avSave').disabled = false;
   if (!r.ok) { $('avMsg').textContent = (r.data && r.data.message) || 'Speichern hat nicht geklappt.'; return; }
@@ -649,7 +705,7 @@ function propMark(g, k) {
   return symIcon(f, k, g.map, 16) || el('span', 'dot2');
 }
 const SPEC = { id: '-', name: 'Zuschauer', money: 0, out: true, pos: 0, jail: 0, color: 0, pardon: 0 }; // Platzhalter für Zuschauer
-let prevOwners = null, shownMoney = {}, moneyAnim = {}, chips = {}, moneyRaf = 0, overSeen = false, holding = false, holdBase = null, holdMsg = null, holdRollShown = false, flash = {}, sel = null, busy = false, lastKey = '', shown = {}, tokEl = {}, timers = [];
+let prevHouses = null, prevMort = null, prevLogLast = null, prevChatN = null, prevTurnId = null, attnKey = null, prevLobbyIds = null, prevOwners = null, shownMoney = {}, moneyAnim = {}, chips = {}, moneyRaf = 0, overSeen = false, holding = false, holdBase = null, holdMsg = null, holdRollShown = false, flash = {}, sel = null, busy = false, lastKey = '', shown = {}, tokEl = {}, timers = [];
 
 const grpIds = (g, gi) => g.board.map((x, k) => k).filter((k) => g.board[k].g === gi);
 function buildInfo(g, me, i) {
@@ -738,7 +794,7 @@ let vt; $('vol').oninput = () => {
 };
 
 function resetGame() {
-  timers.forEach(clearTimeout); timers = []; busy = false; lastKey = ''; seen = ''; trk = null; pendingOffer = null; offerId = null; shown = {}; tokEl = {}; sel = null; flash = {}; holding = false; holdBase = null; holdMsg = null; prevOwners = null; [shownMoney, moneyAnim, chips].forEach((o) => Object.keys(o).forEach((k) => delete o[k]));
+  timers.forEach(clearTimeout); timers = []; busy = false; lastKey = ''; seen = ''; trk = null; pendingOffer = null; offerId = null; shown = {}; tokEl = {}; sel = null; flash = {}; holding = false; holdBase = null; holdMsg = null; prevOwners = null; prevHouses = null; prevMort = null; prevLogLast = null; prevChatN = null; prevTurnId = null; attnKey = null; [shownMoney, moneyAnim, chips].forEach((o) => Object.keys(o).forEach((k) => delete o[k]));
   $('tokens').textContent = ''; $('modal').classList.add('hide');
 }
 function place(t, pos, k) {
@@ -871,8 +927,10 @@ function renderGame() {
   $('rc').textContent = state.code;
   if (g.phase === 'over') { if (!overSeen) { overSeen = true; if (auth.session) { setTimeout(loadAccount, 2500); setTimeout(loadAccount, 7000); } } } else overSeen = false; // Coins nach dem Spiel neu laden
   $('specInfo').textContent = spec ? '👁 Du schaust zu.' : state.specs && state.specs.length ? '👁 Zuschauer: ' + state.specs.join(', ') : '';
-  if (prevOwners) for (const k in g.owners) if (prevOwners[k] !== g.owners[k]) flash[k] = Date.now() + 1300; // frisch gekaufte oder getauschte Felder blitzen auf
-  prevOwners = { ...g.owners };
+  const tid = g.players[g.turn].id, turnChanged = prevTurnId !== null && prevTurnId !== tid; prevTurnId = tid;
+  const chg = (a, b) => { if (a) new Set([...Object.keys(a), ...Object.keys(b)]).forEach((k) => { if (a[k] !== b[k]) flash[k] = Date.now() + 1300; }); }; // Kauf, Tausch, Haus, Hypothek: Feld blitzt auf
+  chg(prevOwners, g.owners); chg(prevHouses, g.houses); chg(prevMort, g.mort);
+  prevOwners = { ...g.owners }; prevHouses = { ...g.houses }; prevMort = { ...g.mort };
   const bd = $('board'); bd.textContent = '';
   g.board.forEach((f, i) => {
     const [r, c] = cellPos(i), corner = i % 10 === 0, side = corner ? '' : r === 0 ? ' top' : r === 10 ? ' bottom' : c === 0 ? ' left' : ' right';
@@ -921,7 +979,7 @@ function renderGame() {
     }
     const f = g.board[p.pos];
     if (mine && !busy) {
-      if (g.phase === 'roll') { btn('Würfeln', 'roll').disabled = p.money < 0; if (p.jail) { btn('50 € zahlen', 'jailpay', true).disabled = p.money < 50; if (p.pardon > 0) btn('🃏 Pardon', 'jailcard', true); low.append(el('div', 'tag', 'Im Gefängnis: Pasch würfeln oder freikaufen (dann setzt du eine Runde aus).')); } }
+      if (g.phase === 'roll') { { const rb = btn('Würfeln', 'roll'); rb.disabled = p.money < 0; const ak = g.turn + ':' + g.rn; if (!rb.disabled && attnKey !== ak) { attnKey = ak; rb.classList.add('attn'); } } if (p.jail) { btn('50 € zahlen', 'jailpay', true).disabled = p.money < 50; if (p.pardon > 0) btn('🃏 Pardon', 'jailcard', true); low.append(el('div', 'tag', 'Im Gefängnis: Pasch würfeln oder freikaufen (dann setzt du eine Runde aus).')); } }
       else if (g.phase === 'buy') { btn('Kaufen für ' + f.p + ' €', 'buy').disabled = p.money < f.p; btn(g.rules.auction ? 'Versteigern' : 'Nicht kaufen', 'skip', true); }
       else if (g.phase === 'end') btn('Zug beenden', 'end').disabled = p.money < 0;
       if (p.money < 0) { const gb = btn('Aufgeben', 'giveup', true); gb.className = 'danger'; gb.onclick = () => { if (confirm('Wirklich aufgeben?')) out({ type: 'giveup' }); }; }
@@ -965,7 +1023,7 @@ function renderGame() {
   // Rechts: Spieler
   const pl = $('plCard'); pl.textContent = ''; pl.append(el('div', 'hd', 'Spieler'));
   g.players.forEach((q, k) => {
-    const r = el('div', 'pl' + (k === g.turn && g.phase !== 'over' ? ' turn' : '') + (q.out ? ' out' : '')), spq = state.players.find((x) => x.id === q.id), t = spq && spq.avatar ? avWrap(spq.avatar, COL[q.color], 28) : el('div', 'ptok', q.name[0].toUpperCase());
+    const r = el('div', 'pl' + (k === g.turn && g.phase !== 'over' ? ' turn' : '') + (q.out ? ' out' : '') + (k === g.turn && turnChanged ? ' turnin' : '')), spq = state.players.find((x) => x.id === q.id), t = spq && spq.avatar ? avWrap(spq.avatar, COL[q.color], 28) : el('div', 'ptok', q.name[0].toUpperCase());
     if (!(spq && spq.avatar)) t.style.background = COL[q.color];
     r.append(t, el('span', '', q.name + (q.id === me ? ' (du)' : '') + (q.id === state.hostId ? ' 👑' : '') + (q.jail ? ' ⛓' : '') + (q.pardon ? ' 🃏' + q.pardon : '')), moneySpan(q));
     dcRow(r, q, me); tradeBadge(r, q); payBadge(r, q, g); pl.append(r);
@@ -1005,10 +1063,11 @@ function renderGame() {
 
   // Links: Verlauf und Chat
   const lg = $('lg'), keep = lg.scrollTop, atEnd = lg.scrollHeight - lg.scrollTop - lg.clientHeight < 30;
-  lg.textContent = ''; g.log.forEach((t) => lg.append(el('div', '', t))); lg.scrollTop = atEnd ? lg.scrollHeight : keep;
+  const lx = g.log.lastIndexOf(prevLogLast), newFrom = prevLogLast === null ? g.log.length : lx >= 0 ? lx + 1 : g.log.length - 1; prevLogLast = g.log[g.log.length - 1];
+  lg.textContent = ''; g.log.forEach((t, i) => lg.append(el('div', i >= newFrom ? 'new' : '', t))); lg.scrollTop = atEnd ? lg.scrollHeight : keep;
   const ms = $('msgs'); ms.textContent = '';
   if (!state.chat.length) ms.append(el('div', 'tag', 'Noch keine Nachrichten'));
-  state.chat.forEach((m) => { const d = el('div'); d.append(el('b', '', m.n + ': '), document.createTextNode(m.t)); ms.append(d); });
+  state.chat.forEach((m, i) => { const d = el('div', prevChatN !== null && i >= prevChatN ? 'new' : ''); d.append(el('b', '', m.n + ': '), document.createTextNode(m.t)); ms.append(d); }); prevChatN = state.chat.length;
   ms.scrollTop = ms.scrollHeight; tickCd();
   if (offerId != null && !g.trades.some((x) => x.id === offerId)) { $('modal').classList.add('hide'); offerId = null; } // Angebot wurde zurückgezogen
   if (pendingOffer != null) { const id = pendingOffer; pendingOffer = null; showOffer(id); }
