@@ -3,6 +3,8 @@ const http = require('http');
 const { WebSocketServer } = require('ws');
 const G = require('./game');
 const db = require('./db');
+const Q = require('./quiz');
+const MOD = (g) => (g && g.kind === 'quiz' ? Q : G); // Monopoly oder Quiz
 
 const server = http.createServer((q, r) => { r.writeHead(200); r.end('Inkogniflix-Server läuft'); });
 const wss = new WebSocketServer({ server });
@@ -28,7 +30,7 @@ const nextHost = (room) => ([...room.players.values()].find((p) => p.ws) || [...
 // Spielende: Coins an angemeldete Spieler auszahlen (nur einmal pro Spiel)
 function settle(room) {
   const g = room.game; g.paid = true;
-  for (const p of G.payouts(g)) {
+  for (const p of MOD(g).payouts(g)) {
     const uid = room.uids && room.uids[p.id]; if (!uid) continue;
     const who = room.players.get(p.id) || room.spec.get(p.id);
     db.award(uid, p.coins, p.place === 1).then((r) => {
@@ -40,7 +42,7 @@ function settle(room) {
 function broadcast(room) {
   if (room.game && room.game.phase === 'over' && !room.game.paid) settle(room);
   const base = {
-    type: 'room', now: Date.now(), chat: room.chat, specs: [...room.spec.values()].map((x) => x.name), game: room.game ? G.view(room.game) : null, code: room.code, hostId: room.hostId, settings: room.settings, need: needVotes(room),
+    type: 'room', now: Date.now(), chat: room.chat, specs: [...room.spec.values()].map((x) => x.name), game: room.game ? MOD(room.game).view(room.game) : null, code: room.code, hostId: room.hostId, settings: room.settings, need: needVotes(room),
     players: [...room.players.values()].map((p) => ({ id: p.id, name: p.name, guest: p.guest, color: p.color, trading: !!p.trading, watch: !!p.watch, avatar: p.avatar || null, dc: p.ws ? null : p.dc, votes: [...p.votes] })),
   };
   room.players.forEach((p) => send(p.ws, { ...base, you: p.id }));
@@ -52,7 +54,7 @@ function leave(ws) {
   if (!room) return;
   if (ws.spec) { room.spec.delete(ws.pid); ws.room = null; if (room.hostId === ws.pid) room.hostId = nextHost(room); return broadcast(room); }
   room.players.delete(ws.pid);
-  if (room.game) G.drop(room.game, ws.pid);
+  if (room.game) MOD(room.game).drop(room.game, ws.pid);
   ws.room = null;
   if (!room.players.size) { rooms.delete(room.code); return; }
   if (room.hostId === ws.pid) room.hostId = nextHost(room);
@@ -67,14 +69,14 @@ function disconnect(ws) {
   if (p.ws !== ws) return; // alte Verbindung wurde schon ersetzt
   if (room.game && room.game.phase !== 'over' && !isOut(room, p.id)) {
     p.ws = null; p.dc = Date.now() + DC_MS; p.votes.clear(); p.trading = false;
-    G.note(room.game, `${p.name} hat die Verbindung verloren`);
+    MOD(room.game).note(room.game, `${p.name} hat die Verbindung verloren`);
     broadcast(room);
   } else leave(ws);
 }
 
 // Spieler endgültig entfernen (Zeit abgelaufen oder Votekick): Besitz geht an die Bank, kein Wiederbeitritt
 function removePlayer(room, p, why) {
-  if (room.game) { G.drop(room.game, p.id); G.note(room.game, `${p.name} wurde entfernt (${why})`); }
+  if (room.game) { MOD(room.game).drop(room.game, p.id); MOD(room.game).note(room.game, `${p.name} wurde entfernt (${why})`); }
   room.banned.add(p.cid); if (p.uid) room.banned.add(p.uid);
   room.players.delete(p.id);
   if (!room.players.size) { rooms.delete(room.code); return; }
@@ -112,7 +114,7 @@ async function identify(m) {
 function entry(ws, m, id) {
   const cid = String(m.cid || '');
   if (m.type === 'create') {
-    const r = { code: newCode(), hostId: null, players: new Map(), spec: new Map(), banned: new Set(), settings: { budget: 1500, map: 'klassisch', max: 8, rules: { doubleRent: true, vacation: true, noRentPrison: true, evenBuild: true, randomOrder: true, auction: false, vacationSkip: false } }, chat: [] };
+    const r = { code: newCode(), hostId: null, players: new Map(), spec: new Map(), banned: new Set(), settings: { budget: 1500, map: 'klassisch', max: 8, mode: 'monopoly', quiz: { category: 'gemischt', count: 10, time: 20, id: null, title: null, max: null }, rules: { doubleRent: true, vacation: true, noRentPrison: true, evenBuild: true, randomOrder: true, auction: false, vacationSkip: false } }, chat: [] };
     rooms.set(r.code, r);
     return enter(ws, r, m, id);
   }
@@ -130,11 +132,49 @@ function entry(ws, m, id) {
   if (same) {
     if (same.ws && same.ws !== ws) { same.ws.room = null; try { same.ws.close(); } catch {} }
     same.ws = ws; same.dc = null; same.votes.clear(); same.trading = false; if (id.uid) same.avatar = id.avatar || null; ws.pid = same.id; ws.room = r.code;
-    if (r.game) G.note(r.game, `${same.name} ist zurück`);
+    if (r.game) MOD(r.game).note(r.game, `${same.name} ist zurück`);
     return broadcast(r);
   }
   if (r.players.size >= r.settings.max) return send(ws, { type: 'error', text: 'Der Raum ist voll.' });
   enter(ws, r, m, id);
+}
+
+// Eigenes Quiz auswählen: nur eigene oder öffentliche Quizze des Hosts
+async function setQuizSource(room, id) {
+  const cfg = room.settings.quiz;
+  if (!id) { cfg.id = null; cfg.title = null; cfg.max = null; return broadcast(room); }
+  const meta = await db.quizMeta(String(id)), host = room.players.get(room.hostId) || room.spec.get(room.hostId);
+  if (!meta || !host || !(meta.is_public || (host.uid && meta.owner === host.uid))) { if (host) send(host.ws, { type: 'error', text: 'Dieses Quiz kann nicht ausgewählt werden.' }); return; }
+  cfg.id = String(id); cfg.title = String(meta.title).slice(0, 60); cfg.max = meta.question_count; cfg.count = Math.min(cfg.count, meta.question_count);
+  if (!room.game) broadcast(room);
+}
+
+// Spiel starten (Monopoly oder Quiz). Zuschauer spielen nicht mit.
+async function startGame(room) {
+  if (room.starting || room.game) return;
+  room.starting = true;
+  try {
+    let quizSetup = null;
+    if (room.settings.mode === 'quiz') {
+      const cfg = room.settings.quiz; let questions, title = 'Allgemeinwissen' + (cfg.category !== 'gemischt' ? ': ' + cfg.category : ''), coins = true;
+      if (cfg.id) {
+        const d = await db.quizData(cfg.id); questions = d ? Q.fromCustom(d.questions, cfg.count) : []; title = d ? d.title : ''; coins = false;
+        if (questions.length < 3) { const h = room.players.get(room.hostId) || room.spec.get(room.hostId); return h && send(h.ws, { type: 'error', text: 'Dieses Quiz konnte nicht geladen werden (mindestens 3 gültige Fragen nötig).' }); }
+      } else questions = Q.pickBuiltin(cfg.category === 'gemischt' ? null : cfg.category, cfg.count);
+      quizSetup = { questions, time: cfg.time, title, coins };
+    }
+    if (room.game) return;
+    const all = [...room.players.values()], ps = all.filter((p) => !p.watch);
+    if (ps.length < 2) return;
+    if (quizSetup) room.game = Q.newGame(ps, quizSetup);
+    else {
+      if (room.settings.rules.randomOrder) for (let i = ps.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [ps[i], ps[j]] = [ps[j], ps[i]]; }
+      room.game = G.newGame(ps, room.settings);
+    }
+    room.uids = {}; ps.forEach((p) => { if (p.uid) room.uids[p.id] = p.uid; }); // wer ein Konto hat (für die Coins)
+    all.filter((p) => p.watch).forEach((p) => { room.players.delete(p.id); room.spec.set(p.id, { id: p.id, name: p.name, guest: p.guest, uid: p.uid, cid: p.cid, ws: p.ws, chosen: true }); if (p.ws) p.ws.spec = true; });
+    broadcast(room);
+  } catch (e) { console.log('Start fehlgeschlagen:', e.message); } finally { room.starting = false; }
 }
 
 wss.on('connection', (ws) => {
@@ -148,17 +188,12 @@ wss.on('connection', (ws) => {
       identify(m).then((id) => { ws.busy = false; if (ws.room) return; if (id.error) return send(ws, { type: 'error', text: id.error }); entry(ws, m, id); })
         .catch(() => { ws.busy = false; send(ws, { type: 'error', text: 'Anmeldung konnte nicht geprüft werden. Bitte versuche es gleich noch einmal.' }); });
       return;
-    } else if (room && room.game && ['roll', 'jailpay', 'buy', 'skip', 'end', 'build', 'sell', 'mortgage', 'giveup', 'jailcard', 'bid', 'pass', 'trade', 'tradeok', 'tradeno'].includes(m.type)) {
-      G.act(room.game, ws.pid, m);
+    } else if (room && room.game && ['roll', 'jailpay', 'buy', 'skip', 'end', 'build', 'sell', 'mortgage', 'giveup', 'jailcard', 'bid', 'pass', 'trade', 'tradeok', 'tradeno', 'answer'].includes(m.type)) {
+      MOD(room.game).act(room.game, ws.pid, m);
       broadcast(room);
     } else if (room && ws.pid === room.hostId) {
-      if (m.type === 'start' && !room.game && [...room.players.values()].filter((p) => !p.watch).length >= 2) {
-        const all = [...room.players.values()], ps = all.filter((p) => !p.watch); // Zuschauer spielen nicht mit
-        if (room.settings.rules.randomOrder) for (let i = ps.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [ps[i], ps[j]] = [ps[j], ps[i]]; }
-        room.game = G.newGame(ps, room.settings);
-        room.uids = {}; ps.forEach((p) => { if (p.uid) room.uids[p.id] = p.uid; }); // wer ein Konto hat (für die Coins)
-        all.filter((p) => p.watch).forEach((p) => { room.players.delete(p.id); room.spec.set(p.id, { id: p.id, name: p.name, guest: p.guest, uid: p.uid, cid: p.cid, ws: p.ws, chosen: true }); if (p.ws) p.ws.spec = true; });
-        broadcast(room);
+      if (m.type === 'start' && !room.game) {
+        startGame(room);
       } else if (m.type === 'lobby' && room.game && room.game.phase === 'over') {
         room.game = null;
         room.spec.forEach((x) => {
@@ -174,6 +209,15 @@ wss.on('connection', (ws) => {
         if (MAPS.includes(m.map)) room.settings.map = m.map;
         const mx = Math.round(Number(m.max)); if (mx >= Math.max(2, room.players.size) && mx <= 8) room.settings.max = mx;
         for (const k of Object.keys(room.settings.rules)) if (m.rules && typeof m.rules[k] === 'boolean') room.settings.rules[k] = m.rules[k];
+        if (['monopoly', 'quiz'].includes(m.mode)) room.settings.mode = m.mode;
+        if (m.quiz && typeof m.quiz === 'object') { // Quiz-Einstellungen
+          const qz = m.quiz, cfg = room.settings.quiz;
+          if ('id' in qz && !qz.id) { cfg.id = null; cfg.title = null; cfg.max = null; } // zurück auf die eingebauten Fragen
+          if (typeof qz.category === 'string' && (qz.category === 'gemischt' || Q.CATS.includes(qz.category))) cfg.category = qz.category;
+          const cnt = Math.round(Number(qz.count)); if (cnt >= 3 && cnt <= 30) cfg.count = cfg.max ? Math.min(cnt, cfg.max) : cnt;
+          const tm = Math.round(Number(qz.time)); if (tm >= 5 && tm <= 60) cfg.time = tm;
+          if (qz.id) setQuizSource(room, qz.id);
+        }
         broadcast(room);
       } else if (m.type === 'kick' && m.id !== ws.pid) {
         const p = room.players.get(m.id);
@@ -207,8 +251,8 @@ wss.on('connection', (ws) => {
 
 // Jede Sekunde: Minus-Timer und Verbindungs-Timer prüfen
 setInterval(() => rooms.forEach((r) => {
-  if (r.game && G.tick(r.game)) broadcast(r);
+  if (r.game && MOD(r.game).tick(r.game)) broadcast(r);
   [...r.players.values()].forEach((p) => { if (!p.ws && p.dc && Date.now() > p.dc && rooms.has(r.code)) removePlayer(r, p, 'Zeit abgelaufen'); });
-}), 1000);
+}), 500);
 
 server.listen(process.env.PORT || 3000, () => console.log('Server läuft'));

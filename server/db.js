@@ -57,4 +57,12 @@ async function award(uid, coins, win) {
     return r.ok ? { ok: true } : { ok: false, error: 'HTTP ' + r.status + (r.data && r.data.message ? ': ' + r.data.message : '') };
   } catch (e) { return { ok: false, error: 'Netzwerk: ' + e.message }; }
 }
-module.exports = { verifyUser, username, isBanned, nameTaken, avatarOf, cleanAvatar, award };
+// Eigene Quizze: nur der Server liest die Fragen (mit Service-Schlüssel), damit niemand sie vorher einsehen kann
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+async function quizRow(id, cols) {
+  if (!SERVICE || !UUID.test(String(id))) return null;
+  try { const r = await sb(`/rest/v1/quizzes?id=eq.${id}&select=${cols}`, { key: SERVICE }); return r.ok && Array.isArray(r.data) && r.data[0] ? r.data[0] : null; } catch { return null; }
+}
+const quizMeta = (id) => quizRow(id, 'id,owner,title,is_public,question_count');
+const quizData = (id) => quizRow(id, 'title,questions');
+module.exports = { quizMeta, quizData, verifyUser, username, isBanned, nameTaken, avatarOf, cleanAvatar, award };
