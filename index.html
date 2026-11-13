@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-wQW71yyR21SJTgYCY8LHoepEg8h/iqslSOWX+t2JcfQ='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https://hzvnbtksanoonvkblded.supabase.co wss://inkogniflix-minispiel.onrender.com ws://localhost:3000; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-ja5K9kNWXGc+tW8WGYsZf7nwtNp9eDRXaFIyrV/j0kI='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https://hzvnbtksanoonvkblded.supabase.co wss://inkogniflix-minispiel.onrender.com ws://localhost:3000; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Inkogniflix</title>
 <link rel="icon" href="logo.png">
@@ -290,8 +290,8 @@ select{color-scheme:dark}option{background:#1a1236;color:#f5ecff}
 @keyframes ddin{from{opacity:0;transform:translateY(-6px) scale(.98)}to{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){.ddl{animation:none!important}}
 /* ===== Brett: größere, übersichtlichere Felder ===== */
-#board{grid-template:1.65fr repeat(9,1fr) 1.65fr / 1.65fr repeat(9,1fr) 1.65fr}
-.cell{--ob:3.7cqw;--bt:2.1cqw}
+#board{grid-template:1.8fr repeat(9,1fr) 1.8fr / 1.8fr repeat(9,1fr) 1.8fr}
+.cell{--ob:4.3cqw;--bt:2.1cqw}
 .cell.top{padding-top:var(--ob)}.cell.bottom{padding-bottom:var(--ob)}.cell.left{padding-left:var(--ob)}.cell.right{padding-right:var(--ob)}
 .cell.prop.top{padding-bottom:var(--bt)}.cell.prop.bottom{padding-top:var(--bt)}.cell.prop.left{padding-right:var(--bt)}.cell.prop.right{padding-left:var(--bt)}
 .cell .bar{height:var(--bt)}.cell.left .bar,.cell.right .bar{width:var(--bt);height:auto}
@@ -311,10 +311,10 @@ select{color-scheme:dark}option{background:#1a1236;color:#f5ecff}
 .cell.mort .flagbg,.cell.mort .bar{filter:grayscale(1)}.cell.mort .nm,.cell.mort .pr{color:#fff;text-shadow:0 1px 3px #000}
 .mb{position:absolute;top:2px;right:2px;z-index:3;font-size:max(8px,1.3cqw);font-weight:800;line-height:1;padding:2px 4px;border-radius:5px;background:#dc2626;color:#fff}
 /* Figuren */
-.ptok{width:max(14px,2.3cqw);height:max(14px,2.3cqw);font-size:max(8px,1.3cqw)}
+.ptok{width:max(16px,2.9cqw);height:max(16px,2.9cqw);font-size:max(9px,1.6cqw)}
 .ptok.moving{box-shadow:0 0 0 3px #fff,0 0 20px 8px var(--tc,#fff);z-index:12;animation:movepulse .5s ease-in-out infinite}
 @keyframes movepulse{50%{box-shadow:0 0 0 4px #fff,0 0 30px 12px var(--tc,#fff)}}
-.trail{position:absolute;width:max(14px,2.3cqw);height:max(14px,2.3cqw);border-radius:50%;background:var(--tc,#fff);transform:translate(-50%,-50%);opacity:.55;pointer-events:none;animation:trailfade .7s ease-out forwards;z-index:3}
+.trail{position:absolute;width:max(16px,2.9cqw);height:max(16px,2.9cqw);border-radius:50%;background:var(--tc,#fff);transform:translate(-50%,-50%);opacity:.55;pointer-events:none;animation:trailfade .7s ease-out forwards;z-index:3}
 @keyframes trailfade{to{opacity:0;transform:translate(-50%,-50%) scale(.3)}}
 /* 3D-Würfel */
 #dice{perspective:900px}
@@ -325,6 +325,25 @@ select{color-scheme:dark}option{background:#1a1236;color:#f5ecff}
 button.nudge{animation:nudge .8s ease-in-out infinite;box-shadow:0 0 0 3px #fff,0 0 34px 8px #e879f9}
 @keyframes nudge{0%,100%{transform:scale(1) rotate(0)}25%{transform:scale(1.12) rotate(-2deg)}75%{transform:scale(1.12) rotate(2deg)}}
 @media(prefers-reduced-motion:reduce){.ptok.moving,.trail,button.nudge{animation:none!important}}
+/* ===== Feinschliff Brett ===== */
+#bw{border-radius:2.4%}
+.cell.corner.t-go{border-top-left-radius:calc(2.4cqw - max(1px,.16cqw))}.cell.corner.t-jail{border-top-right-radius:calc(2.4cqw - max(1px,.16cqw))}
+.cell.corner.t-free{border-bottom-right-radius:calc(2.4cqw - max(1px,.16cqw))}.cell.corner.t-gojail{border-bottom-left-radius:calc(2.4cqw - max(1px,.16cqw))}
+.cell{background:rgba(255,255,255,.07);border:1px solid rgba(192,132,252,.3)} /* alle Felder gleich sichtbar eingerahmt */
+#cx{inset:15%}.clogo{width:max(44px,11cqw)}
+.cell .pr{background:rgba(0,0,0,.38);border-radius:999px;padding:.12cqw .6cqw;font-size:max(9px,1.55cqw)}.row1{flex-wrap:wrap;row-gap:1px}
+.cell.mort::before{background:repeating-linear-gradient(135deg,rgba(0,0,0,.4) 0 6px,rgba(0,0,0,.12) 6px 12px)}
+.cell.mort .flagbg,.cell.mort .bar{filter:none}
+.cell.setfl{animation:setfl 2.1s ease-out;z-index:6}
+@keyframes setfl{0%,38%,76%{box-shadow:inset 0 0 0 3px #fff,0 0 26px 4px #fff}19%,57%,100%{box-shadow:inset 0 0 0 0 #fff0,0 0 0 0 #fff0}}
+@media(prefers-reduced-motion:reduce){.cell.setfl{animation:none}}
+.dcb{position:absolute;inset:2px;background:#bda3f5;backface-visibility:hidden}.dcf{inset:-1px;border-radius:9%}
+/* Spalten links und rechts größer */
+@media(min-width:1081px){#game{grid-template-columns:clamp(250px,21vw,420px) minmax(0,1fr) clamp(250px,21vw,420px)}}
+#colL .card,#colR .card{padding:20px;font-size:16px}#colL .hd,#colR .hd{font-size:18px}
+#msgs{height:300px;font-size:15px}#lg{max-height:320px;font-size:14.5px}
+#colR .pl{padding:9px 6px}#colR .pl .ptok{width:30px;height:30px;font-size:14px}
+#admCard .rhd{margin:12px 0 6px}#admCard select,#admCard input{margin-bottom:8px}#admCard .row{margin-bottom:6px}
 </style>
 </head>
 <body>
@@ -377,6 +396,7 @@ button.nudge{animation:nudge .8s ease-in-out infinite;box-shadow:0 0 0 3px #fff,
       <label for="map">Map</label>
       <select id="map"><option value="klassisch">Klassisch</option><option value="minecraft">Minecraft-Welt</option></select>
       <div class="rhd">Spielregeln</div><div id="rules"></div>
+      <label class="rule hide" id="testRow"><span class="rtx"><b>🛠 Testmodus (nur Admin)</b><small>Allein starten, Geld geben, Felder zuweisen und Test-Bots steuern. Es gibt keine Coins.</small></span><input type="checkbox" id="r_test"><span class="sw"></span></label>
       </div>
       <div id="quizSet" class="hide">
         <label for="qcat">Kategorie</label><select id="qcat"></select>
@@ -394,6 +414,20 @@ button.nudge{animation:nudge .8s ease-in-out infinite;box-shadow:0 0 0 3px #fff,
       <div class="card" id="logCard"><div class="hd">Verlauf</div><div id="lg" class="tag"></div></div>
       <div class="card chat"><div class="hd">Chat</div><div id="msgs"></div>
         <div class="row"><input id="chatIn" maxlength="200" placeholder="Nachricht …" autocomplete="off"><button id="chatBtn" class="small" aria-label="Senden">➤</button></div></div>
+      <div class="card hide" id="admCard"><div class="hd">🛠 Admin-Testumgebung</div>
+        <label for="admAs">Spielen als</label><select id="admAs"></select>
+        <div class="rhd">Geld</div><div class="row2"><select id="admP1"></select><input id="admMoney" type="number" value="1000" step="100"></div>
+        <div class="row"><button class="small" id="admGive">Geld geben</button><button class="small ghost" id="admSet">Kontostand setzen</button></div>
+        <div class="rhd">Felder</div><select id="admField"></select>
+        <div class="row2"><select id="admOwner"></select><select id="admLevel"></select></div>
+        <div class="row"><button class="small" id="admOwn">Feld zuweisen</button><button class="small" id="admHouse">Häuser setzen</button><button class="small ghost" id="admMort">Hypothek an/aus</button></div>
+        <div class="rhd">Figur und Würfel</div><div class="row2"><select id="admP2"></select><select id="admGo"></select></div>
+        <div class="row"><button class="small" id="admGoto">Hinziehen (mit Wirkung)</button><button class="small ghost" id="admPos">Nur verschieben</button></div>
+        <div class="row2" style="margin-top:8px"><select id="admD1"></select><select id="admD2"></select></div>
+        <button class="small" id="admDice" style="width:100%">Nächsten Wurf festlegen</button>
+        <div class="rhd">Sonstiges</div>
+        <div class="row"><button class="small ghost" id="admBot">＋ Test-Bot</button><button class="small ghost" id="admTurn">Zug geben</button><button class="small ghost" id="admJail">Ins Gefängnis</button><button class="small ghost" id="admFree">Freilassen</button><button class="small ghost" id="admPardon">Pardon-Karte</button></div>
+      </div>
     </div>
     <div id="colC">
       <div id="bw"><div id="board"></div><div id="pop" class="hide"></div><div id="tokens"></div><div id="dice"><div class="dc"></div><div class="dc"></div></div><div id="cx"></div></div>
@@ -447,11 +481,15 @@ const $ = (id) => document.getElementById(id);
 const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
 const cid = (() => { try { let c = localStorage.getItem('cid'); if (!c) { c = Math.random().toString(36).slice(2); localStorage.setItem('cid', c); } return c; } catch { return 'x'; } })();
 const urlCode = (new URLSearchParams(location.search).get('room') || '').toUpperCase();
-let ws, state = null, skew = 0, retry = null, applySaved = false, curView = 'home';
+let actAs = null, ws, state = null, skew = 0, retry = null, applySaved = false, curView = 'home';
 try { history.scrollRestoration = 'manual'; } catch {}
 const toTop = () => { window.scrollTo(0, 0); requestAnimationFrame(() => window.scrollTo(0, 0)); };
 const forget = () => { retry = null; try { localStorage.removeItem('room'); } catch {} };
-const out = (o) => ws.send(JSON.stringify(o));
+const out = (o) => { if (state && state.realYou && state.you !== state.realYou && !['adm', 'chat', 'trading', 'lobby'].includes(o.type)) o = { ...o, as: state.you }; ws.send(JSON.stringify(o)); }; // Admin: stellvertretend für Test-Spieler handeln
+function applyAs(m) { // Testspiel: Admin sieht und steuert das Spiel als gewählter Spieler
+  const real = m.realYou || m.you, ok = m.admin && m.game && m.game.test && m.game.kind !== 'quiz' && actAs && m.game.players.some((p) => p.id === actAs);
+  if (ok) { m.realYou = real; m.you = actAs; } else if (m.realYou) { m.you = m.realYou; delete m.realYou; }
+}
 
 if (urlCode) { $('joinBox').classList.remove('hide'); $('createBox').classList.add('hide'); $('joinCode').textContent = urlCode; }
 try { $('name').value = localStorage.getItem('name') || ''; } catch {}
@@ -509,7 +547,8 @@ const sendSettings = () => {
   const rules = {}; RULES.forEach(([k]) => { rules[k] = $('r_' + k).checked; });
   const s = { type: 'settings', budget: $('budget').value, map: $('map').value, max: $('max').value, rules,
     mode: pendingMode || (state && state.settings && state.settings.mode) || 'monopoly', quiz: { category: $('qcat').value || 'gemischt', count: $('qcount').value || 10, time: $('qtime').value || 20 } };
-  out(s); savePref('hostSettings', s); // für den nächsten Raum merken (im Konto, sonst nur in diesem Browser)
+  if (state && state.admin) s.test = $('r_test').checked;
+  out(s); delete s.test; savePref('hostSettings', s); // für den nächsten Raum merken (im Konto, sonst nur in diesem Browser)
 };
 RULES.forEach(([k, t, d]) => {
   const l = el('label', 'rule'), cb = document.createElement('input'), tx = el('span', 'rtx');
@@ -520,6 +559,7 @@ $('startBtn').onclick = () => out({ type: 'start' }); $('watchCb').onchange = ()
 $('budget').onchange = sendSettings; $('map').onchange = sendSettings; $('max').onchange = sendSettings;
 ['gemischt', ...QCATS].forEach((c) => { const o = el('option', '', c === 'gemischt' ? 'Gemischt (alle Kategorien)' : c); o.value = c; $('qcat').append(o); });
 [10, 15, 20, 30, 45, 60].forEach((n) => { const o = el('option', '', n + ' Sekunden'); o.value = n; $('qtime').append(o); });
+$('r_test').onchange = sendSettings;
 $('qcat').onchange = $('qcount').onchange = $('qtime').onchange = sendSettings;
 $('modeM').onclick = () => { pendingMode = 'monopoly'; sendSettings(); pendingMode = null; };
 $('modeQ').onclick = () => { pendingMode = 'quiz'; sendSettings(); pendingMode = null; };
@@ -542,6 +582,7 @@ function render() {
   $('budget').value = state.settings.budget; $('map').value = state.settings.map;
   $('max').value = state.settings.max; RULES.forEach(([k]) => { $('r_' + k).checked = !!state.settings.rules[k]; $('r_' + k).disabled = !host; });
   $('budget').disabled = $('map').disabled = $('max').disabled = !host;
+  $('testRow').classList.toggle('hide', !state.admin); $('r_test').checked = !!state.settings.test; $('r_test').disabled = !host;
   { // Quiz-Einstellungen anzeigen
     const st = state.settings, qm = st.mode === 'quiz', qz = st.quiz || {};
     $('modeM').classList.toggle('on', !qm); $('modeQ').classList.toggle('on', qm); $('modeM').disabled = $('modeQ').disabled = !host;
@@ -553,9 +594,9 @@ function render() {
     $('qsrcInfo').textContent = qz.id ? '📝 ' + qz.title + ' (' + qz.max + ' Fragen) · eigenes Quiz, keine Coins' : 'Eingebaute Fragen (100 in 10 Kategorien) · Coins für Spieler mit Konto';
   }
   [...$('colors').children].forEach((b, i) => { const o = state.players.find((p) => p.color === i); b.classList.toggle('me', !!o && o.id === state.you); b.classList.toggle('taken', !!o && o.id !== state.you); b.disabled = !!o && o.id !== state.you; });
-  const playing = state.players.filter((p) => !p.watch).length; // Zuschauer zählen nicht als Spieler
-  $('startBtn').disabled = !(host && playing >= 2);
-  $('startBtn').textContent = playing >= 2 ? (state.settings.mode === 'quiz' ? 'Quiz starten' : 'Monopoly starten') : 'Warte auf weitere Mitspieler (mindestens 2) …';
+  const playing = state.players.filter((p) => !p.watch).length, need = state.settings.test && state.admin ? 1 : 2; // Zuschauer zählen nicht als Spieler
+  $('startBtn').disabled = !(host && playing >= need);
+  $('startBtn').textContent = playing >= need ? (state.settings.mode === 'quiz' ? 'Quiz starten' : 'Monopoly starten') : 'Warte auf weitere Mitspieler (mindestens 2) …';
   $('watchCb').checked = !!(state.players.find((p) => p.id === state.you) || {}).watch;
   const box = $('players'); box.textContent = '';
   state.players.forEach((p) => {
@@ -870,6 +911,7 @@ async function qeSave(btn) {
 const SHAPES = ['▲', '◆', '●', '■'];
 let qzPick = null, qzKey = '', qzTickN = null;
 function renderQuiz() {
+  $('admCard').classList.add('hide');
   const g = state.game, me = state.you, spec = !!state.spec, meP = g.players.find((x) => x.id === me), canAnswer = !spec && !!meP && !meP.out, host = me === state.hostId;
   $('bw').classList.add('hide'); $('qz').classList.remove('hide'); ['logCard', 'prCard', 'trCard'].forEach((id) => $(id).classList.add('hide'));
   $('rc').textContent = state.code; $('specInfo').textContent = spec ? '👁 Du schaust zu.' : state.specs && state.specs.length ? '👁 Zuschauer: ' + state.specs.join(', ') : '';
@@ -990,7 +1032,7 @@ function propMark(g, k) {
   return symIcon(f, k, g.map, 16) || el('span', 'dot2');
 }
 const SPEC = { id: '-', name: 'Zuschauer', money: 0, out: true, pos: 0, jail: 0, color: 0, pardon: 0 }; // Platzhalter für Zuschauer
-let nudgeOn = false, idleKey = '', idleSince = 0, idleN = 0, prevHouses = null, prevMort = null, prevLogLast = null, prevChatN = null, prevTurnId = null, attnKey = null, prevLobbyIds = null, prevOwners = null, shownMoney = {}, moneyAnim = {}, chips = {}, moneyRaf = 0, overSeen = false, holding = false, holdBase = null, holdMsg = null, holdRollShown = false, flash = {}, sel = null, busy = false, lastKey = '', shown = {}, tokEl = {}, timers = [];
+let setFlash = {}, nudgeOn = false, idleKey = '', idleSince = 0, idleN = 0, prevHouses = null, prevMort = null, prevLogLast = null, prevChatN = null, prevTurnId = null, attnKey = null, prevLobbyIds = null, prevOwners = null, shownMoney = {}, moneyAnim = {}, chips = {}, moneyRaf = 0, overSeen = false, holding = false, holdBase = null, holdMsg = null, holdRollShown = false, flash = {}, sel = null, busy = false, lastKey = '', shown = {}, tokEl = {}, timers = [];
 
 const grpIds = (g, gi) => g.board.map((x, k) => k).filter((k) => g.board[k].g === gi);
 function buildInfo(g, me, i) {
@@ -1080,7 +1122,8 @@ let vt; $('vol').oninput = () => {
 };
 
 function resetGame() {
-  timers.forEach(clearTimeout); timers = []; busy = false; lastKey = ''; seen = ''; trk = null; pendingOffer = null; offerId = null; shown = {}; tokEl = {}; sel = null; qzPick = null; qzKey = ''; flash = {}; holding = false; holdBase = null; holdMsg = null; prevOwners = null; prevHouses = null; prevMort = null; prevLogLast = null; prevChatN = null; prevTurnId = null; attnKey = null; [shownMoney, moneyAnim, chips].forEach((o) => Object.keys(o).forEach((k) => delete o[k]));
+  $('admCard').classList.add('hide');
+  timers.forEach(clearTimeout); timers = []; busy = false; lastKey = ''; seen = ''; trk = null; pendingOffer = null; offerId = null; shown = {}; tokEl = {}; sel = null; qzPick = null; qzKey = ''; flash = {}; holding = false; holdBase = null; holdMsg = null; prevOwners = null; setFlash = {}; prevHouses = null; prevMort = null; prevLogLast = null; prevChatN = null; prevTurnId = null; attnKey = null; [shownMoney, moneyAnim, chips].forEach((o) => Object.keys(o).forEach((k) => delete o[k]));
   $('tokens').textContent = ''; $('modal').classList.add('hide');
 }
 
@@ -1102,15 +1145,15 @@ const HOUSE_SVG = '<path d="M2 12 12 3l10 9v9H2z" fill="#22c55e" stroke="#fff" s
 const HOTEL_SVG = '<rect x="3" y="4" width="18" height="17" rx="1.5" fill="#ef4444" stroke="#fff" stroke-width="2"/><path d="M7 9h2M11 9h2M15 9h2M7 13h2M11 13h2M15 13h2" stroke="#fff" stroke-width="2" stroke-linecap="round"/><rect x="10" y="16" width="4" height="5" fill="#7f1d1d"/>';
 function svgFrom(body) { const e = document.importNode(new DOMParser().parseFromString('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">' + body + '</svg>', 'image/svg+xml').documentElement, true); e.setAttribute('aria-hidden', 'true'); return e; }
 function houseStrip(n) { const w = el('div', 'hs' + (n === 5 ? ' hotel' : '')); if (n === 5) w.append(svgFrom(HOTEL_SVG)); else for (let k = 0; k < n; k++) w.append(svgFrom(HOUSE_SVG)); return w; }
-const buildCost = (g, i) => ((g.houses[i] || 0) >= 4 ? g.board[i].p * 5 : BC[g.board[i].g]); // 4 Häuser zum Hausepreis, das Hotel kostet das 5-Fache des Grundstückspreises (Berlin 2000)
+const buildCost = (g, i) => BC[g.board[i].g]; // jede Baustufe (4 Häuser, dann das Hotel) kostet den Hauspreis
 function trailAt(t, color) { const tr = el('div', 'trail'); tr.style.left = t.style.left; tr.style.top = t.style.top; tr.style.setProperty('--tc', color); $('tokens').append(tr); setTimeout(() => tr.remove(), 800); }
 // Brett-Geometrie: Randfelder sind dicker (RING), dadurch ist Platz für Symbol, Preis, Name und eine freie Zone für die Figuren
-const RING = 1.65, TT = 9 + 2 * RING, trackStart = (n) => (n === 0 ? 0 : RING + n - 1), trackSize = (n) => (n === 0 || n === 10 ? RING : 1);
+const RING = 1.8, TT = 9 + 2 * RING, trackStart = (n) => (n === 0 ? 0 : RING + n - 1), trackSize = (n) => (n === 0 || n === 10 ? RING : 1);
 function cellBox(i) { const [r, c] = cellPos(i); return { x: trackStart(c) / TT * 100, y: trackStart(r) / TT * 100, w: trackSize(c) / TT * 100, h: trackSize(r) / TT * 100 }; }
 function place(t, pos, k) { // Figuren stehen am äußeren Rand des Feldes, so verdecken sie weder Symbol noch Namen
-  const b = cellBox(pos), [r, c] = cellPos(pos), A = 2.4, slot = k % 4, row = Math.floor(k / 4), along = (slot - 1.5) * 2.1, inward = row * 2.4;
+  const b = cellBox(pos), [r, c] = cellPos(pos), A = 2.9, slot = k % 4, row = Math.floor(k / 4), along = (slot - 1.5) * 2.4, inward = row * 3;
   let x, y;
-  if (pos % 10 === 0) { x = (c === 0 ? 3 : 97) + (c === 0 ? 1 : -1) * slot * 2.3; y = (r === 0 ? 3 : 97) + (r === 0 ? 1 : -1) * row * 2.4; }
+  if (pos % 10 === 0) { x = (c === 0 ? 2.5 : 97.5) + (c === 0 ? 1 : -1) * slot * 2.6; y = (r === 0 ? 2.5 : 97.5) + (r === 0 ? 1 : -1) * row * 3; }
   else if (r === 0) { x = b.x + b.w / 2 + along; y = A + inward; }
   else if (r === 10) { x = b.x + b.w / 2 + along; y = 100 - A - inward; }
   else if (c === 0) { x = A + inward; y = b.y + b.h / 2 + along; }
@@ -1119,7 +1162,7 @@ function place(t, pos, k) { // Figuren stehen am äußeren Rand des Feldes, so v
 }
 const FACE_T = { 1: 'rotateY(0deg)', 2: 'rotateY(90deg)', 3: 'rotateX(90deg)', 4: 'rotateX(-90deg)', 5: 'rotateY(-90deg)', 6: 'rotateY(180deg)' }; // gegenüberliegende Seiten ergeben 7
 const ORI = { 1: [0, 0], 2: [0, -90], 3: [-90, 0], 4: [90, 0], 5: [0, 90], 6: [0, 180] }; // Drehung, die die Zahl nach vorn bringt
-function buildDie(d) { if (d._b) return; d._b = true; for (let v = 1; v <= 6; v++) { const f = el('div', 'dcf'); f.style.transform = FACE_T[v] + ' translateZ(calc(var(--s) / 2))'; for (let k = 0; k < 9; k++) { const p = el('i'); if (PIPS[v].includes(k)) p.className = 'on'; f.append(p); } d.append(f); } }
+function buildDie(d) { if (d._b) return; d._b = true; for (let v = 1; v <= 6; v++) { const c = el('div', 'dcb'); c.style.transform = FACE_T[v] + ' translateZ(calc(var(--s) / 2 - 2px))'; d.append(c); } for (let v = 1; v <= 6; v++) { const f = el('div', 'dcf'); f.style.transform = FACE_T[v] + ' translateZ(calc(var(--s) / 2))'; for (let k = 0; k < 9; k++) { const p = el('i'); if (PIPS[v].includes(k)) p.className = 'on'; f.append(p); } d.append(f); } }
 const diceT = (v, ty, dx, dy, rz) => 'translateY(' + ty + 'px) rotateX(-16deg) rotateY(22deg) rotateX(' + (ORI[v][0] + dx) + 'deg) rotateY(' + (ORI[v][1] + dy) + 'deg) rotateZ(' + rz + 'deg)';
 function showDie(d, v) { buildDie(d); d.classList.toggle('empty', !v); d.style.transform = diceT(v || 1, 0, 0, 0, 0); }
 const dieEls = () => document.querySelectorAll('#dice .dc');
@@ -1147,6 +1190,7 @@ function overlayState(m) {
   return { ...m, game: { ...b, trades: g.trades, tid: g.tid, owners: g.owners, houses: g.houses, mort: g.mort, rn: g.rn, log: b.log.concat(show) } };
 }
 function incoming(m) {
+  applyAs(m);
   if (holding) { holdMsg = m; state = overlayState(m); render(); return; } // Animation läuft: nur die unkritischen Teile sofort zeigen
   const g = m.game, old = state && state.game;
   if (g && old && g.kind !== 'quiz' && old.kind !== 'quiz' && g.rn !== undefined && g.rn === lastKey + 1 && g.dice[0] && lastKey !== '' && g.players.length === old.players.length) { startHold(m); return; }
@@ -1253,20 +1297,24 @@ function renderGame() {
   const idx = (id) => g.players.findIndex((x) => x.id === id), nm = (id) => g.players.find((x) => x.id === id).name;
   $('rc').textContent = state.code;
   if (g.phase === 'over') { if (!overSeen) { overSeen = true; if (auth.session) { setTimeout(loadAccount, 2500); setTimeout(loadAccount, 7000); } } } else overSeen = false; // Coins nach dem Spiel neu laden
-  $('specInfo').textContent = spec ? '👁 Du schaust zu.' : state.specs && state.specs.length ? '👁 Zuschauer: ' + state.specs.join(', ') : '';
+  $('specInfo').textContent = (g.test ? '🛠 Testspiel (keine Coins). ' : '') + (spec ? '👁 Du schaust zu.' : state.specs && state.specs.length ? '👁 Zuschauer: ' + state.specs.join(', ') : '');
   const tid = g.players[g.turn].id, turnChanged = prevTurnId !== null && prevTurnId !== tid; prevTurnId = tid;
   const chg = (a, b) => { if (a) new Set([...Object.keys(a), ...Object.keys(b)]).forEach((k) => { if (a[k] !== b[k]) flash[k] = Date.now() + 1300; }); }; // Kauf, Tausch, Haus, Hypothek: Feld blitzt auf
   chg(prevOwners, g.owners); chg(prevHouses, g.houses); chg(prevMort, g.mort);
+  if (prevOwners) for (let gi = 0; gi < 8; gi++) { // komplette Straße (Land) gesammelt: Rand blitzt weiß auf
+    const ids = g.board.map((x, k) => k).filter((k) => g.board[k].g === gi), o = g.owners[ids[0]];
+    if (o && ids.every((k) => g.owners[k] === o) && !ids.every((k) => prevOwners[k] === o)) ids.forEach((k) => { setFlash[k] = Date.now() + 2100; });
+  }
   prevOwners = { ...g.owners }; prevHouses = { ...g.houses }; prevMort = { ...g.mort };
   const bd = $('board'); bd.textContent = '';
   g.board.forEach((f, i) => {
     const [r, c] = cellPos(i), corner = i % 10 === 0, side = corner ? '' : r === 0 ? ' top' : r === 10 ? ' bottom' : c === 0 ? ' left' : ' right';
-    const d = el('div', 'cell' + side + (corner ? ' corner t-' + f.t : '') + (f.g != null ? ' prop' : '') + (sel === i ? ' sel' : '') + (flash[i] && Date.now() < flash[i] ? ' flash' : ''));
+    const d = el('div', 'cell' + side + (corner ? ' corner t-' + f.t : '') + (f.g != null ? ' prop' : '') + (sel === i ? ' sel' : '') + (flash[i] && Date.now() < flash[i] ? ' flash' : '') + (setFlash[i] && Date.now() < setFlash[i] ? ' setfl' : ''));
     d.style.gridArea = (r + 1) + '/' + (c + 1);
     d.onclick = () => { sel = sel === i ? null : i; renderGame(); };
     if (f.g != null) { const fb = el('div', 'flagbg'); fb.style.background = gc(f.g); d.append(fb); const b = el('div', 'bar'); b.style.background = gc(f.g); d.append(b); } // Flagge als Milchglas-Hintergrund + Streifen
     const ic = el('div', 'ic'), sv = symIcon(f, i, g.map); if (sv) ic.append(sv); else ic.textContent = ICON[f.t] || '';
-    const r1 = el('div', 'row1'); r1.append(ic); if (f.p && !corner) r1.append(el('div', 'pr', f.p)); d.append(r1);
+    const r1 = el('div', 'row1'); r1.append(ic); if (f.p && !corner) r1.append(el('div', 'pr', f.p + ' €')); d.append(r1);
     if (g.auction && g.auction.pos === i) d.classList.add('auc');
     if (i === 20 && g.rules.vacation) d.append(el('div', 'pot', g.pot + ' €')); // Urlaubs-Topf, dezent in Weiß
     d.append(el('div', 'nm', hyph(f.n)));
@@ -1326,15 +1374,16 @@ function renderGame() {
     const tb = el('div', 'rt'), rr = (a, c) => tb.append(el('span', '', a), el('b', '', c));
     if (f.t === 'p') {
       tb.append(el('span', 'h', 'wann'), el('span', 'h r', 'bekommst'));
-      rr('mit Miete', b + ' €'); if (g.rules.doubleRent) rr('mit ganzem Land', 2 * b + ' €');
-      ['einem Haus', 'zwei Häusern', 'drei Häusern', 'vier Häusern', 'einem Hotel'].forEach((t, k) => rr('mit ' + t, [5, 15, 45, 80, 125][k] * b + ' €'));
+      const rt = f.rt || [b, 5 * b, 15 * b, 45 * b, 80 * b, 125 * b]; // Mieten wie im klassischen Monopoly (Berlin mit Hotel: 2000)
+      rr('mit Miete', rt[0] + ' €'); if (g.rules.doubleRent) rr('mit ganzem Land', 2 * rt[0] + ' €');
+      ['einem Haus', 'zwei Häusern', 'drei Häusern', 'vier Häusern', 'einem Hotel'].forEach((t, k) => rr('mit ' + t, rt[k + 1] + ' €'));
     } else if (f.t === 'r') (air ? ['1 Flughafen', '2 Flughäfen', '3 Flughäfen', '4 Flughäfen'] : ['1 Bahnhof', '2 Bahnhöfen', '3 Bahnhöfen', '4 Bahnhöfen']).forEach((t, k) => rr('mit ' + t, 25 * 2 ** k + ' €'));
     else if (f.t === 'u') { rr('mit einem Werk', '4× Würfel'); rr('mit zwei Werken', '10× Würfel'); }
-    else { const sp = el('span', '', i === 20 ? (g.rules.vacation ? 'Urlaubsgeld im Topf: ' + g.pot + ' €. Wer hier landet, bekommt es.' : 'Urlaubsgeld ist ausgeschaltet.') : 'Sonderfeld'); sp.style.gridColumn = '1 / -1'; tb.append(sp); }
+    else { const sp = el('span', '', i === 0 ? 'Start: Wer hier vorbeikommt, bekommt 200 €. Wer genau hier landet, bekommt 300 €.' : i === 20 ? (g.rules.vacation ? 'Urlaubsgeld im Topf: ' + g.pot + ' €. Wer hier landet, bekommt es.' : 'Urlaubsgeld ist ausgeschaltet.') : 'Sonderfeld'); sp.style.gridColumn = '1 / -1'; tb.append(sp); }
     pop.append(tb);
     if (f.p) {
       const ft = el('div', 'pf'), cell = (a, c) => { const d = el('div'); d.append(el('span', '', a), el('b', '', c)); ft.append(d); };
-      cell('Preis', f.p + ' €'); if (f.t === 'p') { cell('🏠 Haus', BC[f.g] + ' €'); cell('🏨 Hotel', f.p * 5 + ' €'); } else cell('Hypothek', f.p / 2 + ' €');
+      cell('Preis', f.p + ' €'); if (f.t === 'p') { cell('🏠 Haus', BC[f.g] + ' €'); cell('🏨 Hotel', BC[f.g] + ' €'); } else cell('Hypothek', f.p / 2 + ' €');
       pop.append(ft);
       pop.append(el('div', 'tag', (g.owners[i] ? 'Besitzer: ' + nm(g.owners[i]) : 'Noch frei') + (f.t === 'p' && g.owners[i] ? ' · Häuser: ' + h + '/5' : '') + (g.mort[i] ? ' · beliehen' : '')));
       if (g.owners[i] === me) {
@@ -1395,7 +1444,7 @@ function renderGame() {
   const ms = $('msgs'); ms.textContent = '';
   if (!state.chat.length) ms.append(el('div', 'tag', 'Noch keine Nachrichten'));
   state.chat.forEach((m, i) => { const d = el('div', prevChatN !== null && i >= prevChatN ? 'new' : ''); d.append(el('b', '', m.n + ': '), document.createTextNode(m.t)); ms.append(d); }); prevChatN = state.chat.length;
-  ms.scrollTop = ms.scrollHeight; tickCd();
+  ms.scrollTop = ms.scrollHeight; tickCd(); admSync();
   if (offerId != null && !g.trades.some((x) => x.id === offerId)) { $('modal').classList.add('hide'); offerId = null; } // Angebot wurde zurückgezogen
   if (pendingOffer != null) { const id = pendingOffer; pendingOffer = null; showOffer(id); }
 }
@@ -1554,6 +1603,32 @@ setInterval(() => {
     if (!nudgeOn) { nudgeOn = true; document.title = '🎲 Du bist dran! – ' + TITLE0; renderGame(); }
   }
 }, 1000);
+
+/* ===== Admin-Testumgebung (nur sichtbar für Admins in Testspielen) ===== */
+const adm = (o) => out({ type: 'adm', ...o });
+function admSync() {
+  const g = state.game, show = !!(state.admin && g && g.test && g.kind !== 'quiz');
+  $('admCard').classList.toggle('hide', !show); if (!show) return;
+  const fill = (id, list) => { // Einträge nur neu aufbauen, wenn sich etwas geändert hat (Auswahl bleibt erhalten)
+    const sel = $(id), sig = JSON.stringify(list), old = sel.value; if (sel.dataset.sig === sig) return; sel.dataset.sig = sig; sel.textContent = '';
+    list.forEach(([v, t]) => { const o = el('option', '', t); o.value = v; sel.append(o); }); if ([...sel.options].some((o) => o.value === old)) sel.value = old;
+  };
+  const pl = g.players.map((p) => [p.id, p.name + (p.bot ? ' 🤖' : '')]), nmf = (f, i) => i + ' · ' + f.n.replace(/\u00ad/g, '');
+  fill('admAs', [['', 'ich selbst'], ...pl]); fill('admP1', pl); fill('admP2', pl); fill('admOwner', [['', 'Bank (niemand)'], ...pl]);
+  fill('admField', g.board.map((f, i) => (['p', 'r', 'u'].includes(f.t) ? [String(i), nmf(f, i)] : null)).filter(Boolean));
+  fill('admGo', g.board.map((f, i) => [String(i), nmf(f, i)]));
+  fill('admLevel', [0, 1, 2, 3, 4, 5].map((n) => [String(n), n === 0 ? 'keine Häuser' : n === 5 ? 'Hotel' : n + ' Haus/Häuser']));
+  fill('admD1', [1, 2, 3, 4, 5, 6].map((n) => [String(n), 'Würfel 1: ' + n])); fill('admD2', [1, 2, 3, 4, 5, 6].map((n) => [String(n), 'Würfel 2: ' + n]));
+  $('admAs').value = actAs || '';
+}
+$('admAs').onchange = () => { actAs = $('admAs').value || null; if (state) { applyAs(state); render(); } };
+[['admGive', () => ({ op: 'give', id: $('admP1').value, amount: $('admMoney').value })], ['admSet', () => ({ op: 'money', id: $('admP1').value, amount: $('admMoney').value })],
+  ['admOwn', () => ({ op: 'owner', pos: $('admField').value, id: $('admOwner').value })], ['admHouse', () => ({ op: 'houses', pos: $('admField').value, level: $('admLevel').value })],
+  ['admMort', () => ({ op: 'mort', pos: $('admField').value })], ['admGoto', () => ({ op: 'goto', id: $('admP2').value, pos: $('admGo').value })],
+  ['admPos', () => ({ op: 'pos', id: $('admP2').value, pos: $('admGo').value })], ['admDice', () => ({ op: 'dice', d1: $('admD1').value, d2: $('admD2').value })],
+  ['admBot', () => ({ op: 'addbot' })], ['admJail', () => ({ op: 'jail', id: $('admP2').value })], ['admFree', () => ({ op: 'free', id: $('admP2').value })],
+  ['admPardon', () => ({ op: 'pardon', id: $('admP2').value })], ['admTurn', () => ({ op: 'turn', id: $('admP2').value })],
+].forEach(([id, f]) => { $(id).onclick = () => adm(f()); });
 document.addEventListener('click', (e) => { // Klick neben die Feld-Karte schließt sie
   if (sel != null && state && state.game && !e.target.closest('#pop') && !e.target.closest('.cell')) { sel = null; renderGame(); }
 });
