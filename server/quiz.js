@@ -49,7 +49,7 @@ function newGame(players, { questions, time, title, coins, hostMode, builtin, co
   const ps = players.map((p) => ({ id: p.id, name: p.name, color: p.color || 0, score: 0, streak: 0, correct: 0, ms: 0, out: false, team: null }));
   const tm = teams ? teams.map((t) => ({ id: t.id, name: t.name, color: t.color, members: t.members.filter((id) => ps.some((p) => p.id === id)), score: 0, streak: 0, correct: 0, ms: 0, out: false, isTeam: true })) : null;
   if (tm) tm.forEach((t) => t.members.forEach((id) => { ps.find((p) => p.id === id).team = t.id; }));
-  return { kind: 'quiz', teams: tm, title, coins: !!coins && !hostMode && !tm, time: hostMode ? 0 : time, hostMode: !!hostMode, auto, hs: [false, false, false], last: null, open: false, topic: null, diff: null, pts: 0, used: {}, queue: [],
+  return { kind: 'quiz', gid: Math.random().toString(36).slice(2, 10), teams: tm, title, coins: !!coins && !hostMode && !tm, time: hostMode ? 0 : time, hostMode: !!hostMode, auto, hs: [false, false, false], last: null, open: false, topic: null, diff: null, pts: 0, used: {}, queue: [],
     total: auto ? count : questions.length, questions: auto ? [] : questions, qi: -1, phase: 'intro', until: Date.now() + INTRO_MS, qStart: 0,
     answers: {}, res: null, rn: 0, winner: null, log: ['Quiz startet!'], outOrder: [],
     players: ps };
@@ -141,7 +141,7 @@ function view(g, forMod, pid) {
     if (!hm) vq = { q: q.q, a: q.a, ...(show ? { c: q.c } : {}) };
     else vq = { q: q.q, a: forMod ? q.a : [], hints: q.hints.map((h, i) => (forMod || g.hs[i] ? h : null)), ...(forMod || show ? { c: q.c, ans: q.a[q.c] } : {}) }; // Antwort nur für den Host, bei der Auflösung für alle
   }
-  return { kind: 'quiz', title: g.title, phase: g.phase, qi: g.qi, total: g.total, time: g.time, until: g.until, rn: g.rn, winner: g.winner, log: g.log, backAt: g.backAt || null, hostMode: hm, auto: g.auto, topic: g.topic, diff: g.diff, pts: g.pts, ptsMap: PTS,
+  return { kind: 'quiz', gid: g.gid, title: g.title, phase: g.phase, qi: g.qi, total: g.total, time: g.time, until: g.until, rn: g.rn, winner: g.winner, log: g.log, backAt: g.backAt || null, hostMode: hm, auto: g.auto, topic: g.topic, diff: g.diff, pts: g.pts, ptsMap: PTS,
     active: hm ? activeOf(g) : null, open: g.open, hs: g.hs, canUndo: !!hm && show,
     q: vq,
     res: show ? (hm ? { c: q.c, win: g.res.win, pts: g.res.pts } : g.res) : null,

@@ -45,7 +45,7 @@ function settle(room) {
 }
 // Spiel beenden und alle zurück in die Lobby (Host-Wunsch oder automatisch, wenn alle anderen aufgegeben haben)
 function backToLobby(room) {
-  room.game = null;
+  room.game = null; room.rematch.clear(); room.players.forEach((p) => { p.inLobby = false; });
   room.spec.forEach((x) => {
     if (room.players.size < room.settings.max) { room.players.set(x.id, { id: x.id, name: x.name, color: freeColor(room), guest: x.guest, uid: x.uid, cid: x.cid, ws: x.ws, dc: null, votes: new Set(), watch: !!x.chosen }); x.ws.spec = false; }
     else { send(x.ws, { type: 'error', text: 'Der Raum ist voll.' }); x.ws.room = null; }
@@ -55,10 +55,21 @@ function backToLobby(room) {
   broadcast(room);
 }
 
+// Nach dem Spielende: jeder darf einzeln in die Lobby, die Revanche braucht alle. Das Spiel bleibt dafür stehen, bis alle in der Lobby sind oder der Host startet.
+const lobbyOpen = (room) => !room.game || room.game.phase === 'over';
+const voters = (room) => [...room.players.values()].filter((p) => p.ws && !p.watch);
+function maybeAuto(room) {
+  const g = room.game; if (!g || g.phase !== 'over' || room.auto) return false;
+  const el = voters(room);
+  if (el.length >= 2 && el.every((p) => room.rematch.has(p.id))) { room.auto = true; backToLobby(room); room.auto = false; startGame(room); return true; } // alle wollen Revanche: gleiche Einstellungen, neues Spiel
+  if (el.length >= 1 && el.every((p) => p.inLobby)) { room.auto = true; backToLobby(room); room.auto = false; return true; } // alle sind freiwillig in der Lobby: Spiel wegräumen
+  return false;
+}
 function broadcast(room) {
   if (room.game && room.game.phase === 'over' && !room.game.paid) settle(room);
+  if (maybeAuto(room)) return;
   const base = {
-    type: 'room', now: Date.now(), chat: room.chat, specs: [...room.spec.values()].map((x) => x.name), game: room.game ? MOD(room.game).view(room.game) : null, code: room.code, hostId: room.hostId, settings: room.settings, need: needVotes(room),
+    type: 'room', now: Date.now(), chat: room.chat, specs: [...room.spec.values()].map((x) => x.name), game: room.game ? MOD(room.game).view(room.game) : null, code: room.code, hostId: room.hostId, settings: room.settings, need: needVotes(room), rematch: room.game && room.game.phase === 'over' ? { votes: [...room.rematch], need: voters(room).length } : null,
     players: [...room.players.values()].map((p) => ({ id: p.id, name: p.name, guest: p.guest, color: p.color, trading: !!p.trading, watch: !!p.watch, team: Number.isInteger(p.team) ? p.team : null, avatar: p.avatar || null, dc: p.ws ? null : p.dc, votes: [...p.votes] })),
   };
   const g = room.game, modView = g && g.kind === 'quiz' && g.hostMode ? Q.view(g, true) : null; // der Moderator sieht Antwort und alle Hinweise
@@ -72,7 +83,7 @@ function leave(ws) {
   const room = rooms.get(ws.room);
   if (!room) return;
   if (ws.spec) { room.spec.delete(ws.pid); ws.room = null; if (room.hostId === ws.pid) room.hostId = nextHost(room); return broadcast(room); }
-  room.players.delete(ws.pid);
+  room.players.delete(ws.pid); room.rematch.delete(ws.pid);
   if (room.game) MOD(room.game).drop(room.game, ws.pid);
   ws.room = null;
   if (!room.players.size) { rooms.delete(room.code); return; }
@@ -97,7 +108,7 @@ function disconnect(ws) {
 function removePlayer(room, p, why) {
   if (room.game) { MOD(room.game).drop(room.game, p.id); MOD(room.game).note(room.game, `${p.name} wurde entfernt (${why})`); }
   room.banned.add(p.cid); if (p.uid) room.banned.add(p.uid);
-  room.players.delete(p.id);
+  room.players.delete(p.id); room.rematch.delete(p.id);
   if (!room.players.size) { rooms.delete(room.code); return; }
   if (room.hostId === p.id) room.hostId = nextHost(room);
   broadcast(room);
@@ -133,7 +144,7 @@ async function identify(m) {
 function entry(ws, m, id) {
   const cid = String(m.cid || '');
   if (m.type === 'create') {
-    const r = { code: newCode(), hostId: null, players: new Map(), spec: new Map(), banned: new Set(), settings: { budget: 1500, map: 'klassisch', max: 8, test: false, mode: 'monopoly', anime: { rs: 'mix', time: 45, win: 'cats' }, quiz: { category: 'gemischt', count: 10, time: 20, host: false, team: false, teamSize: 2, id: null, title: null, max: null }, rules: { doubleRent: true, vacation: true, noRentPrison: true, evenBuild: true, randomOrder: true, auction: false, vacationSkip: false } }, chat: [] };
+    const r = { code: newCode(), hostId: null, players: new Map(), spec: new Map(), banned: new Set(), settings: { budget: 1500, map: 'klassisch', max: 8, test: false, mode: 'monopoly', anime: { rs: 'mix', time: 45, win: 'cats' }, quiz: { category: 'gemischt', count: 10, time: 20, host: false, team: false, teamSize: 2, id: null, title: null, max: null }, rules: { doubleRent: true, vacation: true, noRentPrison: true, evenBuild: true, randomOrder: true, auction: false, vacationSkip: false } }, chat: [], rematch: new Set() };
     rooms.set(r.code, r);
     return enter(ws, r, m, id);
   }
@@ -142,7 +153,7 @@ function entry(ws, m, id) {
   if (r.banned.has(cid) || (id.uid && r.banned.has(id.uid))) return send(ws, { type: 'error', text: 'Du wurdest aus diesem Raum entfernt.' });
   // gleiches Gerät oder gleiches Konto = derselbe Spieler (Wiederverbinden, auch von einem anderen Gerät)
   const same = [...r.players.values()].find((x) => (x.cid && x.cid === cid) || (id.uid && x.uid === id.uid));
-  if (r.game && !same) { // Spiel läuft schon: als Zuschauer dazukommen
+  if (r.game && r.game.phase !== 'over' && !same) { // Spiel läuft schon: als Zuschauer dazukommen (nach dem Ende kommt man in die Lobby)
     if (!id.name) return send(ws, { type: 'error', text: 'Bitte gib einen Namen ein.' });
     ws.pid = 's' + Math.random().toString(36).slice(2, 9); ws.room = r.code; ws.spec = true;
     r.spec.set(ws.pid, { id: ws.pid, name: id.name, guest: id.guest, uid: id.uid, admin: !!id.admin, cid, ws });
@@ -224,11 +235,12 @@ wss.on('connection', (ws) => {
       else MOD(g).act(g, adminOk && m.as && g.players.some((x) => x.id === m.as) ? m.as : ws.pid, m, { host: ws.pid === room.hostId }); // der Admin darf für Test-Spieler handeln
       broadcast(room);
     } else if (room && ws.pid === room.hostId) {
-      if (m.type === 'start' && !room.game) {
+      if (m.type === 'start' && lobbyOpen(room)) {
+        if (room.game) backToLobby(room); // altes (beendetes) Spiel wegräumen, alle kommen ins neue Spiel
         startGame(room);
       } else if (m.type === 'lobby' && room.game && room.game.phase === 'over') {
         backToLobby(room);
-      } else if (m.type === 'settings' && !room.game) {
+      } else if (m.type === 'settings' && lobbyOpen(room)) {
         const b = Math.round(Number(m.budget));
         if (b >= 500 && b <= 100000) room.settings.budget = b;
         if (MAPS.includes(m.map)) room.settings.map = m.map;
@@ -257,19 +269,26 @@ wss.on('connection', (ws) => {
         if (p.ws) p.ws.room = null;
       }
     }
-    if (m.type === 'team' && room && !room.game && room.players.has(ws.pid)) { // Team wählen (oder verlassen)
+    if (m.type === 'rematch' && room && room.game && room.game.phase === 'over' && room.players.has(ws.pid) && !room.players.get(ws.pid).watch) { // Revanche: alle müssen zustimmen
+      if (m.on === false) room.rematch.delete(ws.pid); else room.rematch.add(ws.pid);
+      return broadcast(room);
+    }
+    if (m.type === 'tolobby' && room && room.game && room.game.phase === 'over' && room.players.has(ws.pid)) { // einzeln in die Lobby gehen, ohne auf den Host zu warten
+      room.players.get(ws.pid).inLobby = m.on !== false; return broadcast(room);
+    }
+    if (m.type === 'team' && room && lobbyOpen(room) && room.players.has(ws.pid)) { // Team wählen (oder verlassen)
       const p = room.players.get(ws.pid), cfg = room.settings.quiz, host = room.players.get(room.hostId);
       const cs = [...room.players.values()].filter((x) => !x.watch && !(cfg.host && x.id === room.hostId)), slots = Math.max(2, Math.ceil(cs.length / cfg.teamSize));
       if (m.team === null) p.team = null;
       else if (Number.isInteger(m.team) && m.team >= 0 && m.team < slots && cs.filter((x) => x.team === m.team && x.id !== p.id).length < cfg.teamSize && !(cfg.host && p.id === room.hostId)) p.team = m.team;
       return broadcast(room);
     }
-    if (m.type === 'teamshuffle' && room && !room.game && room.hostId === ws.pid) { // Host lost die Teams aus
+    if (m.type === 'teamshuffle' && room && lobbyOpen(room) && room.hostId === ws.pid) { // Host lost die Teams aus
       const cfg = room.settings.quiz, cs = [...room.players.values()].filter((x) => !x.watch && !(cfg.host && x.id === room.hostId)), slots = Math.max(2, Math.ceil(cs.length / cfg.teamSize));
       const order = cs.map((x) => x).sort(() => Math.random() - 0.5); order.forEach((x, i) => { x.team = i % slots; });
       return broadcast(room);
     }
-    if (m.type === 'color' && room && !room.game && room.players.has(ws.pid)) { // Spielerfarbe wählen (jede Farbe nur einmal)
+    if (m.type === 'color' && room && lobbyOpen(room) && room.players.has(ws.pid)) { // Spielerfarbe wählen (jede Farbe nur einmal)
       const c = Math.round(Number(m.color));
       if (c >= 0 && c < COLORS && ![...room.players.values()].some((p) => p.id !== ws.pid && p.color === c)) { room.players.get(ws.pid).color = c; broadcast(room); }
     }
@@ -280,7 +299,7 @@ wss.on('connection', (ws) => {
         if (t.votes.size >= needVotes(room)) removePlayer(room, t, 'Votekick'); else broadcast(room);
       }
     }
-    if (m.type === 'watch' && room && !room.game && room.players.has(ws.pid)) { room.players.get(ws.pid).watch = !!m.on; broadcast(room); } // in der Lobby nur zuschauen
+    if (m.type === 'watch' && room && lobbyOpen(room) && room.players.has(ws.pid)) { room.players.get(ws.pid).watch = !!m.on; broadcast(room); } // in der Lobby nur zuschauen
     if (m.type === 'trading' && room && room.players.has(ws.pid)) { room.players.get(ws.pid).trading = !!m.on; broadcast(room); }
     if (m.type === 'chat' && room && (room.players.has(ws.pid) || room.spec.has(ws.pid))) {
       const t = String(m.text || '').replace(/[<>]/g, '').trim().slice(0, 200), who = room.players.get(ws.pid) || room.spec.get(ws.pid);

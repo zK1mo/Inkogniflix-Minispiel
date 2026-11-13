@@ -32,7 +32,7 @@ const statOf = (g, ch, cat) => ((g.rs !== 'mix' && CHARS[ch][3]) ? scaleIn(g.rs,
 
 function newGame(players, { rs, time, win }) {
   const key = RS[rs] ? rs : 'mix', pool = CHARS.map((_, i) => i).filter((i) => !RS[key].anime || CHARS[i][1] === RS[key].anime);
-  const g = { kind: 'anime', rs: key, win: win === 'avg' ? 'avg' : 'cats', nc: RS[key].cats.length, time: Math.max(15, Math.min(120, Math.round(Number(time)) || 45)), pool, used: {}, round: -1, dry: {}, phase: 'spin', until: 0, rn: 0, draw: {}, decoys: [], step: 0, winners: [], forfeit: false, log: [],
+  const g = { kind: 'anime', gid: Math.random().toString(36).slice(2, 10), rs: key, win: win === 'avg' ? 'avg' : 'cats', nc: RS[key].cats.length, time: Math.max(15, Math.min(120, Math.round(Number(time)) || 45)), pool, used: {}, round: -1, dry: {}, phase: 'spin', until: 0, rn: 0, draw: {}, decoys: [], step: 0, winners: [], forfeit: false, log: [],
     players: players.map((p) => ({ id: p.id, name: p.name, color: p.color || 0, out: false })), board: {} };
   g.players.forEach((p) => { g.board[p.id] = Array(g.nc).fill(null); });
   startRound(g); return g;
@@ -95,7 +95,7 @@ function view(g, pid) { // pid = Betrachter (null = Zuschauer): geheime Infos we
   const showing = g.phase === 'showdown' || g.phase === 'over', step = g.phase === 'over' ? g.nc : g.step;
   let show = null;
   if (showing && !g.forfeit) { const r = results(g, step), vals = {}; Object.keys(r.vals).forEach((id) => { vals[id] = r.vals[id].map((v, c) => (c < step ? v : null)); }); show = { step, vals, catWin: r.catWin.map((w, c) => (c < step ? w : [])), wins: r.wins, avg: g.phase === 'over' ? r.avg : null }; }
-  return { kind: 'anime', rs: g.rs, win: g.win, rsName: RS[g.rs].name, cats: RS[g.rs].cats.map(([n, e]) => ({ n, e })), phase: g.phase, round: g.round, rounds: g.nc, until: g.until, time: g.time, rn: g.rn, step, forfeit: g.forfeit,
+  return { kind: 'anime', gid: g.gid, rs: g.rs, win: g.win, rsName: RS[g.rs].name, cats: RS[g.rs].cats.map(([n, e]) => ({ n, e })), phase: g.phase, round: g.round, rounds: g.nc, until: g.until, time: g.time, rn: g.rn, step, forfeit: g.forfeit,
     players: g.players.map((p) => ({ id: p.id, name: p.name, color: p.color, out: p.out, placed: (g.phase === 'pick' || g.phase === 'between' || g.phase === 'spin') && !p.out && placedNow(g, p.id) })),
     me: me && g.phase !== 'showdown' && g.phase !== 'over' ? { draw: ci(g.draw[pid]), placed: mine } : null,
     board, decoys: g.phase === 'spin' ? g.decoys.map(ci) : [], show, winners: g.phase === 'over' ? g.winners : null, backAt: g.backAt || null, log: [] };

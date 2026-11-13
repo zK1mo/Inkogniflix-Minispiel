@@ -21,7 +21,7 @@ const say = (g, t) => { g.log.push(t); if (g.log.length > 120) g.log.shift(); };
 
 const DEFAULT_RULES = { doubleRent: true, vacation: true, noRentPrison: true, evenBuild: true, randomOrder: true, auction: false, vacationSkip: false };
 function newGame(players, settings) {
-  return { budget: settings.budget, map: settings.map, rules: { ...DEFAULT_RULES, ...(settings.rules || {}) }, pot: 0, owners: {}, houses: {}, mort: {}, minus: null, outOrder: [], trades: [], tid: 0, rn: 0, turn: 0, phase: 'roll', dice: [0, 0], dbl: 0, again: false, winner: null, log: ['Das Spiel beginnt!'],
+  return { gid: Math.random().toString(36).slice(2, 10), budget: settings.budget, map: settings.map, rules: { ...DEFAULT_RULES, ...(settings.rules || {}) }, pot: 0, owners: {}, houses: {}, mort: {}, minus: null, outOrder: [], trades: [], tid: 0, rn: 0, turn: 0, phase: 'roll', dice: [0, 0], dbl: 0, again: false, winner: null, log: ['Das Spiel beginnt!'],
     players: players.map((p) => ({ id: p.id, name: p.name, color: p.color || 0, pardon: 0, skip: 0, debts: [], money: settings.budget, pos: 0, jail: 0, out: false })) };
 }
 // Coins nach Platz: Sieger bekommt am meisten, jeder weitere Platz die Hälfte des Vorgängers, der Letzte nichts.
