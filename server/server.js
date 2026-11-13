@@ -118,7 +118,7 @@ async function identify(m) {
 function entry(ws, m, id) {
   const cid = String(m.cid || '');
   if (m.type === 'create') {
-    const r = { code: newCode(), hostId: null, players: new Map(), spec: new Map(), banned: new Set(), settings: { budget: 1500, map: 'klassisch', max: 8, test: false, mode: 'monopoly', quiz: { category: 'gemischt', count: 10, time: 20, diff: 'mittel', host: false, id: null, title: null, max: null }, rules: { doubleRent: true, vacation: true, noRentPrison: true, evenBuild: true, randomOrder: true, auction: false, vacationSkip: false } }, chat: [] };
+    const r = { code: newCode(), hostId: null, players: new Map(), spec: new Map(), banned: new Set(), settings: { budget: 1500, map: 'klassisch', max: 8, test: false, mode: 'monopoly', quiz: { category: 'gemischt', count: 10, time: 20, host: false, id: null, title: null, max: null }, rules: { doubleRent: true, vacation: true, noRentPrison: true, evenBuild: true, randomOrder: true, auction: false, vacationSkip: false } }, chat: [] };
     rooms.set(r.code, r);
     return enter(ws, r, m, id);
   }
@@ -160,12 +160,13 @@ async function startGame(room) {
   try {
     let quizSetup = null;
     if (room.settings.mode === 'quiz') {
-      const cfg = room.settings.quiz; let questions, title = 'Allgemeinwissen' + (cfg.category !== 'gemischt' ? ': ' + cfg.category : ''), coins = true;
+      const cfg = room.settings.quiz; let questions = [], title = 'Allgemeinwissen' + (cfg.category !== 'gemischt' ? ': ' + cfg.category : ''), coins = true;
       if (cfg.id) {
         const d = await db.quizData(cfg.id); questions = d ? Q.fromCustom(d.questions, cfg.count) : []; title = d ? d.title : ''; coins = false;
         if (questions.length < 3) { const h = room.players.get(room.hostId) || room.spec.get(room.hostId); return h && send(h.ws, { type: 'error', text: 'Dieses Quiz konnte nicht geladen werden (mindestens 3 gültige Fragen nötig).' }); }
-      } else questions = Q.pickBuiltin(cfg.category === 'gemischt' ? null : cfg.category, cfg.count, cfg.diff);
-      quizSetup = { questions, time: cfg.time, title, coins, diff: cfg.diff, hostMode: !!cfg.host };
+      } else if (cfg.host) { title = 'Wissensquiz: Zufallsthemen'; coins = false; } // Moderator-Modus: Fragen werden erst nach der Schwierigkeitswahl gezogen
+      else questions = Q.pickBuiltin(cfg.category === 'gemischt' ? null : cfg.category, cfg.count);
+      quizSetup = { questions, time: cfg.time, title, coins, hostMode: !!cfg.host, builtin: !!cfg.host && !cfg.id, count: cfg.count };
     }
     if (room.game) return;
     const all = [...room.players.values()], host = room.players.get(room.hostId), ps = all.filter((p) => !p.watch && !(quizSetup && quizSetup.hostMode && p.id === room.hostId)), test = !quizSetup && room.settings.test && host && host.admin; // Moderator spielt nicht mit
@@ -192,7 +193,7 @@ wss.on('connection', (ws) => {
       identify(m).then((id) => { ws.busy = false; if (ws.room) return; if (id.error) return send(ws, { type: 'error', text: id.error }); entry(ws, m, id); })
         .catch(() => { ws.busy = false; send(ws, { type: 'error', text: 'Anmeldung konnte nicht geprüft werden. Bitte versuche es gleich noch einmal.' }); });
       return;
-    } else if (room && room.game && ['roll', 'jailpay', 'buy', 'skip', 'end', 'build', 'sell', 'mortgage', 'giveup', 'jailcard', 'bid', 'pass', 'trade', 'tradeok', 'tradeno', 'answer', 'adm', 'qpick', 'qhint', 'qnext', 'qundo', 'qend'].includes(m.type)) {
+    } else if (room && room.game && ['roll', 'jailpay', 'buy', 'skip', 'end', 'build', 'sell', 'mortgage', 'giveup', 'jailcard', 'bid', 'pass', 'trade', 'tradeok', 'tradeno', 'answer', 'adm', 'qpick', 'qhint', 'qnext', 'qundo', 'qend', 'qopen', 'qdiff'].includes(m.type)) {
       const g = room.game, who = room.players.get(ws.pid) || room.spec.get(ws.pid), adminOk = !!(who && who.admin && g.test); // Admin-Werkzeuge nur im Testspiel
       if (m.type === 'adm') { if (adminOk && g.kind !== 'quiz') G.admin(g, m); }
       else MOD(g).act(g, adminOk && m.as && g.players.some((x) => x.id === m.as) ? m.as : ws.pid, m, { host: ws.pid === room.hostId }); // der Admin darf für Test-Spieler handeln
@@ -223,8 +224,7 @@ wss.on('connection', (ws) => {
           if (typeof qz.category === 'string' && (qz.category === 'gemischt' || Q.CATS.includes(qz.category))) cfg.category = qz.category;
           const cnt = Math.round(Number(qz.count)); if (cnt >= 3 && cnt <= 30) cfg.count = cfg.max ? Math.min(cnt, cfg.max) : cnt;
           const tm = Math.round(Number(qz.time)); if (tm >= 5 && tm <= 60) cfg.time = tm;
-          if (Q.POINTS[qz.diff]) cfg.diff = qz.diff; // Schwierigkeit = Punkte pro richtige Antwort
-          if (typeof qz.host === 'boolean') cfg.host = qz.host; // Moderator-Modus: Host wählt die Gewinner
+          if (typeof qz.host === 'boolean') cfg.host = qz.host; // Moderator-Modus: Zufallsthema, Spieler wählt Schwierigkeit, Host moderiert
           if (qz.id) setQuizSource(room, qz.id);
         }
         broadcast(room);
