@@ -4,6 +4,7 @@ const { WebSocketServer } = require('ws');
 const G = require('./game');
 const db = require('./db');
 const Q = require('./quiz');
+const ADMINS = new Set((process.env.ADMIN_USERS || 'zk1mo').split(',').map((x) => x.trim().toLowerCase()).filter(Boolean)); // Admin-Benutzernamen (bei Render: ADMIN_USERS)
 const MOD = (g) => (g && g.kind === 'quiz' ? Q : G); // Monopoly oder Quiz
 
 const server = http.createServer((q, r) => { r.writeHead(200); r.end('Inkogniflix-Server läuft'); });
@@ -30,6 +31,7 @@ const nextHost = (room) => ([...room.players.values()].find((p) => p.ws) || [...
 // Spielende: Coins an angemeldete Spieler auszahlen (nur einmal pro Spiel)
 function settle(room) {
   const g = room.game; g.paid = true;
+  if (g.test) return; // Testspiele geben keine Coins
   for (const p of MOD(g).payouts(g)) {
     const uid = room.uids && room.uids[p.id]; if (!uid) continue;
     const who = room.players.get(p.id) || room.spec.get(p.id);
@@ -45,8 +47,8 @@ function broadcast(room) {
     type: 'room', now: Date.now(), chat: room.chat, specs: [...room.spec.values()].map((x) => x.name), game: room.game ? MOD(room.game).view(room.game) : null, code: room.code, hostId: room.hostId, settings: room.settings, need: needVotes(room),
     players: [...room.players.values()].map((p) => ({ id: p.id, name: p.name, guest: p.guest, color: p.color, trading: !!p.trading, watch: !!p.watch, avatar: p.avatar || null, dc: p.ws ? null : p.dc, votes: [...p.votes] })),
   };
-  room.players.forEach((p) => send(p.ws, { ...base, you: p.id }));
-  room.spec.forEach((x) => send(x.ws, { ...base, you: x.id, spec: true })); // Zuschauer sehen alles, können aber nichts tun
+  room.players.forEach((p) => send(p.ws, { ...base, you: p.id, admin: !!p.admin }));
+  room.spec.forEach((x) => send(x.ws, { ...base, you: x.id, spec: true, admin: !!x.admin })); // Zuschauer sehen alles, können aber nichts tun
 }
 
 function leave(ws) {
@@ -90,7 +92,7 @@ function enter(ws, room, msg, id) {
   ws.pid = Math.random().toString(36).slice(2, 10);
   ws.room = room.code;
   const color = freeColor(room);
-  room.players.set(ws.pid, { id: ws.pid, name, color, guest: id.guest, uid: id.uid, avatar: id.avatar || null, cid: String(msg.cid || ''), ws, dc: null, votes: new Set(), watch: false });
+  room.players.set(ws.pid, { id: ws.pid, name, color, guest: id.guest, uid: id.uid, avatar: id.avatar || null, admin: !!id.admin, cid: String(msg.cid || ''), ws, dc: null, votes: new Set(), watch: false });
   if (!room.hostId) room.hostId = ws.pid;
   broadcast(room);
 }
@@ -103,7 +105,7 @@ async function identify(m) {
     if (await db.isBanned(m.token, u.id)) return { error: 'Dein Konto ist gesperrt.' };
     const name = clean(await db.username(m.token, u.id));
     if (!name) return { error: 'Zu deinem Konto gibt es noch keinen Benutzernamen.' };
-    return { name, guest: false, uid: u.id, avatar: await db.avatarOf(m.token, u.id) };
+    return { name, guest: false, uid: u.id, avatar: await db.avatarOf(m.token, u.id), admin: ADMINS.has(name.toLowerCase()) };
   }
   const name = clean(m.name);
   if (name && await db.nameTaken(name)) return { error: 'Dieser Name gehört einem registrierten Spieler. Wähle einen anderen oder melde dich an.' };
@@ -114,7 +116,7 @@ async function identify(m) {
 function entry(ws, m, id) {
   const cid = String(m.cid || '');
   if (m.type === 'create') {
-    const r = { code: newCode(), hostId: null, players: new Map(), spec: new Map(), banned: new Set(), settings: { budget: 1500, map: 'klassisch', max: 8, mode: 'monopoly', quiz: { category: 'gemischt', count: 10, time: 20, id: null, title: null, max: null }, rules: { doubleRent: true, vacation: true, noRentPrison: true, evenBuild: true, randomOrder: true, auction: false, vacationSkip: false } }, chat: [] };
+    const r = { code: newCode(), hostId: null, players: new Map(), spec: new Map(), banned: new Set(), settings: { budget: 1500, map: 'klassisch', max: 8, test: false, mode: 'monopoly', quiz: { category: 'gemischt', count: 10, time: 20, id: null, title: null, max: null }, rules: { doubleRent: true, vacation: true, noRentPrison: true, evenBuild: true, randomOrder: true, auction: false, vacationSkip: false } }, chat: [] };
     rooms.set(r.code, r);
     return enter(ws, r, m, id);
   }
@@ -126,12 +128,12 @@ function entry(ws, m, id) {
   if (r.game && !same) { // Spiel läuft schon: als Zuschauer dazukommen
     if (!id.name) return send(ws, { type: 'error', text: 'Bitte gib einen Namen ein.' });
     ws.pid = 's' + Math.random().toString(36).slice(2, 9); ws.room = r.code; ws.spec = true;
-    r.spec.set(ws.pid, { id: ws.pid, name: id.name, guest: id.guest, uid: id.uid, cid, ws });
+    r.spec.set(ws.pid, { id: ws.pid, name: id.name, guest: id.guest, uid: id.uid, admin: !!id.admin, cid, ws });
     return broadcast(r);
   }
   if (same) {
     if (same.ws && same.ws !== ws) { same.ws.room = null; try { same.ws.close(); } catch {} }
-    same.ws = ws; same.dc = null; same.votes.clear(); same.trading = false; if (id.uid) same.avatar = id.avatar || null; ws.pid = same.id; ws.room = r.code;
+    same.ws = ws; same.dc = null; same.votes.clear(); same.trading = false; if (id.uid) { same.avatar = id.avatar || null; same.admin = !!id.admin; } ws.pid = same.id; ws.room = r.code;
     if (r.game) MOD(r.game).note(r.game, `${same.name} ist zurück`);
     return broadcast(r);
   }
@@ -164,12 +166,12 @@ async function startGame(room) {
       quizSetup = { questions, time: cfg.time, title, coins };
     }
     if (room.game) return;
-    const all = [...room.players.values()], ps = all.filter((p) => !p.watch);
-    if (ps.length < 2) return;
+    const all = [...room.players.values()], ps = all.filter((p) => !p.watch), host = room.players.get(room.hostId), test = !quizSetup && room.settings.test && host && host.admin;
+    if (ps.length < (test ? 1 : 2)) return;
     if (quizSetup) room.game = Q.newGame(ps, quizSetup);
     else {
       if (room.settings.rules.randomOrder) for (let i = ps.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [ps[i], ps[j]] = [ps[j], ps[i]]; }
-      room.game = G.newGame(ps, room.settings);
+      room.game = G.newGame(ps, room.settings); if (test) room.game.test = true;
     }
     room.uids = {}; ps.forEach((p) => { if (p.uid) room.uids[p.id] = p.uid; }); // wer ein Konto hat (für die Coins)
     all.filter((p) => p.watch).forEach((p) => { room.players.delete(p.id); room.spec.set(p.id, { id: p.id, name: p.name, guest: p.guest, uid: p.uid, cid: p.cid, ws: p.ws, chosen: true }); if (p.ws) p.ws.spec = true; });
@@ -188,8 +190,10 @@ wss.on('connection', (ws) => {
       identify(m).then((id) => { ws.busy = false; if (ws.room) return; if (id.error) return send(ws, { type: 'error', text: id.error }); entry(ws, m, id); })
         .catch(() => { ws.busy = false; send(ws, { type: 'error', text: 'Anmeldung konnte nicht geprüft werden. Bitte versuche es gleich noch einmal.' }); });
       return;
-    } else if (room && room.game && ['roll', 'jailpay', 'buy', 'skip', 'end', 'build', 'sell', 'mortgage', 'giveup', 'jailcard', 'bid', 'pass', 'trade', 'tradeok', 'tradeno', 'answer'].includes(m.type)) {
-      MOD(room.game).act(room.game, ws.pid, m);
+    } else if (room && room.game && ['roll', 'jailpay', 'buy', 'skip', 'end', 'build', 'sell', 'mortgage', 'giveup', 'jailcard', 'bid', 'pass', 'trade', 'tradeok', 'tradeno', 'answer', 'adm'].includes(m.type)) {
+      const g = room.game, who = room.players.get(ws.pid) || room.spec.get(ws.pid), adminOk = !!(who && who.admin && g.test); // Admin-Werkzeuge nur im Testspiel
+      if (m.type === 'adm') { if (adminOk && g.kind !== 'quiz') G.admin(g, m); }
+      else MOD(g).act(g, adminOk && m.as && g.players.some((x) => x.id === m.as) ? m.as : ws.pid, m); // der Admin darf für Test-Spieler handeln
       broadcast(room);
     } else if (room && ws.pid === room.hostId) {
       if (m.type === 'start' && !room.game) {
@@ -210,6 +214,7 @@ wss.on('connection', (ws) => {
         const mx = Math.round(Number(m.max)); if (mx >= Math.max(2, room.players.size) && mx <= 8) room.settings.max = mx;
         for (const k of Object.keys(room.settings.rules)) if (m.rules && typeof m.rules[k] === 'boolean') room.settings.rules[k] = m.rules[k];
         if (['monopoly', 'quiz'].includes(m.mode)) room.settings.mode = m.mode;
+        if (typeof m.test === 'boolean') { const h = room.players.get(room.hostId); room.settings.test = !!(m.test && h && h.admin); } // Testmodus nur für Admins
         if (m.quiz && typeof m.quiz === 'object') { // Quiz-Einstellungen
           const qz = m.quiz, cfg = room.settings.quiz;
           if ('id' in qz && !qz.id) { cfg.id = null; cfg.title = null; cfg.max = null; } // zurück auf die eingebauten Fragen

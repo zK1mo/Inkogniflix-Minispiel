@@ -21,7 +21,7 @@ const say = (g, t) => { g.log.push(t); if (g.log.length > 120) g.log.shift(); };
 
 const DEFAULT_RULES = { doubleRent: true, vacation: true, noRentPrison: true, evenBuild: true, randomOrder: true, auction: false, vacationSkip: false };
 function newGame(players, settings) {
-  return { map: settings.map, rules: { ...DEFAULT_RULES, ...(settings.rules || {}) }, pot: 0, owners: {}, houses: {}, mort: {}, minus: null, outOrder: [], trades: [], tid: 0, rn: 0, turn: 0, phase: 'roll', dice: [0, 0], dbl: 0, again: false, winner: null, log: ['Das Spiel beginnt!'],
+  return { budget: settings.budget, map: settings.map, rules: { ...DEFAULT_RULES, ...(settings.rules || {}) }, pot: 0, owners: {}, houses: {}, mort: {}, minus: null, outOrder: [], trades: [], tid: 0, rn: 0, turn: 0, phase: 'roll', dice: [0, 0], dbl: 0, again: false, winner: null, log: ['Das Spiel beginnt!'],
     players: players.map((p) => ({ id: p.id, name: p.name, color: p.color || 0, pardon: 0, skip: 0, debts: [], money: settings.budget, pos: 0, jail: 0, out: false })) };
 }
 // Coins nach Platz: Sieger bekommt am meisten, jeder weitere Platz die Hälfte des Vorgängers, der Letzte nichts.
@@ -35,7 +35,7 @@ function payouts(g) {
   });
 }
 function view(g) {
-  return { ...g, payout: g.phase === 'over' ? Object.fromEntries(payouts(g).map((x) => [x.id, { place: x.place, coins: x.coins }])) : null, groups: GN[g.map], board: B.map((f, i) => ({ n: NAMES[g.map][i], t: f[0], g: f[0] === 'p' ? f[3] : null, p: f[1] || 0, r: f[2] || 0 })) };
+  return { ...g, payout: g.phase === 'over' ? Object.fromEntries(payouts(g).map((x) => [x.id, { place: x.place, coins: x.coins }])) : null, groups: GN[g.map], board: B.map((f, i) => ({ n: NAMES[g.map][i], t: f[0], g: f[0] === 'p' ? f[3] : null, p: f[1] || 0, r: f[2] || 0, rt: RENTS[i] || null })) };
 }
 function bankrupt(g, p, to) {
   for (const d of p.debts || []) { const cr = d.to && g.players.find((q) => q.id === d.to); credit(g, cr || null, d.amt); if (cr) say(g, `${cr.name} bekommt die Restschuld von ${d.amt} € von der Bank`); } // offene Schulden zahlt die Bank
@@ -47,12 +47,17 @@ function bankrupt(g, p, to) {
   say(g, p.name + ' ist bankrott!');
   if (g.auction && g.auction.bidder === p.id) { g.auction.bid = 0; g.auction.bidder = null; }
   const alive = g.players.filter((x) => !x.out);
-  if (alive.length === 1) { g.phase = 'over'; g.winner = alive[0].id; }
+  if (alive.length === 1 && !g.test) { g.phase = 'over'; g.winner = alive[0].id; } // im Testspiel endet es nicht
 }
+// Mieten wie im klassischen Monopoly: [Grundmiete, 1 Haus, 2 Häuser, 3 Häuser, 4 Häuser, Hotel]
+const RENTS = { 1: [2, 10, 30, 90, 160, 250], 3: [4, 20, 60, 180, 320, 450], 6: [6, 30, 90, 270, 400, 550], 8: [6, 30, 90, 270, 400, 550], 9: [8, 40, 100, 300, 450, 600],
+  11: [10, 50, 150, 450, 625, 750], 13: [10, 50, 150, 450, 625, 750], 14: [12, 60, 180, 500, 700, 900], 16: [14, 70, 200, 550, 750, 950], 18: [14, 70, 200, 550, 750, 950],
+  19: [16, 80, 220, 600, 800, 1000], 21: [18, 90, 250, 700, 875, 1050], 23: [18, 90, 250, 700, 875, 1050], 24: [20, 100, 300, 750, 925, 1100],
+  26: [22, 110, 330, 800, 975, 1150], 27: [22, 110, 330, 800, 975, 1150], 29: [24, 120, 360, 850, 1025, 1200],
+  31: [26, 130, 390, 900, 1100, 1275], 32: [26, 130, 390, 900, 1100, 1275], 34: [28, 150, 450, 1000, 1200, 1400], 37: [35, 175, 500, 1100, 1300, 1500], 39: [50, 200, 600, 1400, 1700, 2000] };
 const cost = (i) => [50, 50, 100, 100, 150, 150, 200, 200][B[i][3]]; // Preis pro Haus
-const HOTEL_FACTOR = 5, hotelCost = (i) => B[i][1] * HOTEL_FACTOR;  // Hotel: 5x Grundstückspreis (Berlin 400 -> 2000)
-const stepCost = (i, h) => (h >= 4 ? hotelCost(i) : cost(i));        // Preis der nächsten Baustufe (h = aktuelle Stufe)
-const bldValue = (i, h) => { let v = 0; for (let k = 0; k < h; k++) v += stepCost(i, k); return v; };
+const stepCost = (i, h) => cost(i);                                 // jede Baustufe (4 Häuser, dann Hotel) kostet den Hauspreis
+const bldValue = (i, h) => h * cost(i);
 const grp = (i) => B.map((f, k) => k).filter((k) => B[k][0] === 'p' && B[k][3] === B[i][3]);
 const worth = (g, p) => Object.keys(g.owners).filter((k) => g.owners[k] === p.id)
   .reduce((s, k) => s + (g.mort[k] ? 0 : B[k][1] / 2) + (g.houses[k] ? bldValue(k, g.houses[k]) / 2 : 0), 0);
@@ -132,7 +137,7 @@ function tickMinus(g) {
 }
 function toJail(g, p) { p.pos = 10; p.jail = 1; g.again = false; say(g, p.name + ' geht ins Gefängnis.'); }
 function move(g, p, to) {
-  if (to < p.pos) { p.money += 200; say(g, p.name + ' passiert den Start: +200'); }
+  if (to < p.pos) { const exact = to === 0; p.money += exact ? 300 : 200; say(g, exact ? p.name + ' landet genau auf Start: +300' : p.name + ' passiert den Start: +200'); }
   p.pos = to; land(g, p);
 }
 function land(g, p) {
@@ -143,7 +148,7 @@ function land(g, p) {
     if (!o) { g.phase = 'buy'; return; }
     if (o !== p.id && !g.mort[p.pos]) {
       const ow = g.players.find((x) => x.id === o); let rent;
-      if (f[0] === 'p') rent = g.houses[p.pos] ? f[2] * [1, 5, 15, 45, 80, 125][g.houses[p.pos]] : f[2] * (g.rules.doubleRent && B.every((x, i) => x[0] !== 'p' || x[3] !== f[3] || g.owners[i] === o) ? 2 : 1);
+      if (f[0] === 'p') rent = g.houses[p.pos] ? RENTS[p.pos][g.houses[p.pos]] : f[2] * (g.rules.doubleRent && B.every((x, i) => x[0] !== 'p' || x[3] !== f[3] || g.owners[i] === o) ? 2 : 1);
       else if (f[0] === 'r') rent = 25 * 2 ** (B.filter((x, i) => x[0] === 'r' && g.owners[i] === o).length - 1);
       else rent = (g.dice[0] + g.dice[1]) * (B.filter((x, i) => x[0] === 'u' && g.owners[i] === o).length > 1 ? 10 : 4);
       if (g.rules.noRentPrison && ow.jail) say(g, `${ow.name} sitzt im Gefängnis: keine Miete für ${nm}`);
@@ -183,7 +188,7 @@ function act0(g, pid, a) {
     p.pardon--; p.jail = 0; g.again = false; g.phase = 'end';
     say(g, `${p.name} nutzt eine Pardon-Karte und setzt diese Runde aus`);
   } else if (a.type === 'roll' && g.phase === 'roll' && p.money >= 0) { // im Minus darf man nicht würfeln
-    g.dice = [rnd(), rnd()]; g.rn++; // Wurfzähler: nur ein neuer Wurf startet die Würfel-Animation
+    g.dice = g.nextDice || [rnd(), rnd()]; g.nextDice = null; g.rn++; // Wurfzähler: nur ein neuer Wurf startet die Würfel-Animation
     const dbl = g.dice[0] === g.dice[1];
     say(g, `${p.name} würfelt ${g.dice[0]} + ${g.dice[1]}`);
     if (p.jail) {
@@ -223,6 +228,34 @@ function manage(g, p, a) {
     if (g.mort[i]) { const c = Math.ceil(f[1] / 2 * 1.1); if (p.money >= c) { p.money -= c; delete g.mort[i]; say(g, `${p.name} löst die Hypothek auf ${NAMES[g.map][i]} aus`); } }
     else if (f[0] !== 'p' || G.every((x) => x === 0)) { g.mort[i] = true; p.money += f[1] / 2; say(g, `${p.name} nimmt eine Hypothek auf ${NAMES[g.map][i]} auf`); }
   }
+}
+
+// ===== Admin-Testumgebung: nur in Testspielen, nur für Admins (der Server prüft das) =====
+const ci = (v, lo, hi) => Math.max(lo, Math.min(hi, Math.round(Number(v) || 0)));
+function admin(g, a) {
+  if (!g.test || g.phase === 'over' || !a) return;
+  const p = g.players.find((x) => x.id === a.id), i = ci(a.pos, 0, 39), prop = ['p', 'r', 'u'].includes(B[i][0]);
+  switch (a.op) {
+    case 'money': if (p) p.money = ci(a.amount, -1e6, 1e6); break;            // Kontostand setzen
+    case 'give': if (p) p.money += ci(a.amount, -1e6, 1e6); break;            // Geld geben (oder nehmen)
+    case 'owner': if (prop) { if (p) g.owners[i] = p.id; else { delete g.owners[i]; delete g.houses[i]; delete g.mort[i]; } } break;
+    case 'houses': if (B[i][0] === 'p' && g.owners[i]) { const l = ci(a.level, 0, 5); if (l) g.houses[i] = l; else delete g.houses[i]; } break;
+    case 'mort': if (g.owners[i]) { if (g.mort[i]) delete g.mort[i]; else g.mort[i] = true; } break;
+    case 'pos': if (p) p.pos = i; break;                                      // verschieben ohne Wirkung
+    case 'goto': if (p) { g.turn = g.players.indexOf(p); g.again = false; if (!g.dice[0]) g.dice = [3, 4]; move(g, p, i); } break; // hinziehen mit Feldwirkung
+    case 'dice': g.nextDice = [ci(a.d1, 1, 6), ci(a.d2, 1, 6)]; break;       // nächsten Wurf festlegen
+    case 'jail': if (p) toJail(g, p); break;
+    case 'free': if (p) p.jail = 0; break;
+    case 'pardon': if (p) p.pardon = (p.pardon || 0) + 1; break;
+    case 'pot': g.pot = ci(a.amount, 0, 1e6); break;
+    case 'turn': if (p && !p.out) { g.turn = g.players.indexOf(p); g.phase = 'roll'; g.again = false; g.dbl = 0; g.auction = null; } break;
+    case 'revive': if (p) { p.out = false; g.outOrder = g.outOrder.filter((x) => x !== p.id); } break;
+    case 'addbot': if (g.players.length < 8) {
+      const n = g.players.filter((x) => x.bot).length + 1, used = new Set(g.players.map((x) => x.color)); let color = 0; while (used.has(color)) color++;
+      g.players.push({ id: 'bot' + n + Math.random().toString(36).slice(2, 5), name: 'Test-Bot ' + n, color, bot: true, pardon: 0, skip: 0, debts: [], money: g.budget || 1500, pos: 0, jail: 0, out: false });
+    } break;
+  }
+  chk(g); say(g, '🛠 Admin: ' + a.op);
 }
 // Handel: jeder Spieler kann jederzeit Angebote machen; der Server prüft alles beim Erstellen und beim Annehmen
 const tradable = (g, pid, ps) => ps.every((k) => g.owners[k] === pid && B[k][0] && !grp(k).some((x) => g.houses[x]));
@@ -274,4 +307,4 @@ function drop(g, pid) {
   if (g.phase !== 'over' && was) next(g);
   chk(g);
 }
-module.exports = { newGame, act, drop, view, tick, payouts, note: say };
+module.exports = { admin, newGame, act, drop, view, tick, payouts, note: say };
