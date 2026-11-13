@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-SvScB7gqg7GCH9w/olp0azNRizWoPYOqCEFQssYlmvs='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://*.anilist.co https://cdn.myanimelist.net; connect-src https://hzvnbtksanoonvkblded.supabase.co https://graphql.anilist.co https://api.jikan.moe wss://inkogniflix-minispiel.onrender.com ws://localhost:3000; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-yHg9A6jyK3897IZdIi6phfE/7adee8loFRLkNVJQ/z4='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https:; connect-src https://hzvnbtksanoonvkblded.supabase.co https://graphql.anilist.co https://api.jikan.moe https://kitsu.io https://en.wikipedia.org wss://inkogniflix-minispiel.onrender.com ws://localhost:3000; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Inkogniflix</title>
 <link rel="icon" href="logo.png">
@@ -699,9 +699,9 @@ function renderTeams(on, qz, host) {
 }
 function render() {
   show(true);
-  if (!state.game) lobbyView = false;
+  if (!state.game) { lobbyView = false; clearTimeout(autoLobbyT); autoLobbyT = 0; }
   const view = state.game && !lobbyView ? 'game' : 'lobby'; if (view !== curView) { curView = view; toTop(); }
-  if (state.game && !lobbyView) { $('lobby').classList.add('hide'); $('game').classList.remove('hide'); document.body.classList.add('ingame'); renderGame(); return; }
+  if (state.game && !lobbyView) { $('lobby').classList.add('hide'); $('game').classList.remove('hide'); document.body.classList.add('ingame'); renderGame(); autoLobbyCheck(); return; }
   if (!state.game) resetGame();
   const host = state.you === state.hostId;
   $('code').textContent = state.code;
@@ -714,7 +714,7 @@ function render() {
     $('modeM').classList.toggle('on', !qm && !am); $('modeQ').classList.toggle('on', qm); $('modeA').classList.toggle('on', am); $('modeM').disabled = $('modeQ').disabled = $('modeA').disabled = !host;
     $('monoSet').classList.toggle('hide', qm || am); $('quizSet').classList.toggle('hide', !qm); $('animeSet').classList.toggle('hide', !am);
     $('anrs').value = an.rs; $('antime').value = String(an.time); $('anrs').disabled = $('antime').disabled = !host;
-    $('aninfo').textContent = '5 Runden: Jeder zieht pro Runde einen Zufalls-Charakter und setzt ihn in eine von 5 Kategorien (' + ({ mix: 'Stärke, Geschwindigkeit, Fähigkeiten, IQ, Zähigkeit', onepiece: 'Stärke, Geschwindigkeit, Haki, Teufelsfrucht, Zähigkeit', dragonball: 'Kampfkraft, Geschwindigkeit, Ki-Kontrolle, Kampf-IQ, Zähigkeit', naruto: 'Ninjutsu, Taijutsu, Genjutsu, Chakra, IQ' }[an.rs] || '') + '). Die Werte siehst du erst im Showdown. Wer die meisten Kategorien gewinnt, siegt.' + (an.rs === 'mix' ? '' : ' Die Werte sind innerhalb dieses Animes neu skaliert.');
+    $('aninfo').textContent = (an.rs === 'mix' ? 5 : 6) + ' Runden: Jeder zieht pro Runde einen Zufalls-Charakter und setzt ihn in eine Kategorie (' + ({ mix: 'Stärke, Geschwindigkeit, Fähigkeiten, IQ, Zähigkeit', onepiece: 'Stärke, Geschwindigkeit, Haki, Teufelsfrucht, Zähigkeit, IQ', dragonball: 'Kampfkraft, Geschwindigkeit, Ki-Kontrolle, Kampf-IQ, Zähigkeit, IQ', naruto: 'Ninjutsu, Taijutsu, Genjutsu, Chakra, IQ, Kampf-IQ' }[an.rs] || '') + '). Die Werte siehst du erst im Showdown. Wer die meisten Kategorien gewinnt, siegt.' + (an.rs === 'mix' ? '' : ' Die Werte sind innerhalb dieses Animes neu skaliert.');
     const mx = qz.id ? qz.max : !qz.host && qz.category && qz.category !== 'gemischt' ? 15 : 30, opts = [...new Set([3, 5, 10, 15, 20, 25, 30].filter((n) => n <= mx).concat(qz.id ? [mx] : []))].sort((a, b) => a - b), sel = $('qcount');
     if (sel.dataset.sig !== opts.join()) { sel.textContent = ''; opts.forEach((n) => { const o = el('option', '', n + ' Fragen'); o.value = n; sel.append(o); }); sel.dataset.sig = opts.join(); }
     sel.value = String(Math.min(qz.count || 10, mx)); $('qcat').value = qz.category || 'gemischt'; $('qtime').value = String(qz.time || 20); $('qhost').checked = !!qz.host; $('qteam').checked = !!qz.team; $('qteamSize').value = String(qz.teamSize || 2); $('qteamSizeBox').classList.toggle('hide', !qz.team); $('qteam').disabled = $('qteamSize').disabled = !host; renderTeams(qm && !!qz.team, qz, host); $('qtimeBox').classList.toggle('hide', !!qz.host); $('qcatBox').classList.toggle('hide', !!qz.host || !!qz.id);
@@ -728,7 +728,7 @@ function render() {
   { // Lobby-Ansicht, obwohl das Spiel noch läuft oder gerade beendet wurde
     const gn = $('gameNotice'), gm = state.game; gn.textContent = ''; gn.classList.toggle('hide', !gm);
     if (gm) {
-      const over = gm.phase === 'over', t = el('div', 'tag', over ? '🏁 Das Spiel ist beendet.' + (host ? '' : ' Warte, bis der Host zurück zur Lobby geht.') : 'Das Spiel läuft noch. Du bist nicht mehr dabei, kannst aber zuschauen.'); t.style.marginBottom = '8px'; gn.append(t);
+      const over = gm.phase === 'over', t = el('div', 'tag', over ? '🏁 Das Spiel ist beendet.' + (host ? '' : ' Warte, bis der Host zurück zur Lobby geht.') : 'Das Spiel läuft noch. Du kannst zuschauen.'); t.style.marginBottom = '8px'; gn.append(t);
       const row = el('div', 'row'), back = el('button', 'small', '👁 Zurück zum Spiel'); back.onclick = () => { lobbyView = false; render(); }; row.append(back);
       if (over && host) { const nb = el('button', 'small', '🔄 Neues Spiel (Lobby)'); nb.onclick = () => out({ type: 'lobby' }); row.append(nb); }
       gn.append(row); $('startBtn').disabled = true; $('startBtn').textContent = over ? 'Erst zurück zur Lobby' : 'Das Spiel läuft noch …';
@@ -1104,7 +1104,14 @@ function renderQuizHost(z, g, host, spec) {
 /* ===== Anime-Schmiede ===== */
 let anSig = '', anSlot = null, anRadarOff = {}, lobbyView = false; // lobbyView: Spieler schaut in die Lobby, obwohl das Spiel noch (oder nicht mehr) läuft
 const lobbyBtn = (txt) => { const b = el('button', 'small ghost', txt || '🏠 Zur Lobby'); b.style.marginTop = '8px'; b.onclick = () => { lobbyView = true; render(); }; return b; };
-const giveUp = (q) => { if (confirm(q)) { out({ type: 'giveup' }); lobbyView = true; render(); } }; // aufgeben/verlassen → direkt zur Lobby
+const giveUp = (q) => { if (confirm(q)) out({ type: 'giveup' }); }; // aufgeben: man schaut weiter zu, bis der Gewinner angezeigt wurde, dann geht es zurück in die Lobby (siehe autoLobbyCheck)
+let autoLobbyT = 0;
+function autoLobbyCheck() {
+  const g = state.game, p = g && g.players.find((x) => x.id === state.you);
+  if (!g || g.phase !== 'over' || lobbyView || autoLobbyT || state.spec || state.you === state.hostId || g.teamOf || !p || !p.out) return; // nur wer aufgegeben hat
+  toast('Du wirst gleich zur Lobby gebracht …', 5000);
+  autoLobbyT = setTimeout(() => { autoLobbyT = 0; if (state && state.game && state.game.phase === 'over' && !lobbyView) { lobbyView = true; render(); } }, 5000);
+}
 const AK = { 'Dragon Ball': ['dragonball'], 'Naruto': ['naruto'], 'One Piece': ['onepiece'], 'Bleach': ['bleach'], 'Attack on Titan': ['attackontitan', 'shingekinokyojin'], 'My Hero Academia': ['myheroacademia', 'bokunoheroacademia'], 'Demon Slayer': ['demonslayer', 'kimetsunoyaiba'], 'Jujutsu Kaisen': ['jujutsukaisen'], 'Death Note': ['deathnote'], 'Fullmetal Alchemist': ['fullmetalalchemist'], 'Hunter x Hunter': ['hunterxhunter'], 'One Punch Man': ['onepunchman'], 'Fairy Tail': ['fairytail'], 'Sword Art Online': ['swordartonline'], 'Tokyo Ghoul': ['tokyoghoul'], 'Black Clover': ['blackclover'], 'Code Geass': ['codegeass'], 'Cowboy Bebop': ['cowboybebop'], 'Mob Psycho 100': ['mobpsycho'], 'Chainsaw Man': ['chainsawman'], 'Spy x Family': ['spyxfamily'], 'Dr. Stone': ['drstone'], 'Solo Leveling': ['sololeveling'], "JoJo's Bizarre Adventure": ['jojo'], 'Berserk': ['berserk'] };
 const normS = (t) => String(t || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 // Bilder: werden von der AniList-Schnittstelle geholt (gebündelt, im Browser zwischengespeichert). Klappt das nicht, bleibt ein farbiger Platzhalter mit Initialen.
@@ -1142,22 +1149,43 @@ async function pumpImgs() {
   } catch (e) { batch.forEach((c) => { JK_Q.push(c); setTimeout(() => { delete IMG_TRY[ckey(c)]; }, 60000); }); pumpJikan(); } // AniList nicht erreichbar: es mit der anderen Quelle versuchen
   imgBusy = false; setTimeout(pumpImgs, 600);
 }
-const JK_Q = [], JK_DONE = {}; let jkBusy = false;
+const JK_Q = [], FB_DONE = {}, IMG_FAIL = {}; let fbBusy = false;
 const wordsOf = (t) => String(t || '').toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length > 1);
 const nameMatches = (c, full) => { const ws = wordsOf(c.q || c.n), nm = normS(full); return ws.length > 0 && ws.every((w) => nm.includes(w)); };
-function setImg(c, url) { IMGC[ckey(c)] = url; (IMG_W[ckey(c)] || []).forEach((f) => paintFace(f, url)); clearTimeout(imgSaveT); imgSaveT = setTimeout(() => { try { localStorage.setItem('animeImg3', JSON.stringify(IMGC)); } catch {} }, 800); }
-async function pumpJikan() { // zweite Bildquelle (MyAnimeList über Jikan), langsam und einzeln wegen der Begrenzung
-  if (jkBusy) return; let c; while ((c = JK_Q.shift())) { if (!IMGC[ckey(c)] && !JK_DONE[ckey(c)]) break; c = null; } if (!c) return;
-  jkBusy = true; JK_DONE[ckey(c)] = 1;
-  try {
-    const r = await fetch('https://api.jikan.moe/v4/characters?limit=8&order_by=favorites&sort=desc&q=' + encodeURIComponent(c.q || c.n));
-    if (r.ok) {
-      const j = await r.json(), hit = (j.data || []).find((x) => nameMatches(c, (x.name || '') + ' ' + (x.name_kanji || '')) && x.images && x.images.jpg && x.images.jpg.image_url && !/questionmark/.test(x.images.jpg.image_url));
-      if (hit) setImg(c, hit.images.jpg.image_url);
-    }
-  } catch {}
-  jkBusy = false; setTimeout(pumpJikan, 1200);
+function setImg(c, url) { IMGC[ckey(c)] = url; delete IMG_FAIL[ckey(c)]; (IMG_W[ckey(c)] || []).forEach((f) => paintFace(f, url)); clearTimeout(imgSaveT); imgSaveT = setTimeout(() => { try { localStorage.setItem('animeImg3', JSON.stringify(IMGC)); } catch {} }, 800); }
+// Alle Schreibweisen, unter denen ein Charakter in Datenbanken stehen könnte (ganzer Name, Suchname, Zusatznamen, ohne Titel wie "Mr.", Nach-/Vorname)
+const variants = (c) => { const w = c.n.split(/\s+/), b = [c.q, c.n, ...(c.alts || []), c.n.replace(/^(Mr|Mrs|Dr|Master|Meister)\.?\s+/i, '')]; if (w.length > 1) b.push(w[w.length - 1], w[0]); return [...new Set(b.filter((x) => x && x.length > 2))]; };
+const sleep2 = (ms) => new Promise((r) => setTimeout(r, ms));
+const getJ = async (url) => { const r = await fetch(url); if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); };
+const SRC = { // Ausweichquellen, werden der Reihe nach probiert
+  async anilist(c, vs) { // mehrere Namensvarianten in einer Anfrage, nur Treffer aus dem richtigen Anime
+    const v4 = vs.slice(1, 5), decl = [], body = [], vars = {}; if (!v4.length) return null; v4.forEach((v, k) => { decl.push('$s' + k + ':String'); vars['s' + k] = v; body.push('a' + k + ':Page(perPage:6){characters(search:$s' + k + ',sort:FAVOURITES_DESC){name{full} image{large} media(perPage:4){nodes{title{romaji english}}}}}'); });
+    const r = await fetch('https://graphql.anilist.co', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ query: 'query(' + decl.join(',') + '){' + body.join(' ') + '}', variables: vars }) });
+    if (!r.ok) throw new Error('HTTP ' + r.status); const j = await r.json(), keys = AK[c.a] || [normS(c.a)];
+    for (let k = 0; k < v4.length; k++) { const h = ((((j.data || {})['a' + k]) || {}).characters || []).find((x) => x.image && x.image.large && ((x.media || {}).nodes || []).some((m) => [m.title && m.title.romaji, m.title && m.title.english].some((t) => t && keys.some((kk) => normS(t).includes(kk))))); if (h) return h.image.large; }
+    return null;
+  },
+  async jikan(c, vs) { // MyAnimeList
+    for (const v of vs.slice(0, 3)) { const j = await getJ('https://api.jikan.moe/v4/characters?limit=8&order_by=favorites&sort=desc&q=' + encodeURIComponent(v)); const h = (j.data || []).find((x) => nameMatches({ q: v }, (x.name || '') + ' ' + (x.name_kanji || '')) && x.images && x.images.jpg && x.images.jpg.image_url && !/questionmark/.test(x.images.jpg.image_url)); if (h) return h.images.jpg.image_url; await sleep2(450); }
+    return null;
+  },
+  async kitsu(c, vs) {
+    for (const v of vs.slice(0, 3)) { const j = await getJ('https://kitsu.io/api/edge/characters?page%5Blimit%5D=6&filter%5Bname%5D=' + encodeURIComponent(v)); const h = (j.data || []).find((x) => x.attributes && x.attributes.image && x.attributes.image.original && nameMatches({ q: v }, x.attributes.name)); if (h) return h.attributes.image.original; }
+    return null;
+  },
+  async wiki(c, vs) { // Wikipedia-Seitenbild
+    for (const v of vs.slice(0, 3)) { const j = await getJ('https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrlimit=4&prop=pageimages&piprop=thumbnail&pithumbsize=400&gsrsearch=' + encodeURIComponent(v + ' ' + c.a)); const pages = Object.values((j.query || {}).pages || {}).sort((x, y) => (x.index || 0) - (y.index || 0)), h = pages.find((p) => p.thumbnail && p.thumbnail.source && nameMatches({ q: v }, p.title)); if (h) return h.thumbnail.source; }
+    return null;
+  },
+};
+async function pumpJikan() { // Name bleibt aus Gewohnheit: arbeitet die Warteschlange der Charaktere ohne Bild ab, einzeln und langsam
+  if (fbBusy) return; let c; while ((c = JK_Q.shift())) { if (!IMGC[ckey(c)] && !FB_DONE[ckey(c)]) break; c = null; } if (!c) return;
+  fbBusy = true; FB_DONE[ckey(c)] = 1; const vs = variants(c); let found = false;
+  for (const name of ['anilist', 'jikan', 'kitsu', 'wiki']) { try { const url = await SRC[name](c, vs); if (url) { setImg(c, url); found = true; break; } } catch {} }
+  if (!found) IMG_FAIL[ckey(c)] = c.n + ' (' + c.a + ')';
+  fbBusy = false; setTimeout(pumpJikan, 900);
 }
+window.animeMissing = () => Object.values(IMG_FAIL); // Konsole: welche Charaktere haben (noch) kein Bild?
 const DIFFN = (v) => (v === null || v === undefined ? '?' : String(v));
 function slotMachine(g) { // Zufalls-Charakter ziehen: Bilder laufen von rechts nach links durch und halten beim gezogenen Charakter
   const fin = g.me && g.me.draw, wrap = el('div', 'slotwrap');
@@ -1177,11 +1205,11 @@ function slotMachine(g) { // Zufalls-Charakter ziehen: Bilder laufen von rechts 
   return wrap;
 }
 function radarSVG(g, players) {
-  const NS = 'http://www.w3.org/2000/svg', W = 520, H = 380, cx = 260, cy = 190, R = 125, svg = document.createElementNS(NS, 'svg');
+  const NS = 'http://www.w3.org/2000/svg', W = 520, H = 380, cx = 260, cy = 190, R = 125, N = g.cats.length, IDX = g.cats.map((_, i) => i), svg = document.createElementNS(NS, 'svg');
   svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H); svg.setAttribute('class', 'anradar'); svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', 'Netzdiagramm der erstellten Charaktere');
   const mk = (tag, at, txt) => { const e = document.createElementNS(NS, tag); for (const k in at) e.setAttribute(k, at[k]); if (txt) e.textContent = txt; svg.append(e); return e; };
-  const pt = (i, v) => { const a = -Math.PI / 2 + i * 2 * Math.PI / 5, r = R * v / 100; return [cx + r * Math.cos(a), cy + r * Math.sin(a)]; };
-  [25, 50, 75, 100].forEach((v) => mk('polygon', { points: [0, 1, 2, 3, 4].map((i) => pt(i, v).join(',')).join(' '), fill: 'none', stroke: '#ffffff2a', 'stroke-width': 1 }));
+  const pt = (i, v) => { const a = -Math.PI / 2 + i * 2 * Math.PI / N, r = R * v / 100; return [cx + r * Math.cos(a), cy + r * Math.sin(a)]; };
+  [25, 50, 75, 100].forEach((v) => mk('polygon', { points: IDX.map((i) => pt(i, v).join(',')).join(' '), fill: 'none', stroke: '#ffffff2a', 'stroke-width': 1 }));
   g.cats.forEach((c, i) => { const [x, y] = pt(i, 100), [lx, ly] = pt(i, 122); mk('line', { x1: cx, y1: cy, x2: x, y2: y, stroke: '#ffffff26' }); mk('text', { x: lx, y: ly + 4, 'text-anchor': lx < cx - 8 ? 'end' : lx > cx + 8 ? 'start' : 'middle', fill: '#e6dbfa', 'font-size': 13, 'font-weight': 700 }, c.e + ' ' + c.n); });
   players.forEach((p) => {
     const col = COL[p.color], vals = g.show.vals[p.id], pts = vals.map((v, i) => pt(i, v || 0));
@@ -1229,7 +1257,7 @@ function buildAnimeStage(g, stage, ctx) {
   if (g.forfeit) { stage.append(el('div', 'qbanner ok', '🏆 ' + ((g.players.find((x) => x.id === (g.winners || [])[0]) || {}).name || 'Du') + ' gewinnt, weil alle anderen das Spiel verlassen haben.')); const bc = el('div', 'tag qcenter', 'Zurück zur Lobby in 3 s …'); bc.id = 'backcd'; stage.append(bc); backTick(); return; }
   const sh = g.show, over = g.phase === 'over';
   stage.append(el('div', 'antitle2', over ? 'ERGEBNIS' : 'SHOWDOWN'));
-  if (!over) stage.append(el('div', 'ancount', String(Math.max(1, sh.step)) + ' / 5'));
+  if (!over) stage.append(el('div', 'ancount', String(Math.max(1, sh.step)) + ' / ' + g.cats.length));
   const tbl = el('div', 'antable'); tbl.style.gridTemplateColumns = 'minmax(96px,140px) repeat(' + pl.length + ',minmax(0,1fr))';
   tbl.append(el('div', 'ath'));
   pl.forEach((p) => { const h = el('div', 'ath pn', p.name + (p.id === me ? ' (du)' : '')); h.style.borderBottom = '3px solid ' + COL[p.color]; tbl.append(h); });
@@ -1252,7 +1280,7 @@ function buildAnimeStage(g, stage, ctx) {
   stage.append(el('div', 'qbanner ' + (win.includes(me) ? 'ok' : 'idle'), win.includes(me) ? '🏆 Du hast gewonnen!' : '🏆 ' + names + (win.length > 1 ? ' gewinnen' : ' gewinnt')));
   const cards = el('div', 'anscores'); [...pl].sort((a, b) => sh.wins[b.id] - sh.wins[a.id] || sh.avg[b.id] - sh.avg[a.id]).forEach((p) => {
     const c = el('div', 'anscore' + (win.includes(p.id) ? ' w' : '')); c.style.borderColor = COL[p.color]; c.style.background = COL[p.color] + '22';
-    c.append(el('div', 'sn', p.name + (p.id === me ? ' (du)' : '')), el('small', '', 'Ø SCORE'), el('div', 'sv', sh.avg[p.id].toFixed(1)), el('small', '', sh.wins[p.id] + ' von 5 Kategorien')); cards.append(c);
+    c.append(el('div', 'sn', p.name + (p.id === me ? ' (du)' : '')), el('small', '', 'Ø SCORE'), el('div', 'sv', sh.avg[p.id].toFixed(1)), el('small', '', sh.wins[p.id] + ' von ' + g.cats.length + ' Kategorien')); cards.append(c);
   });
   stage.append(cards);
   const rw = el('div', 'anradarbox'); rw.append(el('div', 'anlabel', 'Netzdiagramm: So gut sind die erstellten Charaktere')); const holder = el('div', 'anradarholder'); holder.append(radarSVG(g, pl)); rw.append(holder);
@@ -1283,8 +1311,8 @@ function renderAnime() {
     const st = g.show ? g.show.wins[p.id] + ' 🏆' : g.phase === 'pick' || g.phase === 'between' ? (p.placed || g.phase === 'between' ? '✔' : '…') : '';
     r.append(t, el('span', '', p.name + (p.id === me ? ' (du)' : '') + (p.id === state.hostId ? ' 👑' : '')), el('span', 'm', st)); pl.append(r);
   });
-  if (mineAlive(g, me) && g.phase !== 'over') { const b = el('button', 'small danger', 'Spiel verlassen'); b.style.marginTop = '8px'; b.onclick = () => giveUp('Wirklich aufgeben und zur Lobby zurück?'); pl.append(b); }
-  else if (!spec && (g.phase === 'over' ? !host : g.players.some((p) => p.id === me))) pl.append(lobbyBtn());
+  if (mineAlive(g, me) && g.phase !== 'over') { const b = el('button', 'small danger', 'Aufgeben'); b.style.marginTop = '8px'; b.onclick = () => giveUp('Wirklich aufgeben? Du schaust dann zu, bis der Gewinner feststeht, und kommst danach in die Lobby.'); pl.append(b); }
+  else if (!spec && g.phase === 'over' && !host) pl.append(lobbyBtn());
   const ms = $('msgs'); ms.textContent = '';
   if (!state.chat.length) ms.append(el('div', 'tag', 'Noch keine Nachrichten'));
   state.chat.forEach((m, i) => { const d = el('div', prevChatN !== null && i >= prevChatN ? 'new' : ''); d.append(el('b', '', m.n + ': '), document.createTextNode(m.t)); ms.append(d); }); prevChatN = state.chat.length; ms.scrollTop = ms.scrollHeight;
@@ -1366,8 +1394,8 @@ function renderQuiz() {
     if (g.phase === 'over' && !g.teamMode) payBadge(r, q, g);
     pl.append(r);
   });
-  if (canAnswer && g.phase !== 'over') { const b = el('button', 'small danger', 'Quiz verlassen'); b.style.marginTop = '8px'; b.onclick = () => giveUp('Quiz wirklich verlassen und zur Lobby zurück?'); pl.append(b); }
-  else if (!spec && (g.phase === 'over' ? !host : !!meP && meP.out)) pl.append(lobbyBtn());
+  if (canAnswer && g.phase !== 'over') { const b = el('button', 'small danger', 'Aufgeben'); b.style.marginTop = '8px'; b.onclick = () => giveUp('Wirklich aufgeben? Du schaust dann zu, bis der Gewinner feststeht, und kommst danach in die Lobby.'); pl.append(b); }
+  else if (!spec && g.phase === 'over' && !host) pl.append(lobbyBtn());
   // Chat
   const ms = $('msgs'); ms.textContent = '';
   if (!state.chat.length) ms.append(el('div', 'tag', 'Noch keine Nachrichten'));
@@ -1832,8 +1860,8 @@ function renderGame() {
     r.append(t, el('span', '', q.name + (q.id === me ? ' (du)' : '') + (q.id === state.hostId ? ' 👑' : '') + (q.jail ? ' ⛓' : '') + (q.pardon ? ' 🃏' + q.pardon : '')), moneySpan(q));
     dcRow(r, q, me); tradeBadge(r, q); payBadge(r, q, g); pl.append(r);
   });
-  if (!spec && g.phase !== 'over' && !(g.players.find((x) => x.id === me) || SPEC).out) { const b = el('button', 'small danger', 'Aufgeben'); b.style.marginTop = '8px'; b.onclick = () => giveUp('Wirklich aufgeben und zur Lobby zurück?'); pl.append(b); }
-  else if (!spec && ((g.players.find((x) => x.id === me) || SPEC).out || (g.phase === 'over' && !host))) pl.append(lobbyBtn());
+  if (!spec && g.phase !== 'over' && !(g.players.find((x) => x.id === me) || SPEC).out) { const b = el('button', 'small danger', 'Aufgeben'); b.style.marginTop = '8px'; b.onclick = () => giveUp('Wirklich aufgeben? Du schaust dann zu, bis der Gewinner feststeht, und kommst danach in die Lobby.'); pl.append(b); }
+  else if (!spec && g.phase === 'over' && !host) pl.append(lobbyBtn());
 
   // Rechts: Handel
   const tr = $('trCard'); tr.textContent = ''; const hd = el('div', 'hd', 'Handel'); const nb = el('button', 'small', '＋ Erstellen'); nb.onclick = () => openTrade(); nb.disabled = !!(g.players.find((x) => x.id === me) || {}).out; if (nb.disabled) nb.title = 'Du bist ausgeschieden'; if (!spec) hd.append(nb); tr.append(hd);
