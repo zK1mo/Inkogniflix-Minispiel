@@ -47,8 +47,10 @@ function broadcast(room) {
     type: 'room', now: Date.now(), chat: room.chat, specs: [...room.spec.values()].map((x) => x.name), game: room.game ? MOD(room.game).view(room.game) : null, code: room.code, hostId: room.hostId, settings: room.settings, need: needVotes(room),
     players: [...room.players.values()].map((p) => ({ id: p.id, name: p.name, guest: p.guest, color: p.color, trading: !!p.trading, watch: !!p.watch, avatar: p.avatar || null, dc: p.ws ? null : p.dc, votes: [...p.votes] })),
   };
-  room.players.forEach((p) => send(p.ws, { ...base, you: p.id, admin: !!p.admin }));
-  room.spec.forEach((x) => send(x.ws, { ...base, you: x.id, spec: true, admin: !!x.admin })); // Zuschauer sehen alles, können aber nichts tun
+  const g = room.game, modView = g && g.kind === 'quiz' && g.hostMode ? Q.view(g, true) : null; // der Moderator sieht Antwort und alle Hinweise
+  const gv = (id) => (modView && id === room.hostId ? modView : base.game);
+  room.players.forEach((p) => send(p.ws, { ...base, game: gv(p.id), you: p.id, admin: !!p.admin }));
+  room.spec.forEach((x) => send(x.ws, { ...base, game: gv(x.id), you: x.id, spec: true, admin: !!x.admin })); // Zuschauer sehen alles, können aber nichts tun
 }
 
 function leave(ws) {
@@ -116,7 +118,7 @@ async function identify(m) {
 function entry(ws, m, id) {
   const cid = String(m.cid || '');
   if (m.type === 'create') {
-    const r = { code: newCode(), hostId: null, players: new Map(), spec: new Map(), banned: new Set(), settings: { budget: 1500, map: 'klassisch', max: 8, test: false, mode: 'monopoly', quiz: { category: 'gemischt', count: 10, time: 20, id: null, title: null, max: null }, rules: { doubleRent: true, vacation: true, noRentPrison: true, evenBuild: true, randomOrder: true, auction: false, vacationSkip: false } }, chat: [] };
+    const r = { code: newCode(), hostId: null, players: new Map(), spec: new Map(), banned: new Set(), settings: { budget: 1500, map: 'klassisch', max: 8, test: false, mode: 'monopoly', quiz: { category: 'gemischt', count: 10, time: 20, diff: 'mittel', host: false, id: null, title: null, max: null }, rules: { doubleRent: true, vacation: true, noRentPrison: true, evenBuild: true, randomOrder: true, auction: false, vacationSkip: false } }, chat: [] };
     rooms.set(r.code, r);
     return enter(ws, r, m, id);
   }
@@ -162,12 +164,12 @@ async function startGame(room) {
       if (cfg.id) {
         const d = await db.quizData(cfg.id); questions = d ? Q.fromCustom(d.questions, cfg.count) : []; title = d ? d.title : ''; coins = false;
         if (questions.length < 3) { const h = room.players.get(room.hostId) || room.spec.get(room.hostId); return h && send(h.ws, { type: 'error', text: 'Dieses Quiz konnte nicht geladen werden (mindestens 3 gültige Fragen nötig).' }); }
-      } else questions = Q.pickBuiltin(cfg.category === 'gemischt' ? null : cfg.category, cfg.count);
-      quizSetup = { questions, time: cfg.time, title, coins };
+      } else questions = Q.pickBuiltin(cfg.category === 'gemischt' ? null : cfg.category, cfg.count, cfg.diff);
+      quizSetup = { questions, time: cfg.time, title, coins, diff: cfg.diff, hostMode: !!cfg.host };
     }
     if (room.game) return;
-    const all = [...room.players.values()], ps = all.filter((p) => !p.watch), host = room.players.get(room.hostId), test = !quizSetup && room.settings.test && host && host.admin;
-    if (ps.length < (test ? 1 : 2)) return;
+    const all = [...room.players.values()], host = room.players.get(room.hostId), ps = all.filter((p) => !p.watch && !(quizSetup && quizSetup.hostMode && p.id === room.hostId)), test = !quizSetup && room.settings.test && host && host.admin; // Moderator spielt nicht mit
+    if (ps.length < (test || (quizSetup && quizSetup.hostMode) ? 1 : 2)) return;
     if (quizSetup) room.game = Q.newGame(ps, quizSetup);
     else {
       if (room.settings.rules.randomOrder) for (let i = ps.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [ps[i], ps[j]] = [ps[j], ps[i]]; }
@@ -190,10 +192,10 @@ wss.on('connection', (ws) => {
       identify(m).then((id) => { ws.busy = false; if (ws.room) return; if (id.error) return send(ws, { type: 'error', text: id.error }); entry(ws, m, id); })
         .catch(() => { ws.busy = false; send(ws, { type: 'error', text: 'Anmeldung konnte nicht geprüft werden. Bitte versuche es gleich noch einmal.' }); });
       return;
-    } else if (room && room.game && ['roll', 'jailpay', 'buy', 'skip', 'end', 'build', 'sell', 'mortgage', 'giveup', 'jailcard', 'bid', 'pass', 'trade', 'tradeok', 'tradeno', 'answer', 'adm'].includes(m.type)) {
+    } else if (room && room.game && ['roll', 'jailpay', 'buy', 'skip', 'end', 'build', 'sell', 'mortgage', 'giveup', 'jailcard', 'bid', 'pass', 'trade', 'tradeok', 'tradeno', 'answer', 'adm', 'qpick', 'qhint', 'qnext', 'qundo', 'qend'].includes(m.type)) {
       const g = room.game, who = room.players.get(ws.pid) || room.spec.get(ws.pid), adminOk = !!(who && who.admin && g.test); // Admin-Werkzeuge nur im Testspiel
       if (m.type === 'adm') { if (adminOk && g.kind !== 'quiz') G.admin(g, m); }
-      else MOD(g).act(g, adminOk && m.as && g.players.some((x) => x.id === m.as) ? m.as : ws.pid, m); // der Admin darf für Test-Spieler handeln
+      else MOD(g).act(g, adminOk && m.as && g.players.some((x) => x.id === m.as) ? m.as : ws.pid, m, { host: ws.pid === room.hostId }); // der Admin darf für Test-Spieler handeln
       broadcast(room);
     } else if (room && ws.pid === room.hostId) {
       if (m.type === 'start' && !room.game) {
@@ -221,6 +223,8 @@ wss.on('connection', (ws) => {
           if (typeof qz.category === 'string' && (qz.category === 'gemischt' || Q.CATS.includes(qz.category))) cfg.category = qz.category;
           const cnt = Math.round(Number(qz.count)); if (cnt >= 3 && cnt <= 30) cfg.count = cfg.max ? Math.min(cnt, cfg.max) : cnt;
           const tm = Math.round(Number(qz.time)); if (tm >= 5 && tm <= 60) cfg.time = tm;
+          if (Q.POINTS[qz.diff]) cfg.diff = qz.diff; // Schwierigkeit = Punkte pro richtige Antwort
+          if (typeof qz.host === 'boolean') cfg.host = qz.host; // Moderator-Modus: Host wählt die Gewinner
           if (qz.id) setQuizSource(room, qz.id);
         }
         broadcast(room);
