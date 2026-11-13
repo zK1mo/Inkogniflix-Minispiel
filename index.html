@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-yHg9A6jyK3897IZdIi6phfE/7adee8loFRLkNVJQ/z4='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https:; connect-src https://hzvnbtksanoonvkblded.supabase.co https://graphql.anilist.co https://api.jikan.moe https://kitsu.io https://en.wikipedia.org wss://inkogniflix-minispiel.onrender.com ws://localhost:3000; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-3Q6Tdw6GAIsb1SwJg/qHUZRO/nJeiip5VGbAxKq/o/4='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https:; connect-src https://hzvnbtksanoonvkblded.supabase.co https://graphql.anilist.co https://api.jikan.moe https://kitsu.io https://en.wikipedia.org wss://inkogniflix-minispiel.onrender.com ws://localhost:3000; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Inkogniflix</title>
 <link rel="icon" href="logo.png">
@@ -428,6 +428,27 @@ button.nudge{animation:nudge .8s ease-in-out infinite;box-shadow:0 0 0 3px #fff,
 .antm.hot{color:#fb7185;border-color:#fb7185;text-shadow:0 0 10px #fb7185;box-shadow:0 0 14px #fb7185aa;animation:hotpulse .5s ease-in-out infinite alternate}
 @keyframes hotpulse{from{transform:scale(1);box-shadow:0 0 8px #fb718566}to{transform:scale(1.14);box-shadow:0 0 22px #fb7185}}
 @media(prefers-reduced-motion:reduce){.antm.hot{animation:none}}
+/* Seltenheiten: neonfarbene Rahmen, legendär/mythisch mit dezentem Feuer */
+.rar{--rc:#9ca3af;--rg:#9ca3af55;--rf:transparent;border:2px solid var(--rc)!important;box-shadow:0 0 5px var(--rc),0 0 12px var(--rg),inset 0 0 8px var(--rg)}
+.rar-c{--rc:#9ca3af;--rg:#9ca3af33}
+.rar-r{--rc:#7dd3fc;--rg:#38bdf877;box-shadow:0 0 6px #7dd3fc,0 0 16px #38bdf8aa,inset 0 0 10px #38bdf855}
+.rar-l{--rc:#fb923c;--rg:#f9731688;--rf:#f9731666;animation:fireL 1.7s ease-in-out infinite alternate}
+.rar-m{--rc:#c084fc;--rg:#a855f799;--rf:#a855f799;animation:fireM 1.2s ease-in-out infinite alternate}
+.rar-l::after,.rar-m::after{content:'';position:absolute;left:0;right:0;bottom:0;height:60%;pointer-events:none;z-index:1;background:radial-gradient(55% 95% at 22% 100%,var(--rf),transparent 72%),radial-gradient(50% 85% at 74% 100%,var(--rf),transparent 72%);mix-blend-mode:screen;animation:flame 1.3s ease-in-out infinite alternate}
+.rar-m::after{height:75%}
+@keyframes fireL{from{box-shadow:0 0 6px #fb923c,0 0 14px #f9731677,inset 0 0 8px #f9731633}to{box-shadow:0 0 8px #fdba74,0 0 20px #f97316aa,inset 0 0 12px #f9731655}}
+@keyframes fireM{from{box-shadow:0 0 8px #c084fc,0 0 18px #a855f7aa,inset 0 0 10px #a855f755}to{box-shadow:0 0 12px #e9d5ff,0 0 28px #a855f7dd,inset 0 0 16px #a855f777}}
+@keyframes flame{from{transform:translateY(8%) scaleY(.8);opacity:.45}to{transform:translateY(-3%) scaleY(1.1);opacity:.9}}
+.ancard.rar{overflow:hidden}.ancard.rar .cap{z-index:3}
+.rlabel{display:inline-block;margin-top:4px;font-size:12px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;padding:2px 10px;border-radius:999px;border:1px solid currentColor}
+.cap .rlabel{display:block;width:max-content;margin:6px auto 0}
+.rl-c{color:#d1d5db}.rl-r{color:#7dd3fc;text-shadow:0 0 8px #38bdf8}.rl-l{color:#fdba74;text-shadow:0 0 8px #f97316}.rl-m{color:#e9d5ff;text-shadow:0 0 10px #a855f7}
+.slotwin.flash{animation:slotflash .9s ease-out}@keyframes slotflash{0%{filter:brightness(2.2)}100%{filter:none}}
+.slotwin.rar-m{border-color:#c084fc}
+.atot.best{color:#facc15;text-shadow:0 0 12px #facc1599}
+.ancenter{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:14px;min-height:420px;padding:20px}
+.anbig{font-size:clamp(30px,5vw,64px);font-weight:900;line-height:1.1}.ansub{font-size:clamp(16px,2.1vw,26px);color:var(--dim)}
+@media(prefers-reduced-motion:reduce){.rar-l,.rar-m,.rar-l::after,.rar-m::after,.slotwin.flash{animation:none}}
 @media(max-width:700px){.anboard{grid-template-columns:1fr}.ancat{justify-content:space-between}.antable{font-size:12px}}
 @media(prefers-reduced-motion:reduce){.anslot.free,.ancell.new{animation:none}.slotstrip{transition:none}}
 </style>
@@ -489,6 +510,7 @@ button.nudge{animation:nudge .8s ease-in-out infinite;box-shadow:0 0 0 3px #fff,
       <div id="animeSet" class="hide">
         <label for="anrs">Anime</label><select id="anrs"><option value="mix">Gemischt (alle Animes)</option><option value="onepiece">Nur One Piece</option><option value="dragonball">Nur Dragon Ball</option><option value="naruto">Nur Naruto</option></select>
         <label for="antime">Bedenkzeit pro Runde</label><select id="antime"><option value="30">30 Sekunden</option><option value="45">45 Sekunden</option><option value="60">60 Sekunden</option><option value="90">90 Sekunden</option></select>
+        <label class="rule" id="anavgRow"><span class="rtx"><b>📊 Nur der Ø-Score zählt</b><small>Statt der gewonnenen Kategorien gewinnt, wer am Ende den höchsten Durchschnitt über alle seine Charaktere hat.</small></span><input type="checkbox" id="anavg"><span class="sw"></span></label>
         <div class="tag" id="aninfo" style="margin-top:6px"></div>
       </div>
       <div id="quizSet" class="hide">
@@ -643,7 +665,7 @@ const QCATS = ['Geografie', 'Geschichte', 'Natur & Tiere', 'Wissenschaft', 'Spor
 const sendSettings = () => {
   const rules = {}; RULES.forEach(([k]) => { rules[k] = $('r_' + k).checked; });
   const s = { type: 'settings', budget: $('budget').value, map: $('map').value, max: $('max').value, rules,
-    mode: pendingMode || (state && state.settings && state.settings.mode) || 'monopoly', quiz: { category: $('qcat').value || 'gemischt', count: $('qcount').value || 10, time: $('qtime').value || 20, host: $('qhost').checked, team: $('qteam').checked, teamSize: $('qteamSize').value || 2 }, anime: { rs: $('anrs').value || 'mix', time: $('antime').value || 45 } };
+    mode: pendingMode || (state && state.settings && state.settings.mode) || 'monopoly', quiz: { category: $('qcat').value || 'gemischt', count: $('qcount').value || 10, time: $('qtime').value || 20, host: $('qhost').checked, team: $('qteam').checked, teamSize: $('qteamSize').value || 2 }, anime: { rs: $('anrs').value || 'mix', time: $('antime').value || 45, win: $('anavg').checked ? 'avg' : 'cats' } };
   if (state && state.admin) s.test = $('r_test').checked;
   out(s); delete s.test; savePref('hostSettings', s); // für den nächsten Raum merken (im Konto, sonst nur in diesem Browser)
 };
@@ -663,7 +685,7 @@ $('qcat').onchange = $('qcount').onchange = $('qtime').onchange = $('qhost').onc
 $('modeM').onclick = () => { pendingMode = 'monopoly'; sendSettings(); pendingMode = null; };
 $('modeQ').onclick = () => { pendingMode = 'quiz'; sendSettings(); pendingMode = null; };
 $('modeA').onclick = () => { pendingMode = 'anime'; sendSettings(); pendingMode = null; };
-$('anrs').onchange = $('antime').onchange = sendSettings;
+$('anrs').onchange = $('antime').onchange = $('anavg').onchange = sendSettings;
 $('qpick').onclick = () => openQuizPicker(); $('qedit').onclick = () => openQuizEditor();
 const sendChat = () => { const t = $('chatIn').value.trim(); if (t) out({ type: 'chat', text: t }); $('chatIn').value = ''; };
 $('chatBtn').onclick = sendChat; $('chatIn').onkeydown = (e) => { if (e.key === 'Enter') sendChat(); };
@@ -713,8 +735,8 @@ function render() {
     const st = state.settings, qm = st.mode === 'quiz', am = st.mode === 'anime', qz = st.quiz || {}, an = st.anime || { rs: 'mix', time: 45 };
     $('modeM').classList.toggle('on', !qm && !am); $('modeQ').classList.toggle('on', qm); $('modeA').classList.toggle('on', am); $('modeM').disabled = $('modeQ').disabled = $('modeA').disabled = !host;
     $('monoSet').classList.toggle('hide', qm || am); $('quizSet').classList.toggle('hide', !qm); $('animeSet').classList.toggle('hide', !am);
-    $('anrs').value = an.rs; $('antime').value = String(an.time); $('anrs').disabled = $('antime').disabled = !host;
-    $('aninfo').textContent = (an.rs === 'mix' ? 5 : 6) + ' Runden: Jeder zieht pro Runde einen Zufalls-Charakter und setzt ihn in eine Kategorie (' + ({ mix: 'Stärke, Geschwindigkeit, Fähigkeiten, IQ, Zähigkeit', onepiece: 'Stärke, Geschwindigkeit, Haki, Teufelsfrucht, Zähigkeit, IQ', dragonball: 'Kampfkraft, Geschwindigkeit, Ki-Kontrolle, Kampf-IQ, Zähigkeit, IQ', naruto: 'Ninjutsu, Taijutsu, Genjutsu, Chakra, IQ, Kampf-IQ' }[an.rs] || '') + '). Die Werte siehst du erst im Showdown. Wer die meisten Kategorien gewinnt, siegt.' + (an.rs === 'mix' ? '' : ' Die Werte sind innerhalb dieses Animes neu skaliert.');
+    $('anrs').value = an.rs; $('antime').value = String(an.time); $('anavg').checked = an.win === 'avg'; $('anrs').disabled = $('antime').disabled = $('anavg').disabled = !host;
+    $('aninfo').textContent = (an.rs === 'mix' ? 5 : 6) + ' Runden: Jeder zieht pro Runde einen Zufalls-Charakter und setzt ihn in eine Kategorie (' + ({ mix: 'Stärke, Geschwindigkeit, Fähigkeiten, IQ, Zähigkeit', onepiece: 'Stärke, Geschwindigkeit, Haki, Teufelsfrucht, Zähigkeit, IQ', dragonball: 'Kampfkraft, Geschwindigkeit, Ki-Kontrolle, Kampf-IQ, Zähigkeit, IQ', naruto: 'Ninjutsu, Taijutsu, Genjutsu, Chakra, IQ, Kampf-IQ' }[an.rs] || '') + '). Die Werte siehst du erst im Showdown. ' + (an.win === 'avg' ? 'Es gewinnt der höchste Ø-Score.' : 'Wer die meisten Kategorien gewinnt, siegt.') + (an.rs === 'mix' ? '' : ' Die Werte sind innerhalb dieses Animes neu skaliert.');
     const mx = qz.id ? qz.max : !qz.host && qz.category && qz.category !== 'gemischt' ? 15 : 30, opts = [...new Set([3, 5, 10, 15, 20, 25, 30].filter((n) => n <= mx).concat(qz.id ? [mx] : []))].sort((a, b) => a - b), sel = $('qcount');
     if (sel.dataset.sig !== opts.join()) { sel.textContent = ''; opts.forEach((n) => { const o = el('option', '', n + ' Fragen'); o.value = n; sel.append(o); }); sel.dataset.sig = opts.join(); }
     sel.value = String(Math.min(qz.count || 10, mx)); $('qcat').value = qz.category || 'gemischt'; $('qtime').value = String(qz.time || 20); $('qhost').checked = !!qz.host; $('qteam').checked = !!qz.team; $('qteamSize').value = String(qz.teamSize || 2); $('qteamSizeBox').classList.toggle('hide', !qz.team); $('qteam').disabled = $('qteamSize').disabled = !host; renderTeams(qm && !!qz.team, qz, host); $('qtimeBox').classList.toggle('hide', !!qz.host); $('qcatBox').classList.toggle('hide', !!qz.host || !!qz.id);
@@ -1120,8 +1142,8 @@ let imgBusy = false, imgSaveT = 0;
 const ckey = (c) => c.n + '|' + c.a;
 const hueOf = (t) => { let h = 0; for (const ch of String(t)) h = (h * 31 + ch.charCodeAt(0)) % 360; return h; };
 function paintFace(f, url) { f.style.backgroundImage = 'url("' + String(url).replace(/"/g, '%22') + '")'; f.classList.add('has'); }
-function faceEl(c, extra) {
-  const f = el('div', 'face' + (extra ? ' ' + extra : '')); f.style.setProperty('--h', hueOf(c ? c.a : '?'));
+function faceEl(c, extra, frame) {
+  const f = el('div', 'face' + (extra ? ' ' + extra : '') + (frame && c && c.r ? ' ' + rcl(c) : '')); f.style.setProperty('--h', hueOf(c ? c.a : '?'));
   f.append(el('span', 'ini', c ? c.n.split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase() : '?'));
   if (!c) return f;
   const url = c.img || IMGC[ckey(c)]; if (url) { paintFace(f, url); return f; }
@@ -1186,17 +1208,84 @@ async function pumpJikan() { // Name bleibt aus Gewohnheit: arbeitet die Wartesc
   fbBusy = false; setTimeout(pumpJikan, 900);
 }
 window.animeMissing = () => Object.values(IMG_FAIL); // Konsole: welche Charaktere haben (noch) kein Bild?
+const RARN = { c: 'Gewöhnlich', r: 'Selten', l: 'Legendär', m: 'Mythisch' };
+const rcl = (c) => (c && c.r ? 'rar rar-' + c.r : ''); // Rahmen nach Seltenheit: grau, hellblau, orange (Feuer), lila (stärkeres Feuer)
+
+/* ===== Anime-Sounds: selbst erzeugt (angelehnt an bekannte Techniken), keine Dateien, kein Urheberrecht ===== */
+function sweepNoise(d, v, at, f0, f1, q = 1.2, type = 'bandpass') {
+  const a = muted ? null : actx(); if (!a) return;
+  const n = Math.floor(a.sampleRate * d), buf = a.createBuffer(1, n, a.sampleRate), ch = buf.getChannelData(0);
+  for (let i = 0; i < n; i++) ch[i] = (Math.random() * 2 - 1) * Math.pow(Math.sin(Math.PI * Math.min(1, i / n)), .6);
+  const s = a.createBufferSource(), f = a.createBiquadFilter(), gn = a.createGain(), t = a.currentTime + at;
+  s.buffer = buf; f.type = type; f.Q.value = q; f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + d); gn.gain.value = v; s.connect(f); f.connect(gn); gn.connect(master); s.start(t);
+}
+const crack = (at, f, v) => sweepNoise(.025, v, at, f, f, 3);
+const SIG = {
+  rasengan() { for (let i = 0; i < 16; i++) sweepNoise(.09, .09, i * .05, 500 + i * 140, 700 + i * 180, 3); tone(180, .8, 'triangle', .1, 0, 1000); tone(360, .8, 'sine', .05, 0, 2000); sweepNoise(.3, .22, .8, 300, 5000, 1, 'highpass'); tone(95, .35, 'sine', .3, .82, 40); },
+  chidori() { for (let i = 0; i < 26; i++) crack(i * .035 + Math.random() * .02, 3500 + Math.random() * 4500, .14); tone(1400, .9, 'sawtooth', .035, 0, 1900); sweepNoise(.9, .06, 0, 3000, 9000, 2); tone(2600, .2, 'square', .07, .9, 300); noise(.12, .25, .9, 3000); },
+  kamehameha() { [330, 392, 494].forEach((f, i) => tone(f, .16, 'triangle', .09, i * .2)); tone(120, .6, 'sine', .08, 0, 520); sweepNoise(.7, .3, .62, 250, 3000, .8); tone(220, .8, 'sawtooth', .1, .62, 110); tone(440, .8, 'square', .04, .62, 220); },
+  blast() { tone(150, .35, 'sawtooth', .07, 0, 700); sweepNoise(.35, .1, 0, 400, 2500, 1.5); noise(.5, .3, .35, 100); tone(75, .6, 'sine', .35, .35, 32); tone(300, .25, 'square', .08, .35, 80); },
+  gomu() { tone(260, .28, 'sine', .12, 0, 900); tone(265, .28, 'sine', .08, 0, 1000); tone(1500, .08, 'square', .1, .28, 300); noise(.09, .32, .28, 2000); tone(110, .2, 'sine', .4, .3, 45); tone(700, .15, 'triangle', .07, .5, 350); },
+  slash() { sweepNoise(.14, .32, 0, 700, 7000, 1.2); tone(2093, .8, 'sine', .07, .12); tone(3136, .6, 'sine', .05, .12); tone(4186, .4, 'sine', .03, .13); noise(.06, .2, .12, 5000); },
+  fire() { sweepNoise(.9, .26, 0, 250, 900, .7); for (let i = 0; i < 18; i++) crack(.1 + i * .045 + Math.random() * .03, 1500 + Math.random() * 2500, .12); tone(70, .9, 'sawtooth', .07, 0, 45); },
+  ice() { [2093, 2637, 3136, 3951, 4699].forEach((f, i) => tone(f, .55, 'sine', .06, i * .06)); sweepNoise(.5, .08, 0, 5000, 9000, 3); crack(.35, 6000, .2); tone(520, .3, 'triangle', .05, .35, 260); },
+  lightning() { noise(.09, .45, 0, 4500); sweepNoise(.9, .3, .08, 600, 70, .7, 'lowpass'); tone(55, .9, 'sine', .35, .08, 30); for (let i = 0; i < 6; i++) crack(.1 + i * .06, 3000 + Math.random() * 3000, .14); },
+  punch() { tone(130, .25, 'sine', .55, 0, 38); noise(.12, .4, 0, 1200); tone(70, .2, 'sine', .3, .13, 35); noise(.25, .15, .05, 300); },
+  magic() { tone(62, .9, 'sine', .22, 0, 55); [523, 659, 784, 1047, 1319, 1568].forEach((f, i) => tone(f, .35, 'sine', .06, .08 + i * .07)); sweepNoise(.6, .1, 0, 400, 6000, 1.5); tone(131, .8, 'triangle', .07, 0, 262); },
+  dark() { tone(82, 1, 'sawtooth', .1, 0, 70); tone(87, 1, 'sawtooth', .08, .02, 74); tone(116, .8, 'sawtooth', .05, .15, 98); sweepNoise(.9, .08, 0, 200, 900, 1, 'lowpass'); tone(311, .6, 'triangle', .05, .5, 233); },
+  chime() { crack(0, 2500, .12); [1568, 2349, 3136].forEach((f, i) => tone(f, .55, 'sine', .09, .06 + i * .11)); tone(784, .9, 'triangle', .04, .06); },
+  quake() { tone(48, 1, 'sine', .45, 0, 28); sweepNoise(1, .3, 0, 180, 60, .7, 'lowpass'); noise(.18, .4, 0, 700); for (let i = 0; i < 5; i++) tone(60 - i * 4, .18, 'sine', .25, .25 + i * .14, 30); },
+  roar() { tone(95, .9, 'sawtooth', .13, 0, 55); tone(142, .9, 'sawtooth', .08, 0, 80); sweepNoise(.9, .2, 0, 900, 250, 1.2); tone(60, .4, 'sine', .3, .05, 35); },
+  aura() { tone(196, .7, 'triangle', .1, 0, 784); tone(392, .7, 'sine', .06, 0, 1568); sweepNoise(.7, .1, 0, 600, 4500, 1.5); tone(98, .5, 'sine', .25, .55, 60); },
+  whoosh() { sweepNoise(.4, .3, 0, 500, 6000, 1.1); tone(900, .35, 'sine', .06, 0, 300); sweepNoise(.2, .12, .28, 5000, 1200, 1.5); },
+  clang() { tone(660, .12, 'square', .08); tone(1320, .6, 'sine', .1, .01); tone(1980, .5, 'sine', .05, .01); noise(.08, .3, 0, 3000); tone(220, .3, 'triangle', .08, .02, 110); },
+  chainsaw() { for (let i = 0; i < 24; i++) tone(120 + (i % 2) * 8, .045, 'sawtooth', .09, i * .035, 100); sweepNoise(.85, .12, 0, 800, 2500, 1.5); noise(.12, .3, .85, 600); },
+};
+// Charakter → Sound (passend zur bekannten Technik). Alles andere: Standard des Animes, bei IQ-Kategorien ein Denk-Klang.
+const SIGMAP = {
+  'Naruto Uzumaki': 'rasengan', 'Boruto Uzumaki': 'rasengan', 'Minato Namikaze': 'rasengan', 'Sasuke Uchiha': 'chidori', 'Kakashi Hatake': 'chidori', 'Itachi Uchiha': 'dark', 'Madara Uchiha': 'fire', 'Hashirama Senju': 'quake', 'Jiraiya': 'fire', 'Tsunade': 'punch', 'Orochimaru': 'dark', 'Gaara': 'whoosh', 'Rock Lee': 'whoosh', 'Might Guy': 'punch', 'Neji Hyuga': 'whoosh', 'Shikamaru Nara': 'chime', 'Pain': 'quake', 'Obito Uchiha': 'dark', 'Killer Bee': 'slash', 'Hinata Hyuga': 'whoosh', 'Sakura Haruno': 'punch', 'Kabuto Yakushi': 'dark', 'Kisame Hoshigaki': 'slash', 'Deidara': 'blast', 'Sasori': 'clang', 'Zabuza Momochi': 'slash', 'Konan': 'whoosh', 'Kaguya Otsutsuki': 'dark', 'Kakuzu': 'clang', 'Hiruzen Sarutobi': 'fire',
+  'Son Goku': 'kamehameha', 'Son Gohan': 'kamehameha', 'Gotenks': 'kamehameha', 'Meister Roshi': 'kamehameha', 'Vegeta': 'blast', 'Trunks': 'slash', 'Piccolo': 'blast', 'Krillin': 'slash', 'Freezer': 'dark', 'Cell': 'blast', 'Majin Boo': 'quake', 'Broly': 'roar', 'Tenshinhan': 'blast', 'Yamcha': 'punch', 'Android 17': 'punch', 'Android 18': 'punch', 'Beerus': 'dark', 'Whis': 'chime', 'Jiren': 'punch', 'Goku Black': 'blast', 'Zamasu': 'dark', 'Hit': 'whoosh', 'Raditz': 'blast', 'Nappa': 'blast', 'Bardock': 'blast', 'Dabura': 'dark', 'Chaozu': 'magic', 'Bulma': 'chime', 'Dr. Gero': 'clang', 'Zeno': 'magic', 'Mr. Satan': 'punch',
+  'Monkey D. Luffy': 'gomu', 'Roronoa Zoro': 'slash', 'Sanji': 'fire', 'Nami': 'lightning', 'Lysop': 'whoosh', 'Nico Robin': 'magic', 'Tony Tony Chopper': 'punch', 'Franky': 'blast', 'Brook': 'chime', 'Jinbe': 'punch', 'Portgas D. Ace': 'fire', 'Sabo': 'fire', 'Trafalgar Law': 'magic', 'Eustass Kid': 'clang', 'Dracule Mihawk': 'slash', 'Shanks': 'slash', 'Whitebeard': 'quake', 'Kaido': 'roar', 'Big Mom': 'dark', 'Blackbeard': 'dark', 'Gol D. Roger': 'slash', 'Akainu': 'fire', 'Aokiji': 'ice', 'Kizaru': 'lightning', 'Monkey D. Garp': 'punch', 'Crocodile': 'whoosh', 'Doflamingo': 'slash', 'Buggy': 'clang', 'Boa Hancock': 'magic', 'Rob Lucci': 'punch', 'Yamato': 'roar',
+  'Ichigo Kurosaki': 'slash', 'Sosuke Aizen': 'dark', 'Byakuya Kuchiki': 'slash', 'Kenpachi Zaraki': 'slash', 'Toshiro Hitsugaya': 'ice', 'Rukia Kuchiki': 'ice', 'Yoruichi Shihoin': 'whoosh', 'Yhwach': 'dark', 'Kisuke Urahara': 'chime',
+  'Eren Yeager': 'roar', 'Levi Ackerman': 'slash', 'Mikasa Ackerman': 'slash', 'Armin Arlert': 'chime', 'Erwin Smith': 'chime', 'Reiner Braun': 'punch', 'Zeke Yeager': 'roar', 'Annie Leonhart': 'punch', 'Hange Zoe': 'chime',
+  'Izuku Midoriya': 'punch', 'Katsuki Bakugo': 'blast', 'Shoto Todoroki': 'ice', 'All Might': 'punch', 'All For One': 'dark', 'Endeavor': 'fire', 'Hawks': 'whoosh', 'Tomura Shigaraki': 'dark', 'Ochaco Uraraka': 'magic', 'Dabi': 'fire',
+  'Tanjiro Kamado': 'slash', 'Zenitsu Agatsuma': 'lightning', 'Inosuke Hashibira': 'slash', 'Giyu Tomioka': 'slash', 'Kyojuro Rengoku': 'fire', 'Muzan Kibutsuji': 'dark', 'Tengen Uzui': 'blast', 'Shinobu Kocho': 'whoosh', 'Akaza': 'punch', 'Gyomei Himejima': 'quake',
+  'Satoru Gojo': 'magic', 'Ryomen Sukuna': 'dark', 'Yuji Itadori': 'punch', 'Megumi Fushiguro': 'magic', 'Nobara Kugisaki': 'clang', 'Toji Fushiguro': 'slash', 'Kento Nanami': 'slash', 'Mahito': 'dark', 'Yuta Okkotsu': 'magic', 'Maki Zenin': 'slash',
+  'Light Yagami': 'chime', 'L': 'chime', 'Ryuk': 'dark', 'Near': 'chime', 'Misa Amane': 'chime',
+  'Edward Elric': 'magic', 'Alphonse Elric': 'clang', 'Roy Mustang': 'fire', 'Scar': 'punch', 'King Bradley': 'slash', 'Riza Hawkeye': 'clang', 'Van Hohenheim': 'magic',
+  'Gon Freecss': 'punch', 'Killua Zoldyck': 'lightning', 'Kurapika': 'magic', 'Hisoka Morow': 'magic', 'Chrollo Lucilfer': 'magic', 'Meruem': 'dark', 'Isaac Netero': 'punch', 'Leorio Paradinight': 'punch', 'Ging Freecss': 'aura',
+  'Saitama': 'punch', 'Genos': 'blast', 'Garou': 'punch', 'Tatsumaki': 'magic', 'Mumen Rider': 'clang', 'Boros': 'blast', "Speed-o'-Sound Sonic": 'whoosh', 'King': 'quake', 'Bang': 'punch',
+  'Natsu Dragneel': 'fire', 'Erza Scarlet': 'slash', 'Gray Fullbuster': 'ice', 'Lucy Heartfilia': 'magic', 'Gildarts Clive': 'punch', 'Kirito': 'slash', 'Asuna': 'slash', 'Ken Kaneki': 'dark', 'Asta': 'slash', 'Yuno': 'magic', 'Lelouch vi Britannia': 'dark', 'Suzaku Kururugi': 'slash', 'Spike Spiegel': 'clang', 'Shigeo Kageyama': 'magic', 'Reigen Arataka': 'chime', 'Denji': 'chainsaw', 'Makima': 'dark', 'Power': 'dark', 'Loid Forger': 'clang', 'Yor Forger': 'slash', 'Anya Forger': 'chime', 'Senku Ishigami': 'chime', 'Sung Jinwoo': 'dark', 'Guts': 'slash', 'Jotaro Kujo': 'punch', 'Dio Brando': 'dark', 'Giorno Giovanna': 'punch', 'Joseph Joestar': 'punch',
+};
+const SIGANIME = { 'Dragon Ball': 'blast', 'Naruto': 'rasengan', 'One Piece': 'gomu', 'Bleach': 'slash', 'Attack on Titan': 'roar', 'My Hero Academia': 'punch', 'Demon Slayer': 'slash', 'Jujutsu Kaisen': 'magic', 'Death Note': 'chime', 'Fullmetal Alchemist': 'magic', 'Hunter x Hunter': 'aura', 'One Punch Man': 'punch', 'Fairy Tail': 'fire', 'Sword Art Online': 'slash', 'Tokyo Ghoul': 'dark', 'Black Clover': 'magic', 'Code Geass': 'chime', 'Cowboy Bebop': 'clang', 'Mob Psycho 100': 'magic', 'Chainsaw Man': 'chainsaw', 'Spy x Family': 'chime', 'Dr. Stone': 'chime', 'Solo Leveling': 'dark', "JoJo's Bizarre Adventure": 'punch', 'Berserk': 'slash' };
+const sigFor = (ch, catName) => (/IQ/.test(catName || '') ? 'chime' : SIGMAP[ch.n] || SIGANIME[ch.a] || 'punch');
+function playSig(key, at) { if (at) setTimeout(() => { try { SIG[key](); } catch {} }, at * 1000); else try { SIG[key](); } catch {} }
+// Showdown: der Gewinner jeder Kategorie "schlägt zu" mit seinem Sound (mehrere bei Gleichstand, leicht versetzt)
+function showdownSfx(g) {
+  const i = g.step - 1, ws = ((g.show && g.show.catWin[i]) || []).slice(0, 3); if (!ws.length) return sfx('buy');
+  ws.forEach((pid, k) => { const e = (g.board[pid] || [])[i]; if (e) playSig(sigFor(e.ch, (g.cats[i] || {}).n), k * .18); });
+}
+// Seltenheit: mythisch = kräftiger Fanfaren-Klang, legendär = kürzerer, dezenterer Klang
+const RARSND = {
+  m() { tone(55, 1.1, 'sine', .38, 0, 33); tone(110, 1.1, 'sawtooth', .06, 0, 90); [262, 330, 392, 523, 659].forEach((f, i) => tone(f, 1.0, 'triangle', .07, .1 + i * .05, f * 1.02)); [1047, 1319, 1568, 2093, 2637, 3136].forEach((f, i) => tone(f, .5, 'sine', .06, .55 + i * .08)); sweepNoise(.9, .12, .1, 300, 8000, 1.2); tone(784, .5, 'square', .04, .55, 1568); },
+  l() { tone(70, .6, 'sine', .28, 0, 40); [392, 523, 659, 784].forEach((f, i) => tone(f, .3, 'triangle', .08, i * .09)); [1175, 1568, 1976].forEach((f, i) => tone(f, .4, 'sine', .05, .3 + i * .08)); sweepNoise(.5, .07, .1, 500, 6000, 1.3); },
+};
+function rarReveal(c) { // am Ende der Slotmaschine
+  if (!c) return;
+  if (c.r === 'm') RARSND.m(); else if (c.r === 'l') RARSND.l(); else sfx('buy');
+  if (anSlot && anSlot.win && c.r) { anSlot.win.classList.add('rar', 'rar-' + c.r); anSlot.win.classList.add('flash'); }
+}
 const DIFFN = (v) => (v === null || v === undefined ? '?' : String(v));
 function slotMachine(g) { // Zufalls-Charakter ziehen: Bilder laufen von rechts nach links durch und halten beim gezogenen Charakter
   const fin = g.me && g.me.draw, wrap = el('div', 'slotwrap');
   const F = 20, items = g.decoys.length ? g.decoys : [fin], seq = [];
   for (let k = 0; k < 26; k++) seq.push(k === F ? fin : items[k % items.length]);
-  const faces = new Array(seq.length); faces[F] = fin ? faceEl(fin) : null; seq.forEach((c, k) => { if (k !== F) faces[k] = faceEl(c); }); // der gezogene zuerst laden
+  const faces = new Array(seq.length); faces[F] = fin ? faceEl(fin, '', true) : null; seq.forEach((c, k) => { if (k !== F) faces[k] = faceEl(c, '', true); }); // der gezogene zuerst laden
   const win = el('div', 'slotwin'), strip = el('div', 'slotstrip'), mark = el('div', 'slotmark');
   faces.forEach((f) => { const it = el('div', 'slotitem'); if (f) it.append(f); strip.append(it); });
   win.append(strip, mark); wrap.append(win, el('div', 'slotcap', fin ? 'Dein Charakter wird gezogen …' : 'Die Charaktere werden gezogen …'));
   const IW = 130, left = g.until - (Date.now() + skew), elapsed = 5200 - left, fresh = !REDUCED && elapsed < 700;
-  anSlot = { strip };
+  anSlot = { strip, win };
   requestAnimationFrame(() => {
     const target = F * IW + IW / 2 - win.clientWidth / 2;
     if (!fresh) { strip.style.transition = 'none'; strip.style.transform = 'translateX(' + -target + 'px)'; return; }
@@ -1223,6 +1312,7 @@ function countUp(elm, to) { if (REDUCED) { elm.textContent = to; return; } const
 function buildAnimeStage(g, stage, ctx) {
   const { me, spec, host } = ctx, mineP = g.players.find((x) => x.id === me && !x.out), meBoard = g.board[me] || [], pl = g.players.filter((p) => !p.out);
   stage.textContent = '';
+  if (g.players.some((x) => x.id === me && x.out) && g.phase !== 'over') stage.append(el('div', 'qbanner idle', '🏳️ Du hast aufgegeben. Du schaust zu, bis der Gewinner feststeht, dann geht es zurück in die Lobby.'));
   if (g.phase === 'spin') { stage.append(slotMachine(g)); stage.append(el('div', 'tag qcenter', 'Runde ' + (g.round + 1) + ' von ' + g.rounds + ' · Gleich entscheidest du, in welche Kategorie er kommt.')); return; }
   if (g.phase === 'pick' || g.phase === 'between') {
     const grid = el('div', 'anboard'), left = el('div', 'anside'), mid = el('div', 'anmid'), right = el('div', 'anside');
@@ -1232,14 +1322,14 @@ function buildAnimeStage(g, stage, ctx) {
       g.cats.forEach((c, i) => {
         const row = el('div', 'ancat'), e = meBoard[i], slot = el(e || !canPick ? 'div' : 'button', 'anslot' + (e ? ' f' : canPick ? ' free' : ''));
         row.append(el('div', 'anct', c.n + ' ' + c.e));
-        if (e) { slot.append(faceEl(e.ch), el('small', '', e.ch.n)); slot.title = e.ch.n + ' (' + e.ch.a + ')'; }
+        if (e) { slot.append(faceEl(e.ch), el('small', '', e.ch.n)); slot.title = e.ch.n + ' (' + e.ch.a + ') · ' + RARN[e.ch.r]; slot.className += ' ' + rcl(e.ch); }
         else if (canPick) { slot.append(el('span', 'plus', '+')); slot.onclick = () => out({ type: 'apick', cat: i }); slot.setAttribute('aria-label', g.me.draw.n + ' in ' + c.n + ' setzen'); }
         else slot.append(el('span', 'dash', '–'));
         row.append(slot); left.append(row);
       });
     } else left.append(el('div', 'tag', spec ? 'Du schaust zu.' : 'Du bist nicht mehr dabei.'));
     if (g.me && g.me.draw) {
-      const card = el('div', 'ancard'); card.style.setProperty('--h', hueOf(g.me.draw.a)); card.append(faceEl(g.me.draw)); const cap = el('div', 'cap'); cap.append(el('b', '', g.me.draw.n), el('span', '', g.me.draw.a)); card.append(cap); mid.append(card);
+      const card = el('div', 'ancard ' + rcl(g.me.draw)); card.style.setProperty('--h', hueOf(g.me.draw.a)); card.append(faceEl(g.me.draw)); const cap = el('div', 'cap'); cap.append(el('b', '', g.me.draw.n), el('span', '', g.me.draw.a), el('span', 'rlabel rl-' + g.me.draw.r, RARN[g.me.draw.r])); card.append(cap); mid.append(card);
       const done = meBoard.map((e, i) => (e && e.round === g.round ? g.cats[i] : null)).find(Boolean);
       mid.append(el('div', 'ancall', g.phase === 'between' ? 'Alle haben gesetzt!' : placed ? '✔ ' + g.me.draw.n + ' steht jetzt bei ' + (done ? done.e + ' ' + done.n : '…') : 'Du hast ' + g.me.draw.n + ' gezogen'));
       mid.append(el('div', 'tag qcenter', g.phase === 'between' ? 'Die nächste Runde startet gleich …' : placed ? 'Warte auf die anderen. Ihre Charaktere siehst du jetzt auch.' : 'Wähle links die Kategorie (+), in der er am besten ist.'));
@@ -1248,13 +1338,16 @@ function buildAnimeStage(g, stage, ctx) {
     pl.filter((p) => p.id !== me).forEach((p) => {
       const o = el('div', 'anopp'), nm = el('div', 'onm'), dot = el('span', 'odot'); dot.style.background = COL[p.color];
       nm.append(dot, el('b', '', p.name), el('span', 'ost' + (p.placed || g.phase === 'between' ? ' ok' : ''), p.placed || g.phase === 'between' ? '✔ gesetzt' : '… überlegt')); o.append(nm);
-      const ms = el('div', 'oms'); g.cats.forEach((c, i) => { const e = (g.board[p.id] || [])[i], m = el('div', 'mslot' + (e ? ' f' : '')); m.append(el('span', 'me', c.e)); if (e) { m.append(faceEl(e.ch)); m.title = c.n + ': ' + e.ch.n + ' (' + e.ch.a + ')'; } else m.append(el('span', 'q', '?')); ms.append(m); });
+      const ms = el('div', 'oms'); g.cats.forEach((c, i) => { const e = (g.board[p.id] || [])[i], m = el('div', 'mslot' + (e ? ' f ' + rcl(e.ch) : '')); m.append(el('span', 'me', c.e)); if (e) { m.append(faceEl(e.ch)); m.title = c.n + ': ' + e.ch.n + ' (' + e.ch.a + ') · ' + RARN[e.ch.r]; } else m.append(el('span', 'q', '?')); ms.append(m); });
       o.append(ms); right.append(o);
     });
     grid.append(left, mid, right); stage.append(grid); return;
   }
   // Showdown und Ende: Tabelle der Charaktere und Werte
-  if (g.forfeit) { stage.append(el('div', 'qbanner ok', '🏆 ' + ((g.players.find((x) => x.id === (g.winners || [])[0]) || {}).name || 'Du') + ' gewinnt, weil alle anderen das Spiel verlassen haben.')); const bc = el('div', 'tag qcenter', 'Zurück zur Lobby in 3 s …'); bc.id = 'backcd'; stage.append(bc); backTick(); return; }
+  if (g.forfeit) { // alle anderen haben aufgegeben: Gewinner-Screen für alle (auch für den, der aufgegeben hat), Text in der Mitte
+    const wid = (g.winners || [])[0], wn = (g.players.find((x) => x.id === wid) || {}).name || '?', iWon = wid === me, gave = g.players.some((x) => x.id === me && x.out);
+    const box = el('div', 'ancenter'); box.append(el('div', 'anbig', iWon ? '🏆 Du hast gewonnen!' : gave ? '🏳️ Du hast aufgegeben' : '🏆 ' + wn + ' gewinnt'), el('div', 'ansub', iWon ? 'Alle anderen haben das Spiel aufgegeben.' : gave ? wn + ' gewinnt das Spiel.' : 'Alle anderen haben das Spiel aufgegeben.'));
+    const bc = el('div', 'tag qcenter', 'Zurück zur Lobby in 3 s …'); bc.id = 'backcd'; box.append(bc); stage.append(box); backTick(); return; }
   const sh = g.show, over = g.phase === 'over';
   stage.append(el('div', 'antitle2', over ? 'ERGEBNIS' : 'SHOWDOWN'));
   if (!over) stage.append(el('div', 'ancount', String(Math.max(1, sh.step)) + ' / ' + g.cats.length));
@@ -1266,19 +1359,21 @@ function buildAnimeStage(g, stage, ctx) {
     pl.forEach((p) => {
       const e = (g.board[p.id] || [])[i], v = sh.vals[p.id][i], shown = i < sh.step, win = shown && (sh.catWin[i] || []).includes(p.id), isNew = !over && i === sh.step - 1;
       const cell = el('div', 'ancell' + (win ? ' win' : '') + (shown ? '' : ' hid') + (isNew ? ' new' : ''));
-      if (e) { cell.title = e.ch.n + ' (' + e.ch.a + ')'; const th = faceEl(e.ch, 'athumb'); cell.append(th); const tx = el('div', 'atx'); tx.append(el('b', '', e.ch.n), el('small', '', e.ch.a)); cell.append(tx); }
+      if (e) { cell.title = e.ch.n + ' (' + e.ch.a + ')'; const th = faceEl(e.ch, 'athumb', true); cell.append(th); const tx = el('div', 'atx'); tx.append(el('b', '', e.ch.n), el('small', '', e.ch.a)); cell.append(tx); }
       const val = el('div', 'aval', shown ? '' : '?'); if (shown) { if (isNew) countUp(val, v); else val.textContent = v; } cell.append(val);
       if (win) cell.append(el('span', 'atrophy', '🏆')); tbl.append(cell);
     });
   });
-  tbl.append(el('div', 'atl tot', 'Siege'));
-  pl.forEach((p) => tbl.append(el('div', 'atot', String(sh.wins[p.id]))));
-  if (over) { tbl.append(el('div', 'atl tot', 'Ø Score')); pl.forEach((p) => tbl.append(el('div', 'atot', sh.avg[p.id].toFixed(1)))); }
+  const avgMode = g.win === 'avg', best = (g.winners || []);
+  const ravg = (p) => { const vs = sh.vals[p.id].filter((v) => v !== null); return vs.length ? Math.round(vs.reduce((a, b) => a + b, 0) / vs.length * 10) / 10 : 0; }; // laufender Durchschnitt der bisher aufgedeckten Werte
+  const rowSiege = () => { tbl.append(el('div', 'atl tot', 'Siege')); pl.forEach((p) => tbl.append(el('div', 'atot' + (!avgMode && over && best.includes(p.id) ? ' best' : ''), String(sh.wins[p.id])))); };
+  const rowAvg = () => { tbl.append(el('div', 'atl tot', over ? 'Ø Score' : 'Ø bisher')); pl.forEach((p) => tbl.append(el('div', 'atot' + (avgMode && over && best.includes(p.id) ? ' best' : ''), (over ? sh.avg[p.id] : ravg(p)).toFixed(1)))); };
+  if (avgMode) { rowAvg(); rowSiege(); } else { rowSiege(); if (over) rowAvg(); }
   stage.append(tbl);
   if (!over) return;
   const win = g.winners || [], names = win.map((id) => (g.players.find((x) => x.id === id) || {}).name).join(' & ');
-  stage.append(el('div', 'qbanner ' + (win.includes(me) ? 'ok' : 'idle'), win.includes(me) ? '🏆 Du hast gewonnen!' : '🏆 ' + names + (win.length > 1 ? ' gewinnen' : ' gewinnt')));
-  const cards = el('div', 'anscores'); [...pl].sort((a, b) => sh.wins[b.id] - sh.wins[a.id] || sh.avg[b.id] - sh.avg[a.id]).forEach((p) => {
+  stage.append(el('div', 'qbanner ' + (win.includes(me) ? 'ok' : 'idle'), (win.includes(me) ? '🏆 Du hast gewonnen!' : '🏆 ' + names + (win.length > 1 ? ' gewinnen' : ' gewinnt')) + (avgMode ? ' · Ø ' + sh.avg[win[0]].toFixed(1) : '')));
+  const cards = el('div', 'anscores'); [...pl].sort((a, b) => (avgMode ? sh.avg[b.id] - sh.avg[a.id] : sh.wins[b.id] - sh.wins[a.id] || sh.avg[b.id] - sh.avg[a.id])).forEach((p) => {
     const c = el('div', 'anscore' + (win.includes(p.id) ? ' w' : '')); c.style.borderColor = COL[p.color]; c.style.background = COL[p.color] + '22';
     c.append(el('div', 'sn', p.name + (p.id === me ? ' (du)' : '')), el('small', '', 'Ø SCORE'), el('div', 'sv', sh.avg[p.id].toFixed(1)), el('small', '', sh.wins[p.id] + ' von ' + g.cats.length + ' Kategorien')); cards.append(c);
   });
@@ -1299,9 +1394,9 @@ function renderAnime() {
   const sig = (g.phase === 'spin' ? 'spin:' + g.round : g.phase + ':' + g.round + ':' + g.rn + ':' + g.step) + ':' + me + (host ? 'H' : '') + (spec ? 'S' : ''); // neu bauen, wenn sich der Zustand oder die Rolle ändert
   if (sig !== anSig) {
     anSig = sig; buildAnimeStage(g, $('anstage'), { me, spec, host });
-    if (g.phase === 'spin') { sfx('dice'); setTimeout(() => sfx('buy'), 4300); }
+    if (g.phase === 'spin') { sfx('dice'); const dr = g.me && g.me.draw; setTimeout(() => rarReveal(dr), 4300); }
     else if (g.phase === 'pick' && g.me && !g.me.placed) sfx('turn');
-    else if (g.phase === 'showdown' && g.step > 0) sfx('buy');
+    else if (g.phase === 'showdown' && g.step > 0) showdownSfx(g);
     else if (g.phase === 'over' && !g.forfeit) sfx((g.winners || []).includes(me) ? 'win' : 'chat');
   }
   // Rechts: Spielerliste
@@ -1311,7 +1406,7 @@ function renderAnime() {
     const st = g.show ? g.show.wins[p.id] + ' 🏆' : g.phase === 'pick' || g.phase === 'between' ? (p.placed || g.phase === 'between' ? '✔' : '…') : '';
     r.append(t, el('span', '', p.name + (p.id === me ? ' (du)' : '') + (p.id === state.hostId ? ' 👑' : '')), el('span', 'm', st)); pl.append(r);
   });
-  if (mineAlive(g, me) && g.phase !== 'over') { const b = el('button', 'small danger', 'Aufgeben'); b.style.marginTop = '8px'; b.onclick = () => giveUp('Wirklich aufgeben? Du schaust dann zu, bis der Gewinner feststeht, und kommst danach in die Lobby.'); pl.append(b); }
+  if (mineAlive(g, me) && g.phase !== 'over') { const b = el('button', 'small danger', 'Spiel aufgeben'); b.style.marginTop = '8px'; b.onclick = () => giveUp('Wirklich aufgeben? Du schaust dann zu, bis der Gewinner feststeht, und kommst danach in die Lobby.'); pl.append(b); }
   else if (!spec && g.phase === 'over' && !host) pl.append(lobbyBtn());
   const ms = $('msgs'); ms.textContent = '';
   if (!state.chat.length) ms.append(el('div', 'tag', 'Noch keine Nachrichten'));
@@ -1394,7 +1489,7 @@ function renderQuiz() {
     if (g.phase === 'over' && !g.teamMode) payBadge(r, q, g);
     pl.append(r);
   });
-  if (canAnswer && g.phase !== 'over') { const b = el('button', 'small danger', 'Aufgeben'); b.style.marginTop = '8px'; b.onclick = () => giveUp('Wirklich aufgeben? Du schaust dann zu, bis der Gewinner feststeht, und kommst danach in die Lobby.'); pl.append(b); }
+  if (canAnswer && g.phase !== 'over') { const b = el('button', 'small danger', 'Spiel aufgeben'); b.style.marginTop = '8px'; b.onclick = () => giveUp('Wirklich aufgeben? Du schaust dann zu, bis der Gewinner feststeht, und kommst danach in die Lobby.'); pl.append(b); }
   else if (!spec && g.phase === 'over' && !host) pl.append(lobbyBtn());
   // Chat
   const ms = $('msgs'); ms.textContent = '';
@@ -1813,7 +1908,7 @@ function renderGame() {
       if (g.phase === 'roll') { { const rb = btn('Würfeln', 'roll'); rb.disabled = p.money < 0; if (nudgeOn) rb.classList.add('nudge'); const ak = g.turn + ':' + g.rn; if (!rb.disabled && attnKey !== ak) { attnKey = ak; rb.classList.add('attn'); } } if (p.jail) { btn('50 € zahlen', 'jailpay', true).disabled = p.money < 50; if (p.pardon > 0) btn('🃏 Pardon', 'jailcard', true); low.append(el('div', 'tag', 'Im Gefängnis: Pasch würfeln oder freikaufen (dann setzt du eine Runde aus).')); } }
       else if (g.phase === 'buy') { btn('Kaufen für ' + f.p + ' €', 'buy').disabled = p.money < f.p; btn(g.rules.auction ? 'Versteigern' : 'Nicht kaufen', 'skip', true); }
       else if (g.phase === 'end') { const eb = btn('Zug beenden', 'end'); eb.disabled = p.money < 0; if (nudgeOn) eb.classList.add('nudge'); }
-      if (p.money < 0) { const gb = btn('Aufgeben', 'giveup', true); gb.className = 'danger'; gb.onclick = () => { if (confirm('Wirklich aufgeben?')) out({ type: 'giveup' }); }; }
+      if (p.money < 0) { const gb = btn('Spiel aufgeben', 'giveup', true); gb.className = 'danger'; gb.onclick = () => { if (confirm('Wirklich aufgeben?')) out({ type: 'giveup' }); }; }
     }
   }
   const bts = el('div', 'cbtns'); bts.append(row); cx.append(el('div', 'cgap'), bts, low);
@@ -1860,7 +1955,7 @@ function renderGame() {
     r.append(t, el('span', '', q.name + (q.id === me ? ' (du)' : '') + (q.id === state.hostId ? ' 👑' : '') + (q.jail ? ' ⛓' : '') + (q.pardon ? ' 🃏' + q.pardon : '')), moneySpan(q));
     dcRow(r, q, me); tradeBadge(r, q); payBadge(r, q, g); pl.append(r);
   });
-  if (!spec && g.phase !== 'over' && !(g.players.find((x) => x.id === me) || SPEC).out) { const b = el('button', 'small danger', 'Aufgeben'); b.style.marginTop = '8px'; b.onclick = () => giveUp('Wirklich aufgeben? Du schaust dann zu, bis der Gewinner feststeht, und kommst danach in die Lobby.'); pl.append(b); }
+  if (!spec && g.phase !== 'over' && !(g.players.find((x) => x.id === me) || SPEC).out) { const b = el('button', 'small danger', 'Spiel aufgeben'); b.style.marginTop = '8px'; b.onclick = () => giveUp('Wirklich aufgeben? Du schaust dann zu, bis der Gewinner feststeht, und kommst danach in die Lobby.'); pl.append(b); }
   else if (!spec && g.phase === 'over' && !host) pl.append(lobbyBtn());
 
   // Rechts: Handel
