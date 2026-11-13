@@ -4,9 +4,10 @@ const { WebSocketServer } = require('ws');
 const G = require('./game');
 const db = require('./db');
 const Q = require('./quiz');
+const A = require('./anime');
 const ADMINS = new Set((process.env.ADMIN_USERS || 'zk1mo').split(',').map((x) => x.trim().toLowerCase()).filter(Boolean)); // Admin-Benutzernamen (bei Render: ADMIN_USERS)
 const TEAM_NAMES = ['Blau', 'Orange', 'Grün', 'Rot', 'Lila', 'Gelb'], TEAM_COLORS = [1, 2, 3, 4, 0, 8]; // Teamnamen und Farben (Index in der Farbpalette)
-const MOD = (g) => (g && g.kind === 'quiz' ? Q : G); // Monopoly oder Quiz
+const MOD = (g) => (g && g.kind === 'quiz' ? Q : g && g.kind === 'anime' ? A : G); // Monopoly, Quiz oder Anime-Schmiede
 
 const server = http.createServer((q, r) => { r.writeHead(200); r.end('Inkogniflix-Server läuft'); });
 const wss = new WebSocketServer({ server });
@@ -50,7 +51,7 @@ function broadcast(room) {
   };
   const g = room.game, modView = g && g.kind === 'quiz' && g.hostMode ? Q.view(g, true) : null; // der Moderator sieht Antwort und alle Hinweise
   const teamLive = g && g.kind === 'quiz' && g.teams && !g.hostMode && g.phase === 'question'; // jeder sieht nur den Tipp des eigenen Teams
-  const gv = (id) => (modView && id === room.hostId ? modView : teamLive ? Q.view(g, false, id) : base.game);
+  const gv = (id) => (g && g.kind === 'anime' ? A.view(g, id) : modView && id === room.hostId ? modView : teamLive ? Q.view(g, false, id) : base.game); // Anime: jeder sieht nur, was er sehen darf
   room.players.forEach((p) => send(p.ws, { ...base, game: gv(p.id), you: p.id, admin: !!p.admin }));
   room.spec.forEach((x) => send(x.ws, { ...base, game: gv(x.id), you: x.id, spec: true, admin: !!x.admin })); // Zuschauer sehen alles, können aber nichts tun
 }
@@ -120,7 +121,7 @@ async function identify(m) {
 function entry(ws, m, id) {
   const cid = String(m.cid || '');
   if (m.type === 'create') {
-    const r = { code: newCode(), hostId: null, players: new Map(), spec: new Map(), banned: new Set(), settings: { budget: 1500, map: 'klassisch', max: 8, test: false, mode: 'monopoly', quiz: { category: 'gemischt', count: 10, time: 20, host: false, team: false, teamSize: 2, id: null, title: null, max: null }, rules: { doubleRent: true, vacation: true, noRentPrison: true, evenBuild: true, randomOrder: true, auction: false, vacationSkip: false } }, chat: [] };
+    const r = { code: newCode(), hostId: null, players: new Map(), spec: new Map(), banned: new Set(), settings: { budget: 1500, map: 'klassisch', max: 8, test: false, mode: 'monopoly', anime: { rs: 'mix', time: 45 }, quiz: { category: 'gemischt', count: 10, time: 20, host: false, team: false, teamSize: 2, id: null, title: null, max: null }, rules: { doubleRent: true, vacation: true, noRentPrison: true, evenBuild: true, randomOrder: true, auction: false, vacationSkip: false } }, chat: [] };
     rooms.set(r.code, r);
     return enter(ws, r, m, id);
   }
@@ -161,6 +162,7 @@ async function startGame(room) {
   room.starting = true;
   try {
     let quizSetup = null;
+    const animeSetup = room.settings.mode === 'anime' ? { rs: room.settings.anime.rs, time: room.settings.anime.time } : null;
     if (room.settings.mode === 'quiz') {
       const cfg = room.settings.quiz; let questions = [], title = 'Allgemeinwissen' + (cfg.category !== 'gemischt' ? ': ' + cfg.category : ''), coins = true;
       if (cfg.id) {
@@ -181,7 +183,8 @@ async function startGame(room) {
       if (teams.length < 2) { const h = room.players.get(room.hostId); return h && send(h.ws, { type: 'error', text: 'Für den Teammodus braucht es mindestens 2 Teams mit Spielern.' }); }
       quizSetup.teams = teams;
     }
-    if (quizSetup) room.game = Q.newGame(ps, quizSetup);
+    if (animeSetup) room.game = A.newGame(ps, animeSetup);
+    else if (quizSetup) room.game = Q.newGame(ps, quizSetup);
     else {
       if (room.settings.rules.randomOrder) for (let i = ps.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [ps[i], ps[j]] = [ps[j], ps[i]]; }
       room.game = G.newGame(ps, room.settings); if (test) room.game.test = true;
@@ -203,7 +206,7 @@ wss.on('connection', (ws) => {
       identify(m).then((id) => { ws.busy = false; if (ws.room) return; if (id.error) return send(ws, { type: 'error', text: id.error }); entry(ws, m, id); })
         .catch(() => { ws.busy = false; send(ws, { type: 'error', text: 'Anmeldung konnte nicht geprüft werden. Bitte versuche es gleich noch einmal.' }); });
       return;
-    } else if (room && room.game && ['roll', 'jailpay', 'buy', 'skip', 'end', 'build', 'sell', 'mortgage', 'giveup', 'jailcard', 'bid', 'pass', 'trade', 'tradeok', 'tradeno', 'answer', 'adm', 'qpick', 'qhint', 'qnext', 'qundo', 'qend', 'qopen', 'qdiff'].includes(m.type)) {
+    } else if (room && room.game && ['roll', 'jailpay', 'buy', 'skip', 'end', 'build', 'sell', 'mortgage', 'giveup', 'jailcard', 'bid', 'pass', 'trade', 'tradeok', 'tradeno', 'answer', 'adm', 'qpick', 'qhint', 'qnext', 'qundo', 'qend', 'qopen', 'qdiff', 'apick'].includes(m.type)) {
       const g = room.game, who = room.players.get(ws.pid) || room.spec.get(ws.pid), adminOk = !!(who && who.admin && g.test); // Admin-Werkzeuge nur im Testspiel
       if (m.type === 'adm') { if (adminOk && g.kind !== 'quiz') G.admin(g, m); }
       else MOD(g).act(g, adminOk && m.as && g.players.some((x) => x.id === m.as) ? m.as : ws.pid, m, { host: ws.pid === room.hostId }); // der Admin darf für Test-Spieler handeln
@@ -226,7 +229,8 @@ wss.on('connection', (ws) => {
         if (MAPS.includes(m.map)) room.settings.map = m.map;
         const mx = Math.round(Number(m.max)); if (mx >= Math.max(2, room.players.size) && mx <= 8) room.settings.max = mx;
         for (const k of Object.keys(room.settings.rules)) if (m.rules && typeof m.rules[k] === 'boolean') room.settings.rules[k] = m.rules[k];
-        if (['monopoly', 'quiz'].includes(m.mode)) room.settings.mode = m.mode;
+        if (['monopoly', 'quiz', 'anime'].includes(m.mode)) room.settings.mode = m.mode;
+        if (m.anime && typeof m.anime === 'object') { const an = room.settings.anime; if (A.RS[m.anime.rs]) an.rs = m.anime.rs; const at = Math.round(Number(m.anime.time)); if (at >= 15 && at <= 120) an.time = at; } // Anime-Schmiede
         if (typeof m.test === 'boolean') { const h = room.players.get(room.hostId); room.settings.test = !!(m.test && h && h.admin); } // Testmodus nur für Admins
         if (m.quiz && typeof m.quiz === 'object') { // Quiz-Einstellungen
           const qz = m.quiz, cfg = room.settings.quiz;
