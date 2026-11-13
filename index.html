@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-KGWpW+EgGHN2JMgTE+sL93HTC/qsbTb87ZlyFsk5B5U='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https://hzvnbtksanoonvkblded.supabase.co wss://inkogniflix-minispiel.onrender.com ws://localhost:3000; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-u19NP6StdgHiQIqqR5sFyZWfOT5lFPLSvlk/LQ17urU='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https://hzvnbtksanoonvkblded.supabase.co wss://inkogniflix-minispiel.onrender.com ws://localhost:3000; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Inkogniflix</title>
 <link rel="icon" href="logo.png">
@@ -242,6 +242,38 @@ button.attn{animation:attn 1.2s ease-in-out 3}
 .cell.flash .own{animation:ownin .6s cubic-bezier(.2,.8,.3,1)}
 .cell{transition:filter .15s}.cell:hover{filter:brightness(1.2)}
 @media(prefers-reduced-motion:reduce){#modal,#amodal,#avmodal,.tbox,#pop,#toast,#lg div.new,#msgs div.new,.pl.turnin,button.attn,.player.new,.cell.flash .own,body::before{animation:none!important}}
+/* Quiz */
+.seg{display:flex;gap:6px;background:rgba(255,255,255,.05);padding:4px;border-radius:999px;margin-bottom:14px}
+.seg button{flex:1;box-shadow:none;background:transparent;border-radius:999px;padding:9px 12px}.seg button.on{background:linear-gradient(135deg,var(--p2),var(--p1));box-shadow:var(--glow)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}.qsrc{border:1px dashed var(--line);border-radius:14px;padding:12px;margin:4px 0 14px}.qsrc .tag{margin-bottom:8px}
+#qpmodal,#qemodal{position:fixed;inset:0;background:#000b;display:grid;place-items:center;z-index:60;padding:14px;animation:fadein .18s ease-out}
+.qpbox,.qebox{width:min(680px,100%);max-height:92vh;overflow:auto}
+.qrow{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--line);border-radius:14px;margin-bottom:8px;background:var(--card)}
+.qrow .qi{flex:1;min-width:0}.qrow b{display:block;overflow:hidden;text-overflow:ellipsis}.qrow .tag{font-size:12.5px}
+.qrow.click{cursor:pointer;transition:border-color .15s,transform .15s}.qrow.click:hover{border-color:var(--p1);transform:translateY(-1px)}
+.qsec{font-weight:600;color:#c9b3ee;margin:14px 0 8px}
+.qqb{border:1px solid var(--line);border-radius:16px;padding:12px;margin-bottom:12px;background:rgba(255,255,255,.03)}
+.qqb .qh{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;font-weight:600}
+.qqb input[type=text]{margin-bottom:8px}.qa{display:flex;align-items:center;gap:8px}.qa input[type=radio]{width:auto;margin:0 0 8px;accent-color:var(--p2);flex:none}.qa input[type=text]{flex:1}
+#qz{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:18px;display:flex;flex-direction:column;gap:14px;min-height:min(640px,calc(100vh - 100px));-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.qhead{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.qhead .qt{font-weight:800;font-size:18px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qpill{background:var(--p2);border-radius:999px;padding:4px 14px;font-weight:700}#qtm{min-width:64px;text-align:right}
+.qbar{height:10px;border-radius:99px;background:#ffffff18;overflow:hidden}.qfill{height:100%;width:100%;background:linear-gradient(90deg,var(--p2),var(--p1));border-radius:99px;transition:width .1s linear}.qfill.low{background:linear-gradient(90deg,#f59e0b,#ef4444)}
+.qtext{font-size:clamp(20px,2.6vw,30px);font-weight:700;text-align:center;padding:16px 8px;line-height:1.3;animation:boxin .3s ease-out}
+.qgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:640px){.qgrid{grid-template-columns:1fr}}
+button.qans{display:flex;align-items:center;gap:12px;text-align:left;padding:16px 18px;border-radius:18px;font-size:clamp(15px,1.8vw,20px);font-weight:700;min-height:68px;box-shadow:none;border:2px solid transparent;color:#fff;transition:transform .15s,opacity .2s,filter .2s}
+button.qans:hover:not(:disabled){transform:translateY(-2px)}.qans .shape{font-size:24px;opacity:.9;flex:none}
+.qans.c0{background:#dc2626}.qans.c1{background:#2563eb}.qans.c2{background:#d97706}.qans.c3{background:#16a34a}
+.qans.picked{border-color:#fff;box-shadow:0 0 0 3px #fff4,0 0 24px #fff5}.qans.dim{opacity:.4;filter:saturate(.4)}
+.qans.right{outline:3px solid #4ade80;box-shadow:0 0 28px #4ade8099}.qans.wrong{opacity:.5}.qans:disabled{cursor:default;opacity:1}.qans.dim:disabled{opacity:.4}
+.qans .cnt{margin-left:auto;background:#0007;border-radius:999px;padding:2px 10px;font-size:14px;flex:none}
+.qbanner{text-align:center;font-weight:800;font-size:20px;padding:10px;border-radius:14px;animation:boxin .3s ease-out}.qbanner.ok{background:#16a34a33;color:#86efac}.qbanner.no{background:#dc262633;color:#fca5a5}.qbanner.idle{background:#ffffff10;color:var(--dim)}
+.qchips{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}.qchip{padding:4px 12px;border-radius:999px;border:1px solid var(--line);font-size:14px;color:var(--dim)}.qchip.done{border-color:#4ade80;color:#86efac}
+.qbig{flex:1;display:grid;place-items:center;text-align:center;font-size:clamp(26px,4vw,44px);font-weight:800;line-height:1.2;animation:boxin .4s ease-out}.qbig small{display:block;font-size:16px;font-weight:600;color:var(--dim);margin-top:10px}
+.podium{display:flex;align-items:flex-end;justify-content:center;gap:14px;margin:6px 0}.pod{text-align:center;width:min(150px,30%);animation:boxin .5s ease-out}.pod .pb{border-radius:14px 14px 0 0;background:linear-gradient(var(--p2),#4c1d95);display:grid;place-items:start center;padding-top:8px;font-size:26px;font-weight:800;margin-top:8px}
+.pod b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pod .sc{color:var(--dim);font-size:14px}.pod svg,.pod .avw{margin:0 auto}
+.qrank{display:flex;align-items:center;gap:10px;padding:6px 4px}.qrank .n{width:22px;font-weight:800;color:var(--dim);text-align:center}.qrank .gain{color:#4ade80;font-weight:700;font-size:13px;margin-left:6px}
+@media(prefers-reduced-motion:reduce){.qtext,.qbanner,.qbig,.pod,#qpmodal,#qemodal{animation:none!important}}
 </style>
 </head>
 <body>
@@ -254,7 +286,7 @@ button.attn{animation:attn 1.2s ease-in-out 3}
       <img class="logo" src="logo.png" alt="Inkogniflix">
       <h1>INKOGNIFLIX</h1>
       <p class="sub">Deine Spiele-Community im Verborgenen.</p>
-      <div class="hchips"><span>🎲 Monopoly</span><span>🤝 Handel &amp; Auktionen</span><span>🪙 Coins &amp; Avatare</span><span>👁 Zuschauen</span></div>
+      <div class="hchips"><span>🎲 Monopoly</span><span>🤝 Handel &amp; Auktionen</span><span>🪙 Coins &amp; Avatare</span><span>❓ Quiz</span><span>👁 Zuschauen</span></div>
     </div>
 
     <section id="home">
@@ -273,7 +305,7 @@ button.attn{animation:attn 1.2s ease-in-out 3}
     <div class="card"><div class="ic2">🎲</div><b>Monopoly online</b><span class="tag">Klassische Regeln auf einem Länder-Brett: Handel, Auktionen, Hypotheken und bis zu 8 Spieler.</span></div>
     <div class="card"><div class="ic2">🔗</div><b>Per Link einladen</b><span class="tag">Raum erstellen, Link teilen, los geht's. Auch ohne Konto spielbar.</span></div>
     <div class="card"><div class="ic2">🪙</div><b>Coins &amp; Avatare</b><span class="tag">Mit Konto Coins für Siege sammeln und deinen eigenen Avatar gestalten.</span></div>
-    <div class="card"><div class="ic2">❓</div><b>Bald: Wissensquiz</b><span class="tag">Allgemeinwissen gegen deine Freunde, direkt im selben Raum.</span></div>
+    <div class="card"><div class="ic2">❓</div><b>Wissensquiz</b><span class="tag">Alle antworten gleichzeitig: Allgemeinwissen oder eigene Quizze, die du selbst erstellst.</span></div>
   </div>
 
   <section id="lobby" class="hide">
@@ -285,13 +317,21 @@ button.attn{animation:attn 1.2s ease-in-out 3}
     <div class="card"><label>Spieler</label><div id="players"></div><label style="margin:14px 0 8px">Deine Farbe</label><div id="colors" class="colors"></div>
       <label class="rule" style="margin:16px 0 0"><span class="rtx"><b>Nur zuschauen</b><small>Du spielst nicht mit, siehst aber alles. Zum Start braucht es trotzdem mindestens 2 Mitspieler.</small></span><input type="checkbox" id="watchCb"><span class="sw"></span></label></div>
     <div class="card" id="settings">
+      <div class="seg" id="modeSeg"><button id="modeM" class="on">🎲 Monopoly</button><button id="modeQ">❓ Quiz</button></div>
       <label for="max">Maximale Spielerzahl</label>
       <select id="max"><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option></select>
+      <div id="monoSet">
       <label for="budget">Startbudget</label>
       <input id="budget" type="number" min="500" max="100000" step="100">
       <label for="map">Map</label>
       <select id="map"><option value="klassisch">Klassisch</option><option value="minecraft">Minecraft-Welt</option></select>
       <div class="rhd">Spielregeln</div><div id="rules"></div>
+      </div>
+      <div id="quizSet" class="hide">
+        <label for="qcat">Kategorie</label><select id="qcat"></select>
+        <div class="row2"><div><label for="qcount">Anzahl Fragen</label><select id="qcount"></select></div><div><label for="qtime">Zeit pro Frage</label><select id="qtime"></select></div></div>
+        <div class="qsrc"><div id="qsrcInfo" class="tag"></div><div class="row"><button id="qpick" class="small ghost">Eigenes Quiz wählen …</button><button id="qedit" class="small ghost">Quiz erstellen</button></div></div>
+      </div>
       <button id="startBtn" style="width:100%" disabled>Monopoly starten</button>
     </div>
     <button id="leaveBtn" class="ghost" style="width:100%">Raum verlassen</button>
@@ -300,13 +340,14 @@ button.attn{animation:attn 1.2s ease-in-out 3}
   <section id="game" class="hide">
     <div id="colL">
       <div class="card"><div class="hd"><span>Raum <b id="rc"></b></span><button id="copy2" class="small ghost">Link kopieren</button></div><div id="specInfo" class="tag"></div></div>
-      <div class="card"><div class="hd">Verlauf</div><div id="lg" class="tag"></div></div>
+      <div class="card" id="logCard"><div class="hd">Verlauf</div><div id="lg" class="tag"></div></div>
       <div class="card chat"><div class="hd">Chat</div><div id="msgs"></div>
         <div class="row"><input id="chatIn" maxlength="200" placeholder="Nachricht …" autocomplete="off"><button id="chatBtn" class="small" aria-label="Senden">➤</button></div></div>
     </div>
     <div id="colC">
       <div id="bw"><div id="board"></div><div id="pop" class="hide"></div><div id="tokens"></div><div id="dice"><div class="die"></div><div class="die"></div></div><div id="cx"></div></div>
       <div id="info"></div>
+      <div id="qz" class="hide"></div>
     </div>
     <div id="colR">
       <div class="card" id="plCard"></div>
@@ -330,6 +371,14 @@ button.attn{animation:attn 1.2s ease-in-out 3}
   <p class="tag" style="margin-top:12px">Dein Konto ist dasselbe wie auf der Website und wird sicher bei Supabase gespeichert. <a id="forgot" href="https://zk1mo.github.io/Inkogniflix/" target="_blank" rel="noopener">Passwort vergessen? Auf der Website zurücksetzen.</a></p>
 </div></div>
 
+<div id="qpmodal" class="hide" role="dialog" aria-modal="true" aria-label="Quiz wählen"><div class="tbox qpbox">
+  <button id="qpclose" class="tx ghost" aria-label="Schließen">✕</button>
+  <div class="ttl">Quiz wählen</div><div id="qpBody"></div>
+</div></div>
+<div id="qemodal" class="hide" role="dialog" aria-modal="true" aria-label="Quiz erstellen"><div class="tbox qebox">
+  <button id="qeclose" class="tx ghost" aria-label="Schließen">✕</button>
+  <div class="ttl">Meine Quizze</div><div id="qeBody"></div>
+</div></div>
 <div id="avmodal" class="hide" role="dialog" aria-modal="true" aria-label="Avatar"><div class="tbox avbox">
   <button id="avclose" class="tx ghost" aria-label="Schließen">✕</button>
   <div class="ttl">Dein Avatar</div>
@@ -403,9 +452,12 @@ const RULES = [
   ['auction', 'Auktion', 'Will jemand ein Grundstück nicht kaufen, wird es an den Höchstbietenden versteigert.'],
   ['randomOrder', 'Zufällige Reihenfolge', 'Die Spielreihenfolge wird beim Start ausgelost.'],
 ];
+let pendingMode = null;
+const QCATS = ['Geografie', 'Geschichte', 'Natur & Tiere', 'Wissenschaft', 'Sport', 'Film & Musik', 'Essen & Trinken', 'Allgemeinwissen', 'Technik & Gaming', 'Sprache'];
 const sendSettings = () => {
   const rules = {}; RULES.forEach(([k]) => { rules[k] = $('r_' + k).checked; });
-  const s = { type: 'settings', budget: $('budget').value, map: $('map').value, max: $('max').value, rules };
+  const s = { type: 'settings', budget: $('budget').value, map: $('map').value, max: $('max').value, rules,
+    mode: pendingMode || (state && state.settings && state.settings.mode) || 'monopoly', quiz: { category: $('qcat').value || 'gemischt', count: $('qcount').value || 10, time: $('qtime').value || 20 } };
   out(s); savePref('hostSettings', s); // für den nächsten Raum merken (im Konto, sonst nur in diesem Browser)
 };
 RULES.forEach(([k, t, d]) => {
@@ -415,6 +467,12 @@ RULES.forEach(([k, t, d]) => {
 for (let i = 0; i < 12; i++) { const b = el('button', 'cbtn'); b.style.background = ['#c471f0', '#38bdf8', '#f59e0b', '#34d399', '#fb7185', '#a3e635', '#f472b6', '#e5e7eb', '#facc15', '#f97316', '#14b8a6', '#a16207'][i]; b.setAttribute('aria-label', 'Farbe ' + (i + 1)); b.onclick = () => out({ type: 'color', color: i }); $('colors').append(b); }
 $('startBtn').onclick = () => out({ type: 'start' }); $('watchCb').onchange = () => out({ type: 'watch', on: $('watchCb').checked });
 $('budget').onchange = sendSettings; $('map').onchange = sendSettings; $('max').onchange = sendSettings;
+['gemischt', ...QCATS].forEach((c) => { const o = el('option', '', c === 'gemischt' ? 'Gemischt (alle Kategorien)' : c); o.value = c; $('qcat').append(o); });
+[10, 15, 20, 30, 45, 60].forEach((n) => { const o = el('option', '', n + ' Sekunden'); o.value = n; $('qtime').append(o); });
+$('qcat').onchange = $('qcount').onchange = $('qtime').onchange = sendSettings;
+$('modeM').onclick = () => { pendingMode = 'monopoly'; sendSettings(); pendingMode = null; };
+$('modeQ').onclick = () => { pendingMode = 'quiz'; sendSettings(); pendingMode = null; };
+$('qpick').onclick = () => openQuizPicker(); $('qedit').onclick = () => openQuizEditor();
 const sendChat = () => { const t = $('chatIn').value.trim(); if (t) out({ type: 'chat', text: t }); $('chatIn').value = ''; };
 $('chatBtn').onclick = sendChat; $('chatIn').onkeydown = (e) => { if (e.key === 'Enter') sendChat(); };
 
@@ -433,10 +491,20 @@ function render() {
   $('budget').value = state.settings.budget; $('map').value = state.settings.map;
   $('max').value = state.settings.max; RULES.forEach(([k]) => { $('r_' + k).checked = !!state.settings.rules[k]; $('r_' + k).disabled = !host; });
   $('budget').disabled = $('map').disabled = $('max').disabled = !host;
+  { // Quiz-Einstellungen anzeigen
+    const st = state.settings, qm = st.mode === 'quiz', qz = st.quiz || {};
+    $('modeM').classList.toggle('on', !qm); $('modeQ').classList.toggle('on', qm); $('modeM').disabled = $('modeQ').disabled = !host;
+    $('monoSet').classList.toggle('hide', qm); $('quizSet').classList.toggle('hide', !qm);
+    const mx = qz.id ? qz.max : 30, opts = [...new Set([3, 5, 10, 15, 20, 25, 30].filter((n) => n <= mx).concat(qz.id ? [mx] : []))].sort((a, b) => a - b), sel = $('qcount');
+    if (sel.dataset.sig !== opts.join()) { sel.textContent = ''; opts.forEach((n) => { const o = el('option', '', n + ' Fragen'); o.value = n; sel.append(o); }); sel.dataset.sig = opts.join(); }
+    sel.value = String(Math.min(qz.count || 10, mx)); $('qcat').value = qz.category || 'gemischt'; $('qtime').value = String(qz.time || 20);
+    $('qcat').disabled = sel.disabled = $('qtime').disabled = !host; $('qpick').classList.toggle('hide', !host); $('qedit').classList.toggle('hide', !host);
+    $('qsrcInfo').textContent = qz.id ? '📝 ' + qz.title + ' (' + qz.max + ' Fragen) · eigenes Quiz, keine Coins' : 'Eingebaute Fragen (100 in 10 Kategorien) · Coins für Spieler mit Konto';
+  }
   [...$('colors').children].forEach((b, i) => { const o = state.players.find((p) => p.color === i); b.classList.toggle('me', !!o && o.id === state.you); b.classList.toggle('taken', !!o && o.id !== state.you); b.disabled = !!o && o.id !== state.you; });
   const playing = state.players.filter((p) => !p.watch).length; // Zuschauer zählen nicht als Spieler
   $('startBtn').disabled = !(host && playing >= 2);
-  $('startBtn').textContent = playing >= 2 ? 'Monopoly starten' : 'Warte auf weitere Mitspieler (mindestens 2) …';
+  $('startBtn').textContent = playing >= 2 ? (state.settings.mode === 'quiz' ? 'Quiz starten' : 'Monopoly starten') : 'Warte auf weitere Mitspieler (mindestens 2) …';
   $('watchCb').checked = !!(state.players.find((p) => p.id === state.you) || {}).watch;
   const box = $('players'); box.textContent = '';
   state.players.forEach((p) => {
@@ -665,6 +733,172 @@ $('avSave').onclick = async () => {
   auth.gp.avatar = r.data; uiAuth(); closeAv();
 };
 
+/* ===== Quiz auswählen und erstellen ===== */
+const closeModal = (id) => $(id).classList.add('hide');
+$('qpclose').onclick = () => closeModal('qpmodal'); $('qeclose').onclick = () => closeModal('qemodal');
+$('qpmodal').onclick = (e) => { if (e.target === $('qpmodal')) closeModal('qpmodal'); };
+$('qemodal').onclick = (e) => { if (e.target === $('qemodal')) closeModal('qemodal'); };
+async function openQuizPicker() {
+  const body = $('qpBody'); $('qpmodal').classList.remove('hide'); body.textContent = '';
+  const row = (title, sub, id) => { const r = el('div', 'qrow click'), i = el('div', 'qi'); i.append(el('b', '', title), el('span', 'tag', sub)); r.append(i); r.onclick = () => { out({ type: 'settings', quiz: { id } }); closeModal('qpmodal'); }; body.append(r); };
+  row('Eingebaute Fragen', '100 Fragen in 10 Kategorien · Coins für Spieler mit Konto', null);
+  if (!auth.session) { body.append(el('div', 'tag', 'Melde dich an, um eigene und öffentliche Quizze zu nutzen.')); return; }
+  body.append(el('div', 'tag', 'Lade Quizze …'));
+  const r = await sbx('/rest/v1/quizzes?select=id,owner,title,description,is_public,question_count&order=updated_at.desc&limit=60', { token: await getToken() });
+  body.lastChild.remove();
+  if (!r.ok || !Array.isArray(r.data)) { body.append(el('div', 'tag why', 'Quizze konnten nicht geladen werden (wurde das SQL-Skript in Supabase ausgeführt?).')); return; }
+  const sec = (t, list) => { if (!list.length) return; body.append(el('div', 'qsec', t)); list.forEach((x) => row(x.title, x.question_count + ' Fragen · ' + (x.is_public ? 'öffentlich' : 'privat') + (x.description ? ' · ' + x.description : ''), x.id)); };
+  const mine = r.data.filter((x) => x.owner === auth.session.uid); sec('Meine Quizze', mine); sec('Öffentliche Quizze', r.data.filter((x) => x.owner !== auth.session.uid));
+  if (!r.data.length) body.append(el('div', 'tag', 'Noch keine Quizze. Erstelle dein erstes mit „Quiz erstellen“.'));
+}
+const qe = { id: null, title: '', description: '', is_public: false, questions: [] }, qBlank = () => ({ q: '', a: ['', '', '', ''], c: 0 });
+function openQuizEditor() { if (!auth.session) { toast('Melde dich an, um Quizze zu erstellen.'); return; } $('qemodal').classList.remove('hide'); qeList(); }
+async function qeList() {
+  const body = $('qeBody'); body.textContent = ''; body.append(el('div', 'tag', 'Lade …'));
+  const r = await sbx('/rest/v1/quizzes?owner=eq.' + encodeURIComponent(auth.session.uid) + '&select=id,title,description,is_public,question_count&order=updated_at.desc', { token: await getToken() });
+  body.textContent = '';
+  if (!r.ok || !Array.isArray(r.data)) { body.append(el('div', 'tag why', 'Quizze konnten nicht geladen werden (wurde das SQL-Skript in Supabase ausgeführt?).')); return; }
+  const nw = el('button', '', '＋ Neues Quiz'); nw.style.marginBottom = '12px';
+  nw.onclick = () => { Object.assign(qe, { id: null, title: '', description: '', is_public: false, questions: [qBlank(), qBlank(), qBlank()] }); qeForm(); }; body.append(nw);
+  if (!r.data.length) body.append(el('div', 'tag', 'Du hast noch kein eigenes Quiz.'));
+  r.data.forEach((x) => {
+    const row = el('div', 'qrow'), i = el('div', 'qi'), ed = el('button', 'small ghost', 'Bearbeiten'), del = el('button', 'small danger', 'Löschen');
+    i.append(el('b', '', x.title), el('span', 'tag', x.question_count + ' Fragen · ' + (x.is_public ? 'öffentlich' : 'privat')));
+    ed.onclick = async () => {
+      const q = await sbx('/rest/v1/rpc/quiz_questions', { method: 'POST', token: await getToken(), body: { p_id: x.id } });
+      if (!q.ok || !Array.isArray(q.data)) return toast('Die Fragen konnten nicht geladen werden.');
+      Object.assign(qe, { id: x.id, title: x.title, description: x.description || '', is_public: x.is_public, questions: q.data.map((z) => ({ q: z.q, a: [0, 1, 2, 3].map((k) => (z.a || [])[k] || ''), c: Number(z.c) || 0 })) }); qeForm();
+    };
+    del.onclick = async () => { if (!confirm('Quiz „' + x.title + '“ wirklich löschen?')) return; await sbx('/rest/v1/quizzes?id=eq.' + encodeURIComponent(x.id), { method: 'DELETE', token: await getToken() }); qeList(); };
+    row.append(i, ed, del); body.append(row);
+  });
+}
+function qeForm() {
+  const body = $('qeBody'); body.textContent = '';
+  const mkIn = (ph, val, max, on) => { const i = document.createElement('input'); i.type = 'text'; i.placeholder = ph; i.maxLength = max; i.value = val; i.oninput = () => on(i.value); return i; };
+  body.append(el('label', '', 'Titel (3–60 Zeichen)'), mkIn('z. B. Unser Freundes-Quiz', qe.title, 60, (v) => { qe.title = v; }));
+  body.append(el('label', '', 'Beschreibung (optional)'), mkIn('Worum geht es?', qe.description, 200, (v) => { qe.description = v; }));
+  const pl = el('label', 'rule'), cb = document.createElement('input'), tx = el('span', 'rtx'); cb.type = 'checkbox'; cb.checked = qe.is_public; cb.onchange = () => { qe.is_public = cb.checked; };
+  tx.append(el('b', '', 'Öffentlich'), el('small', '', 'Andere Hosts können dein Quiz im Spiel auswählen. Die Antworten bleiben für sie unsichtbar.')); pl.append(tx, cb, el('span', 'sw')); body.append(pl);
+  qe.questions.forEach((q, qi) => {
+    const b = el('div', 'qqb'), h = el('div', 'qh'), rm = el('button', 'small danger', 'Entfernen'); h.append(el('span', '', 'Frage ' + (qi + 1)), rm); b.append(h);
+    rm.onclick = () => { qe.questions.splice(qi, 1); qeForm(); };
+    b.append(mkIn('Deine Frage', q.q, 200, (v) => { q.q = v; }));
+    q.a.forEach((a, ai) => {
+      const r = el('div', 'qa'), rd = document.createElement('input'); rd.type = 'radio'; rd.name = 'qc' + qi; rd.checked = q.c === ai; rd.title = 'Richtige Antwort'; rd.onchange = () => { q.c = ai; };
+      r.append(rd, mkIn('Antwort ' + (ai + 1) + (ai < 2 ? '' : ' (optional)'), a, 100, (v) => { q.a[ai] = v; })); b.append(r);
+    });
+    body.append(b);
+  });
+  const add = el('button', 'ghost', '＋ Frage hinzufügen'); add.disabled = qe.questions.length >= 50; add.style.marginBottom = '12px'; add.onclick = () => { qe.questions.push(qBlank()); qeForm(); }; body.append(add);
+  body.append(el('div', 'tag', 'Mindestens 3 Fragen (höchstens 50), pro Frage mindestens 2 Antworten. Klicke den Kreis vor der richtigen Antwort an. Für eigene Quizze gibt es keine Coins.'));
+  const msg = el('p', 'tag why'); msg.id = 'qeMsg'; body.append(msg);
+  const row = el('div', 'row'), save = el('button', '', 'Speichern'), back = el('button', 'ghost', 'Zurück'); back.onclick = qeList; save.onclick = () => qeSave(save); row.append(save, back); body.append(row);
+}
+async function qeSave(btn) {
+  const msg = (t) => { $('qeMsg').textContent = t; }, title = qe.title.trim();
+  if (title.length < 3 || title.length > 60) return msg('Der Titel braucht 3 bis 60 Zeichen.');
+  const qs = [];
+  for (let i = 0; i < qe.questions.length; i++) {
+    const q = qe.questions[i], text = q.q.trim(), ans = q.a.map((x) => x.trim());
+    if (!text) return msg('Frage ' + (i + 1) + ' hat keinen Text.');
+    if (ans.filter(Boolean).length < 2) return msg('Frage ' + (i + 1) + ' braucht mindestens 2 Antworten.');
+    if (!ans[q.c]) return msg('Bei Frage ' + (i + 1) + ' ist die richtige Antwort leer. Wähle eine ausgefüllte Antwort als richtig aus.');
+    qs.push({ q: text, a: ans, c: q.c });
+  }
+  if (qs.length < 3) return msg('Ein Quiz braucht mindestens 3 Fragen.');
+  msg('Speichere …'); btn.disabled = true; const token = await getToken(), body = { title, description: qe.description.trim(), is_public: qe.is_public, questions: qs };
+  const r = qe.id ? await sbx('/rest/v1/quizzes?id=eq.' + encodeURIComponent(qe.id), { method: 'PATCH', token, prefer: 'return=minimal', body: { ...body, updated_at: new Date().toISOString() } })
+    : await sbx('/rest/v1/quizzes?select=id', { method: 'POST', token, prefer: 'return=representation', body });
+  btn.disabled = false;
+  if (!r.ok) return msg((r.data && r.data.message) || 'Speichern hat nicht geklappt.');
+  toast('Quiz gespeichert ✓'); qeList();
+}
+
+/* ===== Quiz spielen ===== */
+const SHAPES = ['▲', '◆', '●', '■'];
+let qzPick = null, qzKey = '', qzTickN = null;
+function renderQuiz() {
+  const g = state.game, me = state.you, spec = !!state.spec, meP = g.players.find((x) => x.id === me), canAnswer = !spec && !!meP && !meP.out, host = me === state.hostId;
+  $('bw').classList.add('hide'); $('qz').classList.remove('hide'); ['logCard', 'prCard', 'trCard'].forEach((id) => $(id).classList.add('hide'));
+  $('rc').textContent = state.code; $('specInfo').textContent = spec ? '👁 Du schaust zu.' : state.specs && state.specs.length ? '👁 Zuschauer: ' + state.specs.join(', ') : '';
+  const key = g.qi + ':' + g.phase;
+  if (key !== qzKey) { // einmal pro Phase: Töne
+    qzKey = key; qzTickN = null;
+    if (g.phase === 'question') sfx('turn');
+    const mp = g.res && g.res.picks[me]; if (g.phase === 'reveal' && mp && mp.choice >= 0) sfx(mp.ok ? 'buy' : 'rent');
+    if (g.phase === 'over') sfx(g.winner === me ? 'win' : 'chat');
+  }
+  if (g.phase === 'over') { if (!overSeen) { overSeen = true; if (auth.session) { setTimeout(loadAccount, 2500); setTimeout(loadAccount, 7000); } } } else overSeen = false;
+  if (qzPick && qzPick.qi !== g.qi) qzPick = null;
+  const avOf = (id, color, size) => { const sp = state.players.find((x) => x.id === id); if (sp && sp.avatar) return avWrap(sp.avatar, COL[color], size); const t = el('div', 'ptok', (g.players.find((x) => x.id === id) || { name: '?' }).name[0].toUpperCase()); t.style.background = COL[color]; t.style.cssText += ';position:static;transform:none;width:' + size + 'px;height:' + size + 'px;font-size:' + Math.round(size / 2) + 'px;flex:none;margin:0 auto'; return t; };
+
+  const z = $('qz'); z.textContent = '';
+  const head = el('div', 'qhead'), tm = el('b', ''); tm.id = 'qtm';
+  head.append(el('div', 'qt', g.title), el('span', 'qpill', g.phase === 'over' ? 'Ende' : g.phase === 'intro' ? 'Start' : 'Frage ' + (g.qi + 1) + ' / ' + g.total), tm); z.append(head);
+  const bar = el('div', 'qbar'), fill = el('div', 'qfill'); fill.id = 'qfill'; bar.append(fill); z.append(bar);
+
+  if (g.phase === 'intro') { const b = el('div', 'qbig'), d = el('div', '', 'Gleich geht’s los!'); d.append(el('small', '', g.total + ' Fragen · ' + g.time + ' Sekunden pro Frage')); b.append(d); z.append(b); }
+  else if (g.phase === 'over') {
+    const rk = g.rank, order = [1, 0, 2].filter((i) => rk[i]), podium = el('div', 'podium'), hts = [130, 96, 72];
+    order.forEach((i) => {
+      const id = rk[i], p = g.players.find((x) => x.id === id), po = g.payout && g.payout[id], sp = state.players.find((x) => x.id === id), pod = el('div', 'pod');
+      pod.append(avOf(id, p.color, 56), el('b', '', p.name), el('div', 'sc', p.score + ' Punkte' + (po && po.coins && sp && !sp.guest ? ' · +' + po.coins + ' 🪙' : '')));
+      const pb = el('div', 'pb', i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉'); pb.style.height = hts[i] + 'px'; pod.append(pb); podium.append(pod);
+    });
+    z.append(el('div', 'qtext', g.winner === me ? '🏆 Du hast gewonnen!' : '🏆 ' + (g.players.find((x) => x.id === g.winner) || {}).name + ' gewinnt!'), podium);
+    if (host) { const b = el('button', '', 'Zurück zur Lobby'); b.onclick = () => out({ type: 'lobby' }); b.style.alignSelf = 'center'; z.append(b); }
+    if (g.title && g.payout && Object.values(g.payout).every((x) => x.coins === 0)) z.append(el('div', 'tag', 'Für dieses Spiel gab es keine Coins (eigenes Quiz oder weniger als 5 Fragen).'));
+  } else {
+    z.append(el('div', 'qtext', g.q.q));
+    const mp = g.res && g.res.picks[me];
+    if (g.phase === 'reveal') {
+      const bn = !canAnswer ? ['idle', 'Auflösung'] : mp && mp.ok ? ['ok', 'Richtig! +' + mp.pts + (mp.streak > 1 ? ' · 🔥 ' + mp.streak + ' in Folge' : '')] : mp && mp.choice < 0 ? ['no', 'Keine Antwort'] : ['no', 'Leider falsch'];
+      z.append(el('div', 'qbanner ' + bn[0], bn[1]));
+    }
+    const grid = el('div', 'qgrid'), picked = g.phase === 'reveal' ? (mp ? mp.choice : -1) : qzPick ? qzPick.choice : -1;
+    g.q.a.forEach((txt, i) => {
+      const b = el('button', 'qans c' + i); b.append(el('span', 'shape', SHAPES[i]), el('span', '', txt));
+      if (g.phase === 'question') { b.disabled = !canAnswer || picked >= 0; if (picked === i) b.classList.add('picked'); else if (picked >= 0) b.classList.add('dim'); b.onclick = () => { qzPick = { qi: g.qi, choice: i }; out({ type: 'answer', choice: i }); renderQuiz(); }; }
+      else { b.disabled = true; if (i === g.res.c) b.classList.add('right'); else { b.classList.add(i === picked ? 'wrong' : 'dim'); } if (i === picked && i === g.res.c) b.classList.add('picked'); b.append(el('span', 'cnt', g.res.counts[i])); }
+      grid.append(b);
+    });
+    z.append(grid);
+    if (g.phase === 'question') { const ch = el('div', 'qchips'); g.players.filter((p) => !p.out).forEach((p) => ch.append(el('span', 'qchip' + (p.answered ? ' done' : ''), (p.answered ? '✔ ' : '… ') + p.name))); z.append(ch); }
+  }
+
+  // Punktetafel
+  const pl = $('plCard'); pl.textContent = ''; pl.append(el('div', 'hd', 'Punkte'));
+  [...g.players].sort((a, b) => b.score - a.score).forEach((q, i) => {
+    const r = el('div', 'qrank' + (q.out ? ' out' : '')), pick = g.res && g.res.picks[q.id];
+    r.append(el('span', 'n', i + 1), avOf(q.id, q.color, 28), el('span', '', q.name + (q.id === me ? ' (du)' : '') + (q.id === state.hostId ? ' 👑' : '') + (q.streak > 1 ? ' 🔥' + q.streak : '')));
+    const m = el('span', 'm', q.score); if (g.phase === 'reveal' && pick && pick.pts) m.append(el('span', 'gain', '+' + pick.pts)); else if (g.phase === 'question' && q.answered) m.append(el('span', 'gain', '✔')); r.append(m);
+    if (g.phase === 'over') payBadge(r, q, g);
+    pl.append(r);
+  });
+  if (canAnswer && g.phase !== 'over') { const b = el('button', 'small danger', 'Quiz verlassen'); b.style.marginTop = '8px'; b.onclick = () => { if (confirm('Quiz wirklich verlassen?')) out({ type: 'giveup' }); }; pl.append(b); }
+  // Chat
+  const ms = $('msgs'); ms.textContent = '';
+  if (!state.chat.length) ms.append(el('div', 'tag', 'Noch keine Nachrichten'));
+  state.chat.forEach((m, i) => { const d = el('div', prevChatN !== null && i >= prevChatN ? 'new' : ''); d.append(el('b', '', m.n + ': '), document.createTextNode(m.t)); ms.append(d); }); prevChatN = state.chat.length; ms.scrollTop = ms.scrollHeight;
+  qzTickNow();
+}
+function qzTickNow() { // Zeitleiste und Countdown
+  if (!state || !state.game || state.game.kind !== 'quiz') return;
+  const g = state.game, left = g.until - (Date.now() + skew), f = $('qfill'), t = $('qtm'); if (!f || !t) return;
+  if (g.phase === 'question') {
+    f.style.width = Math.max(0, Math.min(1, left / (g.time * 1000))) * 100 + '%'; f.classList.toggle('low', left < 5000);
+    const sec = Math.ceil(left / 1000); t.textContent = Math.max(0, sec) + ' s';
+    if (sec <= 5 && sec > 0 && sec !== qzTickN) { qzTickN = sec; sfx('tick'); }
+  } else if (g.phase === 'reveal') { f.style.width = '100%'; f.classList.remove('low'); t.textContent = 'weiter in ' + Math.max(0, Math.ceil(left / 1000)) + ' s'; }
+  else { f.style.width = '100%'; f.classList.remove('low'); t.textContent = g.phase === 'intro' ? String(Math.max(0, Math.ceil(left / 1000))) : ''; }
+}
+setInterval(qzTickNow, 100);
+document.addEventListener('keydown', (e) => { // Tasten 1–4 antworten
+  if (!/^[1-4]$/.test(e.key) || /INPUT|TEXTAREA|SELECT/.test((document.activeElement || {}).tagName || '')) return;
+  const b = document.querySelectorAll('#qz button.qans')[Number(e.key) - 1]; if (b && !b.disabled) b.click();
+});
+
 const COL = ['#c471f0', '#38bdf8', '#f59e0b', '#34d399', '#fb7185', '#a3e635', '#f472b6', '#e5e7eb', '#facc15', '#f97316', '#14b8a6', '#a16207'];
 const GC = ['#8b5a2b', '#7dd3fc', '#f472b6', '#fb923c', '#ef4444', '#facc15', '#22c55e', '#3b5bdb'];
 const ICON = { go: '▶', c: '✉', ch: '?', tax: '$', r: '🚂', u: '💡', jail: '⛓', free: '🏝', gojail: '👮' };
@@ -794,7 +1028,7 @@ let vt; $('vol').oninput = () => {
 };
 
 function resetGame() {
-  timers.forEach(clearTimeout); timers = []; busy = false; lastKey = ''; seen = ''; trk = null; pendingOffer = null; offerId = null; shown = {}; tokEl = {}; sel = null; flash = {}; holding = false; holdBase = null; holdMsg = null; prevOwners = null; prevHouses = null; prevMort = null; prevLogLast = null; prevChatN = null; prevTurnId = null; attnKey = null; [shownMoney, moneyAnim, chips].forEach((o) => Object.keys(o).forEach((k) => delete o[k]));
+  timers.forEach(clearTimeout); timers = []; busy = false; lastKey = ''; seen = ''; trk = null; pendingOffer = null; offerId = null; shown = {}; tokEl = {}; sel = null; qzPick = null; qzKey = ''; flash = {}; holding = false; holdBase = null; holdMsg = null; prevOwners = null; prevHouses = null; prevMort = null; prevLogLast = null; prevChatN = null; prevTurnId = null; attnKey = null; [shownMoney, moneyAnim, chips].forEach((o) => Object.keys(o).forEach((k) => delete o[k]));
   $('tokens').textContent = ''; $('modal').classList.add('hide');
 }
 function place(t, pos, k) {
@@ -824,7 +1058,7 @@ function overlayState(m) {
 function incoming(m) {
   if (holding) { holdMsg = m; state = overlayState(m); render(); return; } // Animation läuft: nur die unkritischen Teile sofort zeigen
   const g = m.game, old = state && state.game;
-  if (g && old && g.rn !== undefined && g.rn === lastKey + 1 && g.dice[0] && lastKey !== '' && g.players.length === old.players.length) { startHold(m); return; }
+  if (g && old && g.kind !== 'quiz' && old.kind !== 'quiz' && g.rn !== undefined && g.rn === lastKey + 1 && g.dice[0] && lastKey !== '' && g.players.length === old.players.length) { startHold(m); return; }
   state = m; render();
 }
 function startHold(m) {
@@ -922,6 +1156,8 @@ function syncGame(g) {
 }
 
 function renderGame() {
+  if (state.game.kind === 'quiz') return renderQuiz();
+  $('bw').classList.remove('hide'); $('qz').classList.add('hide'); $('logCard').classList.remove('hide');
   const g = state.game, me = state.you, p = g.players[g.turn], mine = p.id === me, host = me === state.hostId, spec = !!state.spec;
   const idx = (id) => g.players.findIndex((x) => x.id === id), nm = (id) => g.players.find((x) => x.id === id).name;
   $('rc').textContent = state.code;
