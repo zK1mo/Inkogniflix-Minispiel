@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-MHDOi8EYPiQFBok8g8/BjBi+UO6T9gQZne7MP5kHulM='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://*.anilist.co; connect-src https://hzvnbtksanoonvkblded.supabase.co https://graphql.anilist.co wss://inkogniflix-minispiel.onrender.com ws://localhost:3000; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-SvScB7gqg7GCH9w/olp0azNRizWoPYOqCEFQssYlmvs='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://*.anilist.co https://cdn.myanimelist.net; connect-src https://hzvnbtksanoonvkblded.supabase.co https://graphql.anilist.co https://api.jikan.moe wss://inkogniflix-minispiel.onrender.com ws://localhost:3000; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Inkogniflix</title>
 <link rel="icon" href="logo.png">
@@ -424,6 +424,10 @@ button.nudge{animation:nudge .8s ease-in-out infinite;box-shadow:0 0 0 3px #fff,
 .anscores{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}.anscore{border:2px solid var(--line);border-radius:14px;padding:10px;text-align:center}.anscore.w{box-shadow:0 0 22px #facc1599}
 .anscore .sn{font-weight:800}.anscore small{display:block;color:var(--dim);font-size:11px}.anscore .sv{font-size:clamp(30px,4vw,46px);font-weight:900;line-height:1.1}
 .anradarbox{display:flex;flex-direction:column;gap:6px;align-items:center}.anradarholder{width:min(100%,520px)}.anradar{width:100%;height:auto}.anleg{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}.anleg .qchip{cursor:pointer;background:transparent;box-shadow:none;color:var(--text)}
+.antm{display:inline-block;min-width:64px;text-align:center;padding:4px 12px;border-radius:999px;border:1px solid var(--line);font-weight:800;transition:color .2s,border-color .2s}
+.antm.hot{color:#fb7185;border-color:#fb7185;text-shadow:0 0 10px #fb7185;box-shadow:0 0 14px #fb7185aa;animation:hotpulse .5s ease-in-out infinite alternate}
+@keyframes hotpulse{from{transform:scale(1);box-shadow:0 0 8px #fb718566}to{transform:scale(1.14);box-shadow:0 0 22px #fb7185}}
+@media(prefers-reduced-motion:reduce){.antm.hot{animation:none}}
 @media(max-width:700px){.anboard{grid-template-columns:1fr}.ancat{justify-content:space-between}.antable{font-size:12px}}
 @media(prefers-reduced-motion:reduce){.anslot.free,.ancell.new{animation:none}.slotstrip{transition:none}}
 </style>
@@ -710,7 +714,7 @@ function render() {
     $('modeM').classList.toggle('on', !qm && !am); $('modeQ').classList.toggle('on', qm); $('modeA').classList.toggle('on', am); $('modeM').disabled = $('modeQ').disabled = $('modeA').disabled = !host;
     $('monoSet').classList.toggle('hide', qm || am); $('quizSet').classList.toggle('hide', !qm); $('animeSet').classList.toggle('hide', !am);
     $('anrs').value = an.rs; $('antime').value = String(an.time); $('anrs').disabled = $('antime').disabled = !host;
-    $('aninfo').textContent = '5 Runden: Jeder zieht pro Runde einen Zufalls-Charakter und setzt ihn in eine von 5 Kategorien (' + ({ mix: 'Stärke, Geschwindigkeit, Fähigkeiten, IQ, Zähigkeit', onepiece: 'Stärke, Geschwindigkeit, Haki, Technik, Zähigkeit', dragonball: 'Kampfkraft, Geschwindigkeit, Ki-Kontrolle, Kampf-IQ, Zähigkeit', naruto: 'Ninjutsu, Taijutsu, Genjutsu, Chakra, IQ' }[an.rs] || '') + '). Die Werte siehst du erst im Showdown. Wer die meisten Kategorien gewinnt, siegt.';
+    $('aninfo').textContent = '5 Runden: Jeder zieht pro Runde einen Zufalls-Charakter und setzt ihn in eine von 5 Kategorien (' + ({ mix: 'Stärke, Geschwindigkeit, Fähigkeiten, IQ, Zähigkeit', onepiece: 'Stärke, Geschwindigkeit, Haki, Teufelsfrucht, Zähigkeit', dragonball: 'Kampfkraft, Geschwindigkeit, Ki-Kontrolle, Kampf-IQ, Zähigkeit', naruto: 'Ninjutsu, Taijutsu, Genjutsu, Chakra, IQ' }[an.rs] || '') + '). Die Werte siehst du erst im Showdown. Wer die meisten Kategorien gewinnt, siegt.' + (an.rs === 'mix' ? '' : ' Die Werte sind innerhalb dieses Animes neu skaliert.');
     const mx = qz.id ? qz.max : !qz.host && qz.category && qz.category !== 'gemischt' ? 15 : 30, opts = [...new Set([3, 5, 10, 15, 20, 25, 30].filter((n) => n <= mx).concat(qz.id ? [mx] : []))].sort((a, b) => a - b), sel = $('qcount');
     if (sel.dataset.sig !== opts.join()) { sel.textContent = ''; opts.forEach((n) => { const o = el('option', '', n + ' Fragen'); o.value = n; sel.append(o); }); sel.dataset.sig = opts.join(); }
     sel.value = String(Math.min(qz.count || 10, mx)); $('qcat').value = qz.category || 'gemischt'; $('qtime').value = String(qz.time || 20); $('qhost').checked = !!qz.host; $('qteam').checked = !!qz.team; $('qteamSize').value = String(qz.teamSize || 2); $('qteamSizeBox').classList.toggle('hide', !qz.team); $('qteam').disabled = $('qteamSize').disabled = !host; renderTeams(qm && !!qz.team, qz, host); $('qtimeBox').classList.toggle('hide', !!qz.host); $('qcatBox').classList.toggle('hide', !!qz.host || !!qz.id);
@@ -1129,12 +1133,30 @@ async function pumpImgs() {
     const j = await r.json();
     batch.forEach((c, k) => {
       const list = (((j.data || {})['a' + k]) || {}).characters || [], keys = AK[c.a] || [normS(c.a)];
-      const hit = list.find((x) => x.image && x.image.large && ((x.media || {}).nodes || []).some((m) => [m.title && m.title.romaji, m.title && m.title.english].some((t) => t && keys.some((kk) => normS(t).includes(kk)))));
-      if (hit) { IMGC[ckey(c)] = hit.image.large; (IMG_W[ckey(c)] || []).forEach((f) => paintFace(f, hit.image.large)); }
+      const strict = list.find((x) => x.image && x.image.large && ((x.media || {}).nodes || []).some((m) => [m.title && m.title.romaji, m.title && m.title.english].some((t) => t && keys.some((kk) => normS(t).includes(kk))))); // Treffer aus dem richtigen Anime
+      const hit = strict || list.find((x) => x.image && x.image.large && nameMatches(c, x.name && x.name.full)); // sonst: gleicher Name, egal in welchem Eintrag
+      if (hit) setImg(c, hit.image.large); else JK_Q.push(c); // gar nichts Passendes: andere Quelle (Jikan/MyAnimeList)
     });
+    pumpJikan();
     clearTimeout(imgSaveT); imgSaveT = setTimeout(() => { try { localStorage.setItem('animeImg3', JSON.stringify(IMGC)); } catch {} }, 800);
-  } catch (e) { batch.forEach((c) => setTimeout(() => { delete IMG_TRY[ckey(c)]; }, 60000)); }
+  } catch (e) { batch.forEach((c) => { JK_Q.push(c); setTimeout(() => { delete IMG_TRY[ckey(c)]; }, 60000); }); pumpJikan(); } // AniList nicht erreichbar: es mit der anderen Quelle versuchen
   imgBusy = false; setTimeout(pumpImgs, 600);
+}
+const JK_Q = [], JK_DONE = {}; let jkBusy = false;
+const wordsOf = (t) => String(t || '').toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length > 1);
+const nameMatches = (c, full) => { const ws = wordsOf(c.q || c.n), nm = normS(full); return ws.length > 0 && ws.every((w) => nm.includes(w)); };
+function setImg(c, url) { IMGC[ckey(c)] = url; (IMG_W[ckey(c)] || []).forEach((f) => paintFace(f, url)); clearTimeout(imgSaveT); imgSaveT = setTimeout(() => { try { localStorage.setItem('animeImg3', JSON.stringify(IMGC)); } catch {} }, 800); }
+async function pumpJikan() { // zweite Bildquelle (MyAnimeList über Jikan), langsam und einzeln wegen der Begrenzung
+  if (jkBusy) return; let c; while ((c = JK_Q.shift())) { if (!IMGC[ckey(c)] && !JK_DONE[ckey(c)]) break; c = null; } if (!c) return;
+  jkBusy = true; JK_DONE[ckey(c)] = 1;
+  try {
+    const r = await fetch('https://api.jikan.moe/v4/characters?limit=8&order_by=favorites&sort=desc&q=' + encodeURIComponent(c.q || c.n));
+    if (r.ok) {
+      const j = await r.json(), hit = (j.data || []).find((x) => nameMatches(c, (x.name || '') + ' ' + (x.name_kanji || '')) && x.images && x.images.jpg && x.images.jpg.image_url && !/questionmark/.test(x.images.jpg.image_url));
+      if (hit) setImg(c, hit.images.jpg.image_url);
+    }
+  } catch {}
+  jkBusy = false; setTimeout(pumpJikan, 1200);
 }
 const DIFFN = (v) => (v === null || v === undefined ? '?' : String(v));
 function slotMachine(g) { // Zufalls-Charakter ziehen: Bilder laufen von rechts nach links durch und halten beim gezogenen Charakter
@@ -1204,7 +1226,7 @@ function buildAnimeStage(g, stage, ctx) {
     grid.append(left, mid, right); stage.append(grid); return;
   }
   // Showdown und Ende: Tabelle der Charaktere und Werte
-  if (g.forfeit) { stage.append(el('div', 'qbanner ok', '🏆 ' + ((g.players.find((x) => x.id === (g.winners || [])[0]) || {}).name || 'Du') + ' gewinnt, weil alle anderen das Spiel verlassen haben.')); return; }
+  if (g.forfeit) { stage.append(el('div', 'qbanner ok', '🏆 ' + ((g.players.find((x) => x.id === (g.winners || [])[0]) || {}).name || 'Du') + ' gewinnt, weil alle anderen das Spiel verlassen haben.')); const bc = el('div', 'tag qcenter', 'Zurück zur Lobby in 3 s …'); bc.id = 'backcd'; stage.append(bc); backTick(); return; }
   const sh = g.show, over = g.phase === 'over';
   stage.append(el('div', 'antitle2', over ? 'ERGEBNIS' : 'SHOWDOWN'));
   if (!over) stage.append(el('div', 'ancount', String(Math.max(1, sh.step)) + ' / 5'));
@@ -1244,7 +1266,7 @@ function renderAnime() {
   $('rc').textContent = state.code; $('specInfo').textContent = spec ? '👁 Du schaust zu.' : state.specs && state.specs.length ? '👁 Zuschauer: ' + state.specs.join(', ') : '';
   if (!z.firstChild) { const h = el('div', 'anhead'), st = el('div', 'anstage'); st.id = 'anstage'; h.id = 'anhead'; z.append(h, st); }
   const head = $('anhead'); head.textContent = '';
-  const tm = el('b', ''); tm.id = 'antm';
+  const tm = el('b', 'antm'); tm.id = 'antm';
   head.append(el('div', 'antitle', '🎴 ANIME-SCHMIEDE'), el('span', 'qpill d-topic', g.rsName), el('span', 'qpill', g.phase === 'over' ? 'Ende' : g.phase === 'showdown' ? 'Showdown' : 'Runde ' + (g.round + 1) + ' / ' + g.rounds), tm);
   const sig = (g.phase === 'spin' ? 'spin:' + g.round : g.phase + ':' + g.round + ':' + g.rn + ':' + g.step) + ':' + me + (host ? 'H' : '') + (spec ? 'S' : ''); // neu bauen, wenn sich der Zustand oder die Rolle ändert
   if (sig !== anSig) {
@@ -1269,11 +1291,15 @@ function renderAnime() {
   anTickNow();
 }
 const mineAlive = (g, me) => g.players.some((p) => p.id === me && !p.out);
+let anLastTick = null;
 function anTickNow() {
   const g = state && state.game; if (!g || g.kind !== 'anime') return; const t = $('antm'); if (!t) return;
-  const left = Math.ceil((g.until - (Date.now() + skew)) / 1000);
-  t.textContent = g.phase === 'pick' && left >= 0 ? '⏱ ' + left + ' s' : '';
+  const left = Math.ceil((g.until - (Date.now() + skew)) / 1000), hot = g.phase === 'pick' && !!g.me && !g.me.placed && left <= 10 && left > 0;
+  t.textContent = g.phase === 'pick' && left >= 0 ? '⏱ ' + left + ' s' : ''; t.classList.toggle('hot', hot);
+  if (hot) { if (left !== anLastTick) { anLastTick = left; try { SFX.tickp(left); } catch {} } } else anLastTick = null; // ab 10 s: leuchtet und tickt, jede Sekunde etwas höher
 }
+function backTick() { const e = $('backcd'), g = state && state.game; if (e && g && g.backAt) e.textContent = 'Zurück zur Lobby in ' + Math.max(0, Math.ceil((g.backAt - (Date.now() + skew)) / 1000)) + ' s …'; }
+setInterval(backTick, 250);
 setInterval(anTickNow, 250);
 function renderQuiz() {
   $('admCard').classList.add('hide'); $('an').classList.add('hide');
@@ -1308,6 +1334,7 @@ function renderQuiz() {
     });
     z.append(el('div', 'qtext', g.winner === meE ? (g.teamMode ? '🏆 Euer Team hat gewonnen!' : '🏆 Du hast gewonnen!') : '🏆 ' + (g.players.find((x) => x.id === g.winner) || {}).name + ' gewinnt!'), podium);
     if (host) { const b = el('button', '', 'Zurück zur Lobby'); b.onclick = () => out({ type: 'lobby' }); b.style.alignSelf = 'center'; z.append(b); }
+    if (g.backAt) { const bc = el('div', 'tag qcenter', 'Die anderen sind gegangen. Zurück zur Lobby in 3 s …'); bc.id = 'backcd'; z.append(bc); backTick(); }
     if (g.title && g.payout && Object.values(g.payout).every((x) => x.coins === 0)) z.append(el('div', 'tag', g.hostMode ? 'Moderiertes Quiz: dafür gibt es keine Coins.' : 'Für dieses Spiel gab es keine Coins (eigenes Quiz oder weniger als 5 Fragen).'));
   } else if (g.hostMode) renderQuizHost(z, g, host, spec);
   else {
@@ -1454,6 +1481,7 @@ const SFX = {
     });
   },
   tick: () => tone(520, .05, 'triangle', .07),
+  tickp: (n) => { const f = 420 * Math.pow(2, (10 - n) / 9 * 1.25); tone(f, .09, 'square', .075); tone(f * 2, .05, 'sine', .035); }, // Countdown: wird pro Sekunde höher
   buy: () => { tone(988, .09, 'square', .07); tone(1319, .25, 'square', .07, .09); },
   rent: () => { tone(330, .12, 'sawtooth', .06); tone(220, .25, 'sawtooth', .06, .1); },
   jail: () => tone(200, .5, 'sawtooth', .08, 0, 70),
