@@ -18,11 +18,21 @@ const scaleIn = (rs, cat, v) => { const [lo, hi] = RANGE[rs][cat]; return hi ===
 // Seltenheit nach Kampfstärke: gewöhnlich (schwächste 40 %), selten (30 %), legendär (20 %), mythisch (stärkste 10 % plus ein paar feste Größen)
 const power = (s) => ((s[0] + s[1] + s[2] + s[4]) / 4) * 0.9 + s[3] * 0.1, PIN_MYTHIC = ['Zeno', 'Saitama', 'Son Goku', 'Monkey D. Luffy', 'Naruto Uzumaki'];
 const RAR = (() => { const order = CHARS.map((c, i) => i).sort((x, y) => power(CHARS[y][2]) - power(CHARS[x][2])), n = order.length, r = {}; order.forEach((i, k) => { r[i] = k < n * 0.1 ? 'm' : k < n * 0.3 ? 'l' : k < n * 0.6 ? 'r' : 'c'; }); CHARS.forEach((c, i) => { if (PIN_MYTHIC.includes(c[0])) r[i] = 'm'; }); return r; })();
+// Ziehung nach Seltenheit: gewöhnlich 55 %, selten 29 %, legendär 12 %, mythisch 4 % pro Ziehung.
+// Wer mehrfach in Folge nur Gewöhnliches zieht, bekommt Glückshilfe (bis zu 25 Prozentpunkte von "gewöhnlich" gehen auf selten/legendär/mythisch), damit es nicht frustriert.
+const TIER_W = { c: .55, r: .29, l: .12, m: .04 };
+function pickTier(cands, dry) {
+  const by = { c: [], r: [], l: [], m: [] }; cands.forEach((i) => by[RAR[i]].push(i));
+  const w = { ...TIER_W }; if (dry > 0) { const bonus = Math.min(.25, dry * .1); w.c = Math.max(.1, TIER_W.c - bonus); const moved = TIER_W.c - w.c; w.r += moved * .45; w.l += moved * .33; w.m += moved * .22; }
+  const tiers = Object.keys(by).filter((k) => by[k].length); let x = Math.random() * tiers.reduce((s, k) => s + w[k], 0), t = tiers[tiers.length - 1];
+  for (const k of tiers) { x -= w[k]; if (x < 0) { t = k; break; } }
+  return by[t][Math.floor(Math.random() * by[t].length)];
+}
 const statOf = (g, ch, cat) => ((g.rs !== 'mix' && CHARS[ch][3]) ? scaleIn(g.rs, cat, CHARS[ch][3][cat]) : CHARS[ch][2][cat]);
 
 function newGame(players, { rs, time, win }) {
   const key = RS[rs] ? rs : 'mix', pool = CHARS.map((_, i) => i).filter((i) => !RS[key].anime || CHARS[i][1] === RS[key].anime);
-  const g = { kind: 'anime', rs: key, win: win === 'avg' ? 'avg' : 'cats', nc: RS[key].cats.length, time: Math.max(15, Math.min(120, Math.round(Number(time)) || 45)), pool, used: {}, round: -1, phase: 'spin', until: 0, rn: 0, draw: {}, decoys: [], step: 0, winners: [], forfeit: false, log: [],
+  const g = { kind: 'anime', rs: key, win: win === 'avg' ? 'avg' : 'cats', nc: RS[key].cats.length, time: Math.max(15, Math.min(120, Math.round(Number(time)) || 45)), pool, used: {}, round: -1, dry: {}, phase: 'spin', until: 0, rn: 0, draw: {}, decoys: [], step: 0, winners: [], forfeit: false, log: [],
     players: players.map((p) => ({ id: p.id, name: p.name, color: p.color || 0, out: false })), board: {} };
   g.players.forEach((p) => { g.board[p.id] = Array(g.nc).fill(null); });
   startRound(g); return g;
@@ -35,7 +45,7 @@ function startRound(g) {
     let c = g.pool.filter((i) => !g.used[i] && !taken.has(i));
     if (!c.length) { g.used = {}; c = g.pool.filter((i) => !taken.has(i)); }
     if (!c.length) c = g.pool.slice();
-    const pick = c[Math.floor(Math.random() * c.length)]; g.used[pick] = 1; taken.add(pick); g.draw[p.id] = pick;
+    const pick = pickTier(c, g.dry[p.id] || 0); g.used[pick] = 1; taken.add(pick); g.draw[p.id] = pick; g.dry[p.id] = RAR[pick] === 'c' ? (g.dry[p.id] || 0) + 1 : 0;
   }
   g.decoys = shuffle(g.pool.filter((i) => !taken.has(i))).slice(0, 26); // Füllfiguren für die Slotmaschine (nie die gezogenen)
 }
@@ -91,4 +101,4 @@ function view(g, pid) { // pid = Betrachter (null = Zuschauer): geheime Infos we
     board, decoys: g.phase === 'spin' ? g.decoys.map(ci) : [], show, winners: g.phase === 'over' ? g.winners : null, backAt: g.backAt || null, log: [] };
 }
 const payouts = () => []; // keine Coins (Spielwert kann nicht mit Zweitkonten erfarmt werden)
-module.exports = { newGame, act, drop, tick, view, payouts, results, RS, CHARS, statOf };
+module.exports = { TIER_W, RAR, newGame, act, drop, tick, view, payouts, results, RS, CHARS, statOf };
