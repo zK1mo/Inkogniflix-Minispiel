@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-kPZvVlMYB8sEctzNGepiNex39PGdZ8d5Cq4/E/w3C6Y='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https://hzvnbtksanoonvkblded.supabase.co wss://inkogniflix-minispiel.onrender.com ws://localhost:3000; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-AAneTHGtTMRrow5TydyKjGE0d8inQu02Skp8HrcvN7s='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https://hzvnbtksanoonvkblded.supabase.co wss://inkogniflix-minispiel.onrender.com ws://localhost:3000; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Inkogniflix</title>
 <link rel="icon" href="logo.png">
@@ -353,6 +353,15 @@ button.nudge{animation:nudge .8s ease-in-out infinite;box-shadow:0 0 0 3px #fff,
 #msgs{height:300px;font-size:15px}#lg{max-height:320px;font-size:14.5px}
 #colR .pl{padding:9px 6px}#colR .pl .ptok{width:30px;height:30px;font-size:14px}
 #admCard .rhd{margin:12px 0 6px}#admCard select,#admCard input{margin-bottom:8px}#admCard .row{margin-bottom:6px}
+/* Quiz: Schwierigkeit und Moderator-Modus */
+.qpill.d-leicht{background:#16a34a}.qpill.d-mittel{background:#d97706}.qpill.d-schwer{background:#dc2626}.qpill.d-mod{background:#0ea5e9}
+.qmod{background:#0e0920;border:1px dashed var(--p2);border-radius:16px;padding:14px;text-align:center}
+.qlabel{font-size:13px;color:var(--dim);text-align:center}.qmod .qlabel{margin-bottom:4px}
+.qright{font-size:clamp(22px,3vw,34px);font-weight:800;color:#86efac;margin:4px 0 8px;overflow-wrap:anywhere}
+.qhints{display:grid;gap:8px}.qhint{display:flex;align-items:center;gap:10px;background:#ffffff0d;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:15px;line-height:1.35}
+.qhint b{flex:none;color:var(--p1)}.qhint span{flex:1}.qhint.on{border-color:#4ade80}
+.qpicker{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}.qwin{padding:14px 22px;font-size:18px;border-radius:16px}
+#qhostRow{margin-top:4px}
 </style>
 </head>
 <body>
@@ -409,7 +418,9 @@ button.nudge{animation:nudge .8s ease-in-out infinite;box-shadow:0 0 0 3px #fff,
       </div>
       <div id="quizSet" class="hide">
         <label for="qcat">Kategorie</label><select id="qcat"></select>
-        <div class="row2"><div><label for="qcount">Anzahl Fragen</label><select id="qcount"></select></div><div><label for="qtime">Zeit pro Frage</label><select id="qtime"></select></div></div>
+        <label for="qdiff">Schwierigkeit <small>(bestimmt die Punkte pro richtige Antwort)</small></label><select id="qdiff"></select>
+        <div class="row2"><div><label for="qcount">Anzahl Fragen</label><select id="qcount"></select></div><div id="qtimeBox"><label for="qtime">Zeit pro Frage</label><select id="qtime"></select></div></div>
+        <label class="rule" id="qhostRow"><span class="rtx"><b>🎤 Moderator-Modus (mündlich)</b><small>Du als Host siehst Frage, Antwort und 3 Hinweise, alle anderen antworten laut. Du wählst, wer gewonnen hat. Du spielst nicht mit, es gibt keine Coins.</small></span><input type="checkbox" id="qhost"><span class="sw"></span></label>
         <div class="qsrc"><div id="qsrcInfo" class="tag"></div><div class="row"><button id="qpick" class="small ghost">Eigenes Quiz wählen …</button><button id="qedit" class="small ghost">Quiz erstellen</button></div></div>
       </div>
       <button id="startBtn" style="width:100%" disabled>Monopoly starten</button>
@@ -555,7 +566,7 @@ const QCATS = ['Geografie', 'Geschichte', 'Natur & Tiere', 'Wissenschaft', 'Spor
 const sendSettings = () => {
   const rules = {}; RULES.forEach(([k]) => { rules[k] = $('r_' + k).checked; });
   const s = { type: 'settings', budget: $('budget').value, map: $('map').value, max: $('max').value, rules,
-    mode: pendingMode || (state && state.settings && state.settings.mode) || 'monopoly', quiz: { category: $('qcat').value || 'gemischt', count: $('qcount').value || 10, time: $('qtime').value || 20 } };
+    mode: pendingMode || (state && state.settings && state.settings.mode) || 'monopoly', quiz: { category: $('qcat').value || 'gemischt', count: $('qcount').value || 10, time: $('qtime').value || 20, diff: $('qdiff').value || 'mittel', host: $('qhost').checked } };
   if (state && state.admin) s.test = $('r_test').checked;
   out(s); delete s.test; savePref('hostSettings', s); // für den nächsten Raum merken (im Konto, sonst nur in diesem Browser)
 };
@@ -568,8 +579,10 @@ $('startBtn').onclick = () => out({ type: 'start' }); $('watchCb').onchange = ()
 $('budget').onchange = sendSettings; $('map').onchange = sendSettings; $('max').onchange = sendSettings;
 ['gemischt', ...QCATS].forEach((c) => { const o = el('option', '', c === 'gemischt' ? 'Gemischt (alle Kategorien)' : c); o.value = c; $('qcat').append(o); });
 [10, 15, 20, 30, 45, 60].forEach((n) => { const o = el('option', '', n + ' Sekunden'); o.value = n; $('qtime').append(o); });
+const DIFF_LABEL = { leicht: 'Leicht', mittel: 'Mittel', schwer: 'Schwer' }, DIFF_PTS = { leicht: 100, mittel: 200, schwer: 300 };
+Object.keys(DIFF_PTS).forEach((k) => { const o = el('option', '', DIFF_LABEL[k] + ' · ' + DIFF_PTS[k] + ' Punkte pro Frage'); o.value = k; $('qdiff').append(o); });
 $('r_test').onchange = sendSettings;
-$('qcat').onchange = $('qcount').onchange = $('qtime').onchange = sendSettings;
+$('qcat').onchange = $('qcount').onchange = $('qtime').onchange = $('qdiff').onchange = $('qhost').onchange = sendSettings;
 $('modeM').onclick = () => { pendingMode = 'monopoly'; sendSettings(); pendingMode = null; };
 $('modeQ').onclick = () => { pendingMode = 'quiz'; sendSettings(); pendingMode = null; };
 $('qpick').onclick = () => openQuizPicker(); $('qedit').onclick = () => openQuizEditor();
@@ -596,11 +609,11 @@ function render() {
     const st = state.settings, qm = st.mode === 'quiz', qz = st.quiz || {};
     $('modeM').classList.toggle('on', !qm); $('modeQ').classList.toggle('on', qm); $('modeM').disabled = $('modeQ').disabled = !host;
     $('monoSet').classList.toggle('hide', qm); $('quizSet').classList.toggle('hide', !qm);
-    const mx = qz.id ? qz.max : 30, opts = [...new Set([3, 5, 10, 15, 20, 25, 30].filter((n) => n <= mx).concat(qz.id ? [mx] : []))].sort((a, b) => a - b), sel = $('qcount');
+    const mx = qz.id ? qz.max : qz.category && qz.category !== 'gemischt' ? 15 : 30, opts = [...new Set([3, 5, 10, 15, 20, 25, 30].filter((n) => n <= mx).concat(qz.id ? [mx] : []))].sort((a, b) => a - b), sel = $('qcount');
     if (sel.dataset.sig !== opts.join()) { sel.textContent = ''; opts.forEach((n) => { const o = el('option', '', n + ' Fragen'); o.value = n; sel.append(o); }); sel.dataset.sig = opts.join(); }
-    sel.value = String(Math.min(qz.count || 10, mx)); $('qcat').value = qz.category || 'gemischt'; $('qtime').value = String(qz.time || 20);
-    $('qcat').disabled = sel.disabled = $('qtime').disabled = !host; $('qpick').classList.toggle('hide', !host); $('qedit').classList.toggle('hide', !host);
-    $('qsrcInfo').textContent = qz.id ? '📝 ' + qz.title + ' (' + qz.max + ' Fragen) · eigenes Quiz, keine Coins' : 'Eingebaute Fragen (100 in 10 Kategorien) · Coins für Spieler mit Konto';
+    sel.value = String(Math.min(qz.count || 10, mx)); $('qcat').value = qz.category || 'gemischt'; $('qtime').value = String(qz.time || 20); $('qdiff').value = qz.diff || 'mittel'; $('qhost').checked = !!qz.host; $('qtimeBox').classList.toggle('hide', !!qz.host);
+    $('qcat').disabled = sel.disabled = $('qtime').disabled = $('qdiff').disabled = $('qhost').disabled = !host; $('qpick').classList.toggle('hide', !host); $('qedit').classList.toggle('hide', !host);
+    $('qsrcInfo').textContent = qz.id ? '📝 ' + qz.title + ' (' + qz.max + ' Fragen) · eigenes Quiz, keine Coins · Schwierigkeit legt nur die Punkte fest' : (qz.host ? 'Eingebaute Fragen (150 in 10 Kategorien) · Moderator-Modus: keine Coins' : 'Eingebaute Fragen (150 in 10 Kategorien) · Coins für Spieler mit Konto');
   }
   [...$('colors').children].forEach((b, i) => { const o = state.players.find((p) => p.color === i); b.classList.toggle('me', !!o && o.id === state.you); b.classList.toggle('taken', !!o && o.id !== state.you); b.disabled = !!o && o.id !== state.you; });
   const playing = state.players.filter((p) => !p.watch).length, need = state.settings.test && state.admin ? 1 : 2; // Zuschauer zählen nicht als Spieler
@@ -919,6 +932,41 @@ async function qeSave(btn) {
 /* ===== Quiz spielen ===== */
 const SHAPES = ['▲', '◆', '●', '■'];
 let qzPick = null, qzKey = '', qzTickN = null;
+
+// Moderator-Modus: der Host sieht Antwort und Hinweise und wählt den Gewinner, alle anderen antworten mündlich
+function renderQuizHost(z, g, host, spec) {
+  z.append(el('div', 'qtext', g.q.q));
+  const win = g.res && g.res.win, wp = win && g.players.find((x) => x.id === win);
+  if (g.phase === 'reveal') z.append(el('div', 'qbanner ' + (wp ? (win === state.you ? 'ok' : 'idle') : 'no'), wp ? '🏆 ' + wp.name + (win === state.you ? ' (du)' : '') + ' bekommt +' + g.res.pts + ' Punkte' : 'Niemand hat es gewusst'));
+  if (host) {
+    const box = el('div', 'qmod'); box.append(el('div', 'qlabel', 'Richtige Antwort (nur für dich sichtbar)'), el('div', 'qright', g.q.a[g.q.c]));
+    box.append(el('div', 'tag', 'Falsche Antworten: ' + g.q.a.filter((_, i) => i !== g.q.c).join(' · '))); z.append(box);
+    const hs = el('div', 'qhints');
+    g.q.hints.forEach((h, i) => {
+      const row = el('div', 'qhint' + (g.hs[i] ? ' on' : '')); row.append(el('b', '', 'Hinweis ' + (i + 1)), el('span', '', h));
+      if (g.phase === 'question') { const b = el('button', 'small' + (g.hs[i] ? ' ghost' : ''), g.hs[i] ? '✔ gezeigt' : 'Allen zeigen'); b.disabled = !!g.hs[i]; b.onclick = () => out({ type: 'qhint', n: i + 1 }); row.append(b); }
+      hs.append(row);
+    });
+    z.append(hs);
+  } else {
+    if (g.phase === 'question') z.append(el('div', 'qbanner idle', 'Antwortet laut! Der Host entscheidet, wer gewonnen hat.'));
+    else { const m = el('div', 'qmod'); m.append(el('div', 'qlabel', 'Richtige Antwort'), el('div', 'qright', g.q.ans)); z.append(m); }
+    const shown = g.q.hints.map((h, i) => [h, i]).filter(([h]) => h);
+    if (shown.length) { const hs = el('div', 'qhints'); shown.forEach(([h, i]) => { const row = el('div', 'qhint on'); row.append(el('b', '', 'Hinweis ' + (i + 1)), el('span', '', h)); hs.append(row); }); z.append(hs); }
+  }
+  if (host && g.phase === 'question') {
+    z.append(el('div', 'qlabel', 'Wer hat die Frage gewonnen? (+' + g.pts + ' Punkte)'));
+    const pk = el('div', 'qpicker');
+    g.players.filter((p) => !p.out).forEach((p) => { const b = el('button', 'qwin', '🏆 ' + p.name); b.style.background = COL[p.color]; b.style.color = '#0b0718'; b.onclick = () => out({ type: 'qpick', id: p.id }); pk.append(b); });
+    const none = el('button', 'qwin ghost', 'Niemand'); none.onclick = () => out({ type: 'qpick', id: null }); pk.append(none); z.append(pk);
+  }
+  if (host && g.phase === 'reveal') {
+    const row = el('div', 'qpicker'), back = el('button', 'ghost', '↩ Falsch gewählt: zurück'), nx = el('button', '', g.qi + 1 < g.total ? 'Nächste Frage →' : 'Ergebnis anzeigen');
+    back.onclick = () => out({ type: 'qundo' }); nx.onclick = () => out({ type: 'qnext' }); row.append(back, nx); z.append(row);
+  }
+  if (host) { const e = el('button', 'small danger', 'Quiz jetzt beenden'); e.style.alignSelf = 'center'; e.onclick = () => { if (confirm('Quiz wirklich jetzt beenden? Der aktuelle Punktestand entscheidet.')) out({ type: 'qend' }); }; z.append(e); }
+  else if (spec) z.append(el('div', 'tag', 'Du schaust zu.'));
+}
 function renderQuiz() {
   $('admCard').classList.add('hide');
   const g = state.game, me = state.you, spec = !!state.spec, meP = g.players.find((x) => x.id === me), canAnswer = !spec && !!meP && !meP.out, host = me === state.hostId;
@@ -928,7 +976,8 @@ function renderQuiz() {
   if (key !== qzKey) { // einmal pro Phase: Töne
     qzKey = key; qzTickN = null;
     if (g.phase === 'question') sfx('turn');
-    const mp = g.res && g.res.picks[me]; if (g.phase === 'reveal' && mp && mp.choice >= 0) sfx(mp.ok ? 'buy' : 'rent');
+    const mp = !g.hostMode && g.res && g.res.picks[me]; if (g.phase === 'reveal' && mp && mp.choice >= 0) sfx(mp.ok ? 'buy' : 'rent');
+    if (g.phase === 'reveal' && g.hostMode && g.res) sfx(g.res.win === me ? 'buy' : 'chat');
     if (g.phase === 'over') sfx(g.winner === me ? 'win' : 'chat');
   }
   if (g.phase === 'over') { if (!overSeen) { overSeen = true; if (auth.session) { setTimeout(loadAccount, 2500); setTimeout(loadAccount, 7000); } } } else overSeen = false;
@@ -937,10 +986,10 @@ function renderQuiz() {
 
   const z = $('qz'); z.textContent = '';
   const head = el('div', 'qhead'), tm = el('b', ''); tm.id = 'qtm';
-  head.append(el('div', 'qt', g.title), el('span', 'qpill', g.phase === 'over' ? 'Ende' : g.phase === 'intro' ? 'Start' : 'Frage ' + (g.qi + 1) + ' / ' + g.total), tm); z.append(head);
-  const bar = el('div', 'qbar'), fill = el('div', 'qfill'); fill.id = 'qfill'; bar.append(fill); z.append(bar);
+  head.append(el('div', 'qt', g.title), el('span', 'qpill', g.phase === 'over' ? 'Ende' : g.phase === 'intro' ? 'Start' : 'Frage ' + (g.qi + 1) + ' / ' + g.total), el('span', 'qpill d-' + g.diff, DIFF_LABEL[g.diff] + ' · ' + g.pts + ' Punkte'), g.hostMode ? el('span', 'qpill d-mod', '🎤 Moderiert') : tm); z.append(head);
+  if (!g.hostMode) { const bar = el('div', 'qbar'), fill = el('div', 'qfill'); fill.id = 'qfill'; bar.append(fill); z.append(bar); }
 
-  if (g.phase === 'intro') { const b = el('div', 'qbig'), d = el('div', '', 'Gleich geht’s los!'); d.append(el('small', '', g.total + ' Fragen · ' + g.time + ' Sekunden pro Frage')); b.append(d); z.append(b); }
+  if (g.phase === 'intro') { const b = el('div', 'qbig'), d = el('div', '', 'Gleich geht’s los!'); d.append(el('small', '', g.total + ' Fragen · ' + (g.hostMode ? 'mündlich antworten, der Host entscheidet' : g.time + ' Sekunden pro Frage') + ' · ' + DIFF_LABEL[g.diff] + ': ' + g.pts + ' Punkte pro Frage')); b.append(d); z.append(b); }
   else if (g.phase === 'over') {
     const rk = g.rank, order = [1, 0, 2].filter((i) => rk[i]), podium = el('div', 'podium'), hts = [130, 96, 72];
     order.forEach((i) => {
@@ -950,8 +999,9 @@ function renderQuiz() {
     });
     z.append(el('div', 'qtext', g.winner === me ? '🏆 Du hast gewonnen!' : '🏆 ' + (g.players.find((x) => x.id === g.winner) || {}).name + ' gewinnt!'), podium);
     if (host) { const b = el('button', '', 'Zurück zur Lobby'); b.onclick = () => out({ type: 'lobby' }); b.style.alignSelf = 'center'; z.append(b); }
-    if (g.title && g.payout && Object.values(g.payout).every((x) => x.coins === 0)) z.append(el('div', 'tag', 'Für dieses Spiel gab es keine Coins (eigenes Quiz oder weniger als 5 Fragen).'));
-  } else {
+    if (g.title && g.payout && Object.values(g.payout).every((x) => x.coins === 0)) z.append(el('div', 'tag', g.hostMode ? 'Moderiertes Quiz: dafür gibt es keine Coins.' : 'Für dieses Spiel gab es keine Coins (eigenes Quiz oder weniger als 5 Fragen).'));
+  } else if (g.hostMode) renderQuizHost(z, g, host, spec);
+  else {
     z.append(el('div', 'qtext', g.q.q));
     const mp = g.res && g.res.picks[me];
     if (g.phase === 'reveal') {
@@ -972,7 +1022,7 @@ function renderQuiz() {
   // Punktetafel
   const pl = $('plCard'); pl.textContent = ''; pl.append(el('div', 'hd', 'Punkte'));
   [...g.players].sort((a, b) => b.score - a.score).forEach((q, i) => {
-    const r = el('div', 'qrank' + (q.out ? ' out' : '')), pick = g.res && g.res.picks[q.id];
+    const r = el('div', 'qrank' + (q.out ? ' out' : '')), pick = g.res && (g.hostMode ? { pts: g.res.win === q.id ? g.res.pts : 0 } : g.res.picks[q.id]);
     r.append(el('span', 'n', i + 1), avOf(q.id, q.color, 28), el('span', '', q.name + (q.id === me ? ' (du)' : '') + (q.id === state.hostId ? ' 👑' : '') + (q.streak > 1 ? ' 🔥' + q.streak : '')));
     const m = el('span', 'm', q.score); if (g.phase === 'reveal' && pick && pick.pts) m.append(el('span', 'gain', '+' + pick.pts)); else if (g.phase === 'question' && q.answered) m.append(el('span', 'gain', '✔')); r.append(m);
     if (g.phase === 'over') payBadge(r, q, g);
