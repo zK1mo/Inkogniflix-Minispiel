@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-tWDy/YootejnSMibP660MK+e5mzwtUyoZycXT1atfSk='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https://hzvnbtksanoonvkblded.supabase.co wss://inkogniflix-minispiel.onrender.com ws://localhost:3000; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-kPZvVlMYB8sEctzNGepiNex39PGdZ8d5Cq4/E/w3C6Y='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https://hzvnbtksanoonvkblded.supabase.co wss://inkogniflix-minispiel.onrender.com ws://localhost:3000; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Inkogniflix</title>
 <link rel="icon" href="logo.png">
@@ -1270,7 +1270,8 @@ function planMoves(g, t0) {
   g.players.forEach((q, k) => {
     const t = tokEl[q.id]; if (!t) return;
     const from = shown[q.id], threeDoubles = q.id === roller.id && g.dbl >= 3 && q.jail > 0; // dreimal Pasch: direkt ins Gefängnis
-    if (from === q.pos && !threeDoubles) return;
+    const mv = g.mv && g.mv.rn === g.rn && g.mv.id === q.id ? g.mv : null; // Wurfziel des Würfelnden (auch wenn eine Karte ihn aufs Ausgangsfeld zurückschickt)
+    if (from === q.pos && !threeDoubles && !mv) return;
     let cur = from, tt = t0;
     const walk = (to) => { // erst zügig, gegen Ende langsamer, jeder Schritt ein kleiner Hüpfer, am Ziel eine Landung
       const d = (to - cur + 40) % 40, base = d <= 12 ? 105 : Math.max(42, Math.floor(1500 / d));
@@ -1282,7 +1283,7 @@ function planMoves(g, t0) {
       cur = to;
     };
     const warp = (to) => { timers.push(setTimeout(() => { t.classList.add('warp', 'moving'); place(t, to, k); markCell(to); setTimeout(() => t.classList.remove('warp', 'moving'), 950); }, tt)); tt += 1100; cur = to; };
-    const landing = q.id === roller.id && !threeDoubles ? (from + sum) % 40 : null; // Feld, auf dem der Würfelwurf endet
+    const landing = q.id === roller.id && !threeDoubles && mv ? mv.to : null; // Feld, auf dem der Würfelwurf endet
     if (landing !== null && landing !== from) {
       walk(landing);
       if (landing !== q.pos) { // danach wirkt das Feld (Gefängnis, Karte): erst kurz sichtbar auf dem Landefeld stehen bleiben
