@@ -5,6 +5,7 @@ const G = require('./game');
 const db = require('./db');
 const Q = require('./quiz');
 const ADMINS = new Set((process.env.ADMIN_USERS || 'zk1mo').split(',').map((x) => x.trim().toLowerCase()).filter(Boolean)); // Admin-Benutzernamen (bei Render: ADMIN_USERS)
+const TEAM_NAMES = ['Blau', 'Orange', 'Grün', 'Rot', 'Lila', 'Gelb'], TEAM_COLORS = [1, 2, 3, 4, 0, 8]; // Teamnamen und Farben (Index in der Farbpalette)
 const MOD = (g) => (g && g.kind === 'quiz' ? Q : G); // Monopoly oder Quiz
 
 const server = http.createServer((q, r) => { r.writeHead(200); r.end('Inkogniflix-Server läuft'); });
@@ -45,10 +46,11 @@ function broadcast(room) {
   if (room.game && room.game.phase === 'over' && !room.game.paid) settle(room);
   const base = {
     type: 'room', now: Date.now(), chat: room.chat, specs: [...room.spec.values()].map((x) => x.name), game: room.game ? MOD(room.game).view(room.game) : null, code: room.code, hostId: room.hostId, settings: room.settings, need: needVotes(room),
-    players: [...room.players.values()].map((p) => ({ id: p.id, name: p.name, guest: p.guest, color: p.color, trading: !!p.trading, watch: !!p.watch, avatar: p.avatar || null, dc: p.ws ? null : p.dc, votes: [...p.votes] })),
+    players: [...room.players.values()].map((p) => ({ id: p.id, name: p.name, guest: p.guest, color: p.color, trading: !!p.trading, watch: !!p.watch, team: Number.isInteger(p.team) ? p.team : null, avatar: p.avatar || null, dc: p.ws ? null : p.dc, votes: [...p.votes] })),
   };
   const g = room.game, modView = g && g.kind === 'quiz' && g.hostMode ? Q.view(g, true) : null; // der Moderator sieht Antwort und alle Hinweise
-  const gv = (id) => (modView && id === room.hostId ? modView : base.game);
+  const teamLive = g && g.kind === 'quiz' && g.teams && !g.hostMode && g.phase === 'question'; // jeder sieht nur den Tipp des eigenen Teams
+  const gv = (id) => (modView && id === room.hostId ? modView : teamLive ? Q.view(g, false, id) : base.game);
   room.players.forEach((p) => send(p.ws, { ...base, game: gv(p.id), you: p.id, admin: !!p.admin }));
   room.spec.forEach((x) => send(x.ws, { ...base, game: gv(x.id), you: x.id, spec: true, admin: !!x.admin })); // Zuschauer sehen alles, können aber nichts tun
 }
@@ -118,7 +120,7 @@ async function identify(m) {
 function entry(ws, m, id) {
   const cid = String(m.cid || '');
   if (m.type === 'create') {
-    const r = { code: newCode(), hostId: null, players: new Map(), spec: new Map(), banned: new Set(), settings: { budget: 1500, map: 'klassisch', max: 8, test: false, mode: 'monopoly', quiz: { category: 'gemischt', count: 10, time: 20, host: false, id: null, title: null, max: null }, rules: { doubleRent: true, vacation: true, noRentPrison: true, evenBuild: true, randomOrder: true, auction: false, vacationSkip: false } }, chat: [] };
+    const r = { code: newCode(), hostId: null, players: new Map(), spec: new Map(), banned: new Set(), settings: { budget: 1500, map: 'klassisch', max: 8, test: false, mode: 'monopoly', quiz: { category: 'gemischt', count: 10, time: 20, host: false, team: false, teamSize: 2, id: null, title: null, max: null }, rules: { doubleRent: true, vacation: true, noRentPrison: true, evenBuild: true, randomOrder: true, auction: false, vacationSkip: false } }, chat: [] };
     rooms.set(r.code, r);
     return enter(ws, r, m, id);
   }
@@ -171,6 +173,14 @@ async function startGame(room) {
     if (room.game) return;
     const all = [...room.players.values()], host = room.players.get(room.hostId), ps = all.filter((p) => !p.watch && !(quizSetup && quizSetup.hostMode && p.id === room.hostId)), test = !quizSetup && room.settings.test && host && host.admin; // Moderator spielt nicht mit
     if (ps.length < (test || (quizSetup && quizSetup.hostMode) ? 1 : 2)) return;
+    if (quizSetup && room.settings.quiz.team) { // Teammodus: Teams aus den Wünschen der Spieler bilden, Rest automatisch auffüllen
+      const size = room.settings.quiz.teamSize, slots = Math.max(2, Math.ceil(ps.length / size)), buckets = Array.from({ length: slots }, () => []), rest = [];
+      ps.forEach((p) => { if (Number.isInteger(p.team) && p.team < slots && buckets[p.team].length < size) buckets[p.team].push(p); else rest.push(p); });
+      rest.forEach((p) => { const b = buckets.filter((x) => x.length < size).sort((a, c) => a.length - c.length)[0] || buckets[0]; b.push(p); });
+      const teams = buckets.map((b, i) => ({ id: 't' + i, name: 'Team ' + TEAM_NAMES[i], color: TEAM_COLORS[i], members: b.map((p) => p.id) })).filter((x) => x.members.length);
+      if (teams.length < 2) { const h = room.players.get(room.hostId); return h && send(h.ws, { type: 'error', text: 'Für den Teammodus braucht es mindestens 2 Teams mit Spielern.' }); }
+      quizSetup.teams = teams;
+    }
     if (quizSetup) room.game = Q.newGame(ps, quizSetup);
     else {
       if (room.settings.rules.randomOrder) for (let i = ps.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [ps[i], ps[j]] = [ps[j], ps[i]]; }
@@ -224,6 +234,8 @@ wss.on('connection', (ws) => {
           if (typeof qz.category === 'string' && (qz.category === 'gemischt' || Q.CATS.includes(qz.category))) cfg.category = qz.category;
           const cnt = Math.round(Number(qz.count)); if (cnt >= 3 && cnt <= 30) cfg.count = cfg.max ? Math.min(cnt, cfg.max) : cnt;
           const tm = Math.round(Number(qz.time)); if (tm >= 5 && tm <= 60) cfg.time = tm;
+          if (typeof qz.team === 'boolean') cfg.team = qz.team; // Teammodus
+          const tsz = Math.round(Number(qz.teamSize)); if (tsz >= 2 && tsz <= 4) cfg.teamSize = tsz;
           if (typeof qz.host === 'boolean') cfg.host = qz.host; // Moderator-Modus: Zufallsthema, Spieler wählt Schwierigkeit, Host moderiert
           if (qz.id) setQuizSource(room, qz.id);
         }
@@ -235,6 +247,18 @@ wss.on('connection', (ws) => {
         send(p.ws, { type: 'kicked' });
         if (p.ws) p.ws.room = null;
       }
+    }
+    if (m.type === 'team' && room && !room.game && room.players.has(ws.pid)) { // Team wählen (oder verlassen)
+      const p = room.players.get(ws.pid), cfg = room.settings.quiz, host = room.players.get(room.hostId);
+      const cs = [...room.players.values()].filter((x) => !x.watch && !(cfg.host && x.id === room.hostId)), slots = Math.max(2, Math.ceil(cs.length / cfg.teamSize));
+      if (m.team === null) p.team = null;
+      else if (Number.isInteger(m.team) && m.team >= 0 && m.team < slots && cs.filter((x) => x.team === m.team && x.id !== p.id).length < cfg.teamSize && !(cfg.host && p.id === room.hostId)) p.team = m.team;
+      return broadcast(room);
+    }
+    if (m.type === 'teamshuffle' && room && !room.game && room.hostId === ws.pid) { // Host lost die Teams aus
+      const cfg = room.settings.quiz, cs = [...room.players.values()].filter((x) => !x.watch && !(cfg.host && x.id === room.hostId)), slots = Math.max(2, Math.ceil(cs.length / cfg.teamSize));
+      const order = cs.map((x) => x).sort(() => Math.random() - 0.5); order.forEach((x, i) => { x.team = i % slots; });
+      return broadcast(room);
     }
     if (m.type === 'color' && room && !room.game && room.players.has(ws.pid)) { // Spielerfarbe wählen (jede Farbe nur einmal)
       const c = Math.round(Number(m.color));

@@ -2,6 +2,7 @@
 //  (1) Klassisch: alle antworten gleichzeitig am Bildschirm. Punkte nur nach Schwierigkeit der Frage (100/200/300), kein Zeit- oder Serienbonus.
 //  (2) Moderator-Modus (mündlich): Reihum bekommt ein Spieler ein ZUFÄLLIGES THEMA und wählt die SCHWIERIGKEIT. Erst danach wird die Frage
 //      allen gezeigt. Der Host sieht Antwort und 3 Hinweise, moderiert und wählt den Gewinner. Auf Knopfdruck des Hosts dürfen auch alle anderen raten.
+// Teammodus: Spieler bilden Teams. Ein Team antwortet gemeinsam (der erste Tipp eines Mitglieds zählt), Punkte und Rangliste gelten pro Team.
 // Die richtige Antwort verlässt den Server nur Richtung Host (im Moderator-Modus) bzw. erst bei der Auflösung.
 const BANK = require('./questions');
 const CATS = Object.keys(BANK);
@@ -43,14 +44,20 @@ function cleanQuestions(list) {
 }
 function fromCustom(list, count) { return shuffle(cleanQuestions(list)).slice(0, count).map((x) => mkQ(x.q, x.a, x.c)); }
 
-function newGame(players, { questions, time, title, coins, hostMode, builtin, count }) {
+function newGame(players, { questions, time, title, coins, hostMode, builtin, count, teams }) {
   const auto = !!(hostMode && builtin); // Zufallsthema + Schwierigkeit wählen
-  return { kind: 'quiz', title, coins: !!coins && !hostMode, time: hostMode ? 0 : time, hostMode: !!hostMode, auto, hs: [false, false, false], last: null, open: false, topic: null, diff: null, pts: 0, used: {}, queue: [],
+  const ps = players.map((p) => ({ id: p.id, name: p.name, color: p.color || 0, score: 0, streak: 0, correct: 0, ms: 0, out: false, team: null }));
+  const tm = teams ? teams.map((t) => ({ id: t.id, name: t.name, color: t.color, members: t.members.filter((id) => ps.some((p) => p.id === id)), score: 0, streak: 0, correct: 0, ms: 0, out: false, isTeam: true })) : null;
+  if (tm) tm.forEach((t) => t.members.forEach((id) => { ps.find((p) => p.id === id).team = t.id; }));
+  return { kind: 'quiz', teams: tm, title, coins: !!coins && !hostMode && !tm, time: hostMode ? 0 : time, hostMode: !!hostMode, auto, hs: [false, false, false], last: null, open: false, topic: null, diff: null, pts: 0, used: {}, queue: [],
     total: auto ? count : questions.length, questions: auto ? [] : questions, qi: -1, phase: 'intro', until: Date.now() + INTRO_MS, qStart: 0,
     answers: {}, res: null, rn: 0, winner: null, log: ['Quiz startet!'], outOrder: [],
-    players: players.map((p) => ({ id: p.id, name: p.name, color: p.color || 0, score: 0, streak: 0, correct: 0, ms: 0, out: false })) };
+    players: ps };
 }
-const active = (g) => g.players.filter((p) => !p.out);
+// "Mitspieler" im Sinne der Wertung: im Teammodus die Teams, sonst die einzelnen Spieler
+const ents = (g) => g.teams || g.players;
+const entOf = (g, pid) => (g.teams ? g.teams.find((t) => t.members.includes(pid)) : g.players.find((p) => p.id === pid));
+const active = (g) => ents(g).filter((p) => !p.out);
 const activeOf = (g) => { const l = active(g); return l.length && g.qi >= 0 ? l[g.qi % l.length].id : null; }; // wer ist in dieser Runde dran (reihum)
 function nextQuestion(g) {
   g.qi++; g.answers = {}; g.res = null; g.hs = [false, false, false]; g.last = null; g.open = false; g.rn++;
@@ -69,13 +76,13 @@ function reveal(g) {
 }
 function rank(g) {
   const act = active(g).sort((a, b) => b.score - a.score || b.correct - a.correct || a.ms - b.ms);
-  return [...act, ...[...g.outOrder].reverse().map((id) => g.players.find((p) => p.id === id))];
+  return [...act, ...[...g.outOrder].reverse().map((id) => ents(g).find((p) => p.id === id))];
 }
 function finish(g) { g.phase = 'over'; g.until = 0; g.winner = rank(g)[0].id; g.rn++; }
 // Moderator-Modus: Die Schwierigkeit darf NUR der Spieler wählen, der dran ist (auch der Host nicht)
 function pickDiff(g, pid, a) {
   if (!g.auto || g.phase !== 'pick' || !PTS[a.d]) return;
-  if (pid !== activeOf(g)) return;
+  const e = entOf(g, pid); if (!e || e.id !== activeOf(g)) return; // im Teammodus darf jedes Mitglied des Teams, das dran ist
   g.questions[g.qi] = drawQuestion(g, g.topic, a.d); g.diff = a.d; g.pts = PTS[a.d]; g.phase = 'question'; g.rn++;
 }
 // Nur der Host: Hinweise zeigen, für alle freigeben, Gewinner wählen, korrigieren, weiter, beenden
@@ -89,7 +96,7 @@ function hostAct(g, a, ctx) {
     if (w) { w.score += g.pts; w.correct++; }
     g.last = w ? { id: w.id, pts: g.pts } : null; g.res = { c: q.c, win: w ? w.id : null, pts: w ? g.pts : 0 }; g.phase = 'reveal'; g.rn++;
   } else if (a.type === 'qundo' && g.phase === 'reveal') { // falsche Wahl zurücknehmen
-    const w = g.last && g.players.find((x) => x.id === g.last.id); if (w) { w.score -= g.last.pts; w.correct--; }
+    const w = g.last && ents(g).find((x) => x.id === g.last.id); if (w) { w.score -= g.last.pts; w.correct--; }
     g.last = null; g.res = null; g.phase = 'question'; g.rn++;
   } else if (a.type === 'qend') finish(g); // Host beendet das Quiz früher
   else if (a.type === 'qnext' && g.phase === 'reveal') { if (g.qi + 1 < g.total) nextQuestion(g); else finish(g); }
@@ -99,14 +106,17 @@ function act(g, pid, a, ctx) {
   if (g.hostMode && /^q(pick|hint|next|undo|end|open)$/.test(a.type)) return hostAct(g, a, ctx);
   const p = g.players.find((x) => x.id === pid); if (!p || p.out || g.phase === 'over') return;
   if (a.type === 'giveup') return drop(g, pid);
-  if (g.hostMode || a.type !== 'answer' || g.phase !== 'question' || g.answers[pid]) return; // im Moderator-Modus wird mündlich geantwortet
+  const e = entOf(g, pid); if (!e || e.out) return;
+  if (g.hostMode || a.type !== 'answer' || g.phase !== 'question' || g.answers[e.id]) return; // im Moderator-Modus wird mündlich geantwortet; im Teammodus zählt der erste Tipp des Teams
   const choice = Number(a.choice); if (!Number.isInteger(choice) || choice < 0 || choice >= g.questions[g.qi].a.length) return;
-  g.answers[pid] = { choice, ms: Math.min(Date.now() - g.qStart, g.time * 1000) };
+  g.answers[e.id] = { choice, ms: Math.min(Date.now() - g.qStart, g.time * 1000), by: pid };
   if (active(g).every((x) => g.answers[x.id])) reveal(g); // alle haben geantwortet: gleich auflösen
 }
 function drop(g, pid) {
   const p = g.players.find((x) => x.id === pid); if (!p || p.out || g.phase === 'over') return;
-  p.out = true; g.outOrder.push(pid);
+  p.out = true;
+  if (g.teams) { const t = g.teams.find((x) => x.members.includes(pid)); if (t && t.members.every((m) => g.players.find((x) => x.id === m).out)) { t.out = true; g.outOrder.push(t.id); } } // Team ist raus, wenn alle Mitglieder weg sind
+  else g.outOrder.push(pid);
   if (active(g).length <= 1) return finish(g);
   if (!g.hostMode && g.phase === 'question' && active(g).every((x) => g.answers[x.id])) reveal(g);
 }
@@ -121,10 +131,10 @@ function tick(g) {
 }
 // Coins nur für die eingebauten Fragen im klassischen Quiz (eigene Quizze und Moderator-Spiele könnte man mit Zweitkonten erfarmen), mindestens 5 Fragen
 function payouts(g) {
-  const n = g.players.length, win = 80 + 30 * (n - 2), ok = g.coins && g.total >= 5;
+  const n = ents(g).length, win = 80 + 30 * (n - 2), ok = g.coins && g.total >= 5;
   return rank(g).map((p, i) => ({ id: p.id, place: i + 1, coins: ok && i + 1 < n ? Math.round((win * Math.pow(0.5, i)) / 5) * 5 : 0 }));
 }
-function view(g, forMod) {
+function view(g, forMod, pid) {
   const q = g.questions[g.qi], show = g.phase === 'reveal', hm = g.hostMode;
   let vq = null;
   if (q && g.phase !== 'intro' && g.phase !== 'pick') {
@@ -135,7 +145,10 @@ function view(g, forMod) {
     active: hm ? activeOf(g) : null, open: g.open, hs: g.hs, canUndo: !!hm && show,
     q: vq,
     res: show ? (hm ? { c: q.c, win: g.res.win, pts: g.res.pts } : g.res) : null,
-    players: g.players.map((p) => ({ id: p.id, name: p.name, color: p.color, score: p.score, streak: p.streak, out: p.out, correct: p.correct, answered: !hm && g.phase === 'question' && !!g.answers[p.id] })),
+    teamMode: !!g.teams, teamOf: g.teams ? Object.fromEntries(g.players.map((p) => [p.id, p.team])) : null,
+    mine: g.teams && !hm && pid && g.phase === 'question' && entOf(g, pid) && g.answers[entOf(g, pid).id] ? g.answers[entOf(g, pid).id].choice : undefined, // nur das eigene Team sieht seinen Tipp
+    lockedBy: g.teams && !hm && pid && g.phase === 'question' && entOf(g, pid) && g.answers[entOf(g, pid).id] ? (g.players.find((p) => p.id === g.answers[entOf(g, pid).id].by) || {}).name : undefined,
+    players: ents(g).map((p) => ({ id: p.id, name: p.name, color: p.color, score: p.score, streak: p.streak, out: p.out, correct: p.correct, isTeam: !!p.isTeam, members: p.members ? p.members.map((m) => (g.players.find((x) => x.id === m) || {}).name) : undefined, answered: !hm && g.phase === 'question' && !!g.answers[p.id] })),
     rank: g.phase === 'over' ? rank(g).map((p) => p.id) : null,
     payout: g.phase === 'over' ? Object.fromEntries(payouts(g).map((x) => [x.id, { place: x.place, coins: x.coins }])) : null };
 }
