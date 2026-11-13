@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-rdxEnZHOfVWq79BMeuvoEhVQlTaeNInGGtJyNq3re0k='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https://hzvnbtksanoonvkblded.supabase.co wss://inkogniflix-minispiel.onrender.com ws://localhost:3000; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-1hxW26IXPK180WVO4W+MZqrn4UkOrfbX/9NVH8AkyiA='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https://hzvnbtksanoonvkblded.supabase.co wss://inkogniflix-minispiel.onrender.com ws://localhost:3000; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Inkogniflix</title>
 <link rel="icon" href="logo.png">
@@ -361,7 +361,11 @@ button.nudge{animation:nudge .8s ease-in-out infinite;box-shadow:0 0 0 3px #fff,
 .qhints{display:grid;gap:8px}.qhint{display:flex;align-items:center;gap:10px;background:#ffffff0d;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:15px;line-height:1.35}
 .qhint b{flex:none;color:var(--p1)}.qhint span{flex:1}.qhint.on{border-color:#4ade80}
 .qpicker{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}.qwin{padding:14px 22px;font-size:18px;border-radius:16px}
-#qhostRow{margin-top:4px}
+#qhostRow,#qteamRow{margin-top:4px}
+.qpill.d-team{background:#0d9488}
+.teams{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.tcolumn{border:2px solid var(--line);border-radius:14px;padding:0 0 10px;display:flex;flex-direction:column;gap:6px;overflow:hidden;background:#0e0920}
+.thead{padding:6px 10px;font-weight:800;color:#0b0718;font-size:14px}.tmem{padding:0 10px;font-size:15px}.tcolumn .tag{padding:0 10px}.tcolumn button{margin:4px 10px 0}
 .qpill.d-topic{background:#6d28d9}
 .qtopic{text-align:center;padding:18px;border-radius:20px;background:linear-gradient(135deg,#4c1d95aa,#1e1b4baa);border:1px solid var(--p2)}
 .qtopic small{color:var(--dim);font-size:14px}.qtopic div{font-size:clamp(30px,4.6vw,54px);font-weight:800;margin-top:4px}
@@ -411,6 +415,7 @@ button.nudge{animation:nudge .8s ease-in-out infinite;box-shadow:0 0 0 3px #fff,
     </div>
     <div class="card"><label>Spieler</label><div id="players"></div><label style="margin:14px 0 8px">Deine Farbe</label><div id="colors" class="colors"></div>
       <label class="rule" style="margin:16px 0 0"><span class="rtx"><b>Nur zuschauen</b><small>Du spielst nicht mit, siehst aber alles. Zum Start braucht es trotzdem mindestens 2 Mitspieler.</small></span><input type="checkbox" id="watchCb"><span class="sw"></span></label></div>
+    <div class="card hide" id="teamCard"><label>Teams</label><div id="teamBox"></div></div>
     <div class="card" id="settings">
       <div class="seg" id="modeSeg"><button id="modeM" class="on">🎲 Monopoly</button><button id="modeQ">❓ Quiz</button></div>
       <label for="max">Maximale Spielerzahl</label>
@@ -427,6 +432,8 @@ button.nudge{animation:nudge .8s ease-in-out infinite;box-shadow:0 0 0 3px #fff,
         <div id="qcatBox"><label for="qcat">Kategorie</label><select id="qcat"></select></div>
         <div class="row2"><div><label for="qcount">Anzahl Fragen</label><select id="qcount"></select></div><div id="qtimeBox"><label for="qtime">Zeit pro Frage</label><select id="qtime"></select></div></div>
         <label class="rule" id="qhostRow"><span class="rtx"><b>🎤 Moderator-Modus (mündlich)</b><small>Reihum bekommt ein Spieler ein Zufallsthema und wählt die Schwierigkeit (100 / 200 / 300 Punkte). Alle sehen dann die Frage und antworten laut. Du als Host siehst Antwort und 3 Hinweise und entscheidest, wer gewinnt. Du spielst nicht mit, keine Coins.</small></span><input type="checkbox" id="qhost"><span class="sw"></span></label>
+        <label class="rule" id="qteamRow"><span class="rtx"><b>👥 Teammodus</b><small>Zu zweit, zu dritt oder zu viert zusammenarbeiten und gegen andere Teams gewinnen. Ein Team antwortet gemeinsam, Punkte und Rangliste zählen pro Team. Keine Coins.</small></span><input type="checkbox" id="qteam"><span class="sw"></span></label>
+        <div id="qteamSizeBox" class="hide"><label for="qteamSize">Spieler pro Team</label><select id="qteamSize"><option value="2">2 (zu zweit)</option><option value="3">3 (zu dritt)</option><option value="4">4 (zu viert)</option></select></div>
         <div class="qsrc"><div id="qsrcInfo" class="tag"></div><div class="row"><button id="qpick" class="small ghost">Eigenes Quiz wählen …</button><button id="qedit" class="small ghost">Quiz erstellen</button></div></div>
       </div>
       <button id="startBtn" style="width:100%" disabled>Monopoly starten</button>
@@ -572,7 +579,7 @@ const QCATS = ['Geografie', 'Geschichte', 'Natur & Tiere', 'Wissenschaft', 'Spor
 const sendSettings = () => {
   const rules = {}; RULES.forEach(([k]) => { rules[k] = $('r_' + k).checked; });
   const s = { type: 'settings', budget: $('budget').value, map: $('map').value, max: $('max').value, rules,
-    mode: pendingMode || (state && state.settings && state.settings.mode) || 'monopoly', quiz: { category: $('qcat').value || 'gemischt', count: $('qcount').value || 10, time: $('qtime').value || 20, host: $('qhost').checked } };
+    mode: pendingMode || (state && state.settings && state.settings.mode) || 'monopoly', quiz: { category: $('qcat').value || 'gemischt', count: $('qcount').value || 10, time: $('qtime').value || 20, host: $('qhost').checked, team: $('qteam').checked, teamSize: $('qteamSize').value || 2 } };
   if (state && state.admin) s.test = $('r_test').checked;
   out(s); delete s.test; savePref('hostSettings', s); // für den nächsten Raum merken (im Konto, sonst nur in diesem Browser)
 };
@@ -588,7 +595,7 @@ $('budget').onchange = sendSettings; $('map').onchange = sendSettings; $('max').
 const DIFF_LABEL = { leicht: 'Leicht', mittel: 'Mittel', schwer: 'Schwer' };
 const TOPIC_ICON = { 'Geografie': '🌍', 'Geschichte': '🏛️', 'Natur & Tiere': '🦁', 'Wissenschaft': '🔬', 'Sport': '⚽', 'Film & Musik': '🎬', 'Essen & Trinken': '🍕', 'Allgemeinwissen': '💡', 'Technik & Gaming': '🎮', 'Sprache': '🗣️' };
 $('r_test').onchange = sendSettings;
-$('qcat').onchange = $('qcount').onchange = $('qtime').onchange = $('qhost').onchange = sendSettings;
+$('qcat').onchange = $('qcount').onchange = $('qtime').onchange = $('qhost').onchange = $('qteam').onchange = $('qteamSize').onchange = sendSettings;
 $('modeM').onclick = () => { pendingMode = 'monopoly'; sendSettings(); pendingMode = null; };
 $('modeQ').onclick = () => { pendingMode = 'quiz'; sendSettings(); pendingMode = null; };
 $('qpick').onclick = () => openQuizPicker(); $('qedit').onclick = () => openQuizEditor();
@@ -599,6 +606,30 @@ function show(inLobby) {
   document.body.classList.remove('ingame'); $('hero').classList.toggle('hide', inLobby);
   $('homewrap').classList.toggle('hide', inLobby); $('home').classList.toggle('hide', inLobby); $('features').classList.toggle('hide', inLobby); if (!inLobby) prevLobbyIds = null; $('lobby').classList.toggle('hide', !inLobby); $('game').classList.add('hide');
   if (!inLobby) { curView = 'home'; toTop(); resetGame(); }
+}
+
+// Teams in der Lobby: Spieler wählen ihr Team selbst, der Host kann auslosen
+const TEAM_NAMES = ['Blau', 'Orange', 'Grün', 'Rot', 'Lila', 'Gelb'], TEAM_COLORS = [1, 2, 3, 4, 0, 8];
+function renderTeams(on, qz, host) {
+  $('teamCard').classList.toggle('hide', !on); if (!on) return;
+  const box = $('teamBox'); box.textContent = '';
+  const size = Number(qz.teamSize) || 2, me = state.you, meP = state.players.find((p) => p.id === me) || {};
+  const cs = state.players.filter((p) => !p.watch && !(qz.host && p.id === state.hostId)), slots = Math.max(2, Math.ceil(cs.length / size));
+  const canJoin = !meP.watch && !(qz.host && me === state.hostId);
+  const grid = el('div', 'teams');
+  for (let i = 0; i < slots; i++) {
+    const members = cs.filter((p) => p.team === i), mine = meP.team === i, full = members.length >= size, col = el('div', 'tcolumn');
+    col.style.borderColor = COL[TEAM_COLORS[i]]; const hd = el('div', 'thead', 'Team ' + TEAM_NAMES[i] + ' · ' + members.length + '/' + size); hd.style.background = COL[TEAM_COLORS[i]]; col.append(hd);
+    members.forEach((p) => col.append(el('div', 'tmem', p.name + (p.id === me ? ' (du)' : ''))));
+    if (!members.length) col.append(el('div', 'tag', 'noch leer'));
+    if (canJoin) { const b = el('button', 'small ' + (mine ? 'ghost' : ''), mine ? 'Team verlassen' : 'Beitreten'); b.disabled = !mine && full; b.onclick = () => out({ type: 'team', team: mine ? null : i }); col.append(b); }
+    grid.append(col);
+  }
+  box.append(grid);
+  const free = cs.filter((p) => !Number.isInteger(p.team) || p.team >= slots);
+  if (free.length) box.append(el('div', 'tag', 'Noch ohne Team (werden beim Start automatisch zugeteilt): ' + free.map((p) => p.name).join(', ')));
+  if (qz.host && me === state.hostId) box.append(el('div', 'tag', 'Als Moderator spielst du nicht mit und gehörst zu keinem Team.'));
+  if (host) { const sh = el('button', 'small ghost', '🎲 Zufällig verteilen'); sh.style.marginTop = '8px'; sh.onclick = () => out({ type: 'teamshuffle' }); box.append(sh); }
 }
 function render() {
   show(true);
@@ -617,21 +648,21 @@ function render() {
     $('monoSet').classList.toggle('hide', qm); $('quizSet').classList.toggle('hide', !qm);
     const mx = qz.id ? qz.max : !qz.host && qz.category && qz.category !== 'gemischt' ? 15 : 30, opts = [...new Set([3, 5, 10, 15, 20, 25, 30].filter((n) => n <= mx).concat(qz.id ? [mx] : []))].sort((a, b) => a - b), sel = $('qcount');
     if (sel.dataset.sig !== opts.join()) { sel.textContent = ''; opts.forEach((n) => { const o = el('option', '', n + ' Fragen'); o.value = n; sel.append(o); }); sel.dataset.sig = opts.join(); }
-    sel.value = String(Math.min(qz.count || 10, mx)); $('qcat').value = qz.category || 'gemischt'; $('qtime').value = String(qz.time || 20); $('qhost').checked = !!qz.host; $('qtimeBox').classList.toggle('hide', !!qz.host); $('qcatBox').classList.toggle('hide', !!qz.host || !!qz.id);
+    sel.value = String(Math.min(qz.count || 10, mx)); $('qcat').value = qz.category || 'gemischt'; $('qtime').value = String(qz.time || 20); $('qhost').checked = !!qz.host; $('qteam').checked = !!qz.team; $('qteamSize').value = String(qz.teamSize || 2); $('qteamSizeBox').classList.toggle('hide', !qz.team); $('qteam').disabled = $('qteamSize').disabled = !host; renderTeams(qm && !!qz.team, qz, host); $('qtimeBox').classList.toggle('hide', !!qz.host); $('qcatBox').classList.toggle('hide', !!qz.host || !!qz.id);
     $('qcat').disabled = sel.disabled = $('qtime').disabled = $('qhost').disabled = !host; $('qpick').classList.toggle('hide', !host); $('qedit').classList.toggle('hide', !host);
     $('qsrcInfo').textContent = qz.id ? '📝 ' + qz.title + ' (' + qz.max + ' Fragen) · eigenes Quiz, keine Coins' : (qz.host ? 'Zufällige Themen aus 150 Fragen · Moderator-Modus: keine Coins' : 'Eingebaute Fragen (150 in 10 Kategorien) · Punkte je nach Schwierigkeit der Frage · Coins für Spieler mit Konto');
   }
   [...$('colors').children].forEach((b, i) => { const o = state.players.find((p) => p.color === i); b.classList.toggle('me', !!o && o.id === state.you); b.classList.toggle('taken', !!o && o.id !== state.you); b.disabled = !!o && o.id !== state.you; });
-  const playing = state.players.filter((p) => !p.watch).length, need = state.settings.test && state.admin ? 1 : 2; // Zuschauer zählen nicht als Spieler
+  const playing = state.players.filter((p) => !p.watch).length, need = state.settings.test && state.admin ? 1 : state.settings.mode === 'quiz' && (state.settings.quiz || {}).team ? ((state.settings.quiz || {}).host ? 3 : 2) : 2; // Zuschauer zählen nicht als Spieler; Teammodus braucht 2 Teams
   $('startBtn').disabled = !(host && playing >= need);
-  $('startBtn').textContent = playing >= need ? (state.settings.mode === 'quiz' ? 'Quiz starten' : 'Monopoly starten') : 'Warte auf weitere Mitspieler (mindestens 2) …';
+  $('startBtn').textContent = playing >= need ? (state.settings.mode === 'quiz' ? 'Quiz starten' : 'Monopoly starten') : 'Warte auf weitere Mitspieler (mindestens ' + need + ') …';
   $('watchCb').checked = !!(state.players.find((p) => p.id === state.you) || {}).watch;
   const box = $('players'); box.textContent = '';
   state.players.forEach((p) => {
     const row = el('div', 'player' + (prevLobbyIds && !prevLobbyIds.has(p.id) ? ' new' : ''));
     let av; if (p.avatar) av = avWrap(p.avatar, COL[p.color], 40); else { av = el('div', 'av', p.name[0].toUpperCase()); av.style.background = COL[p.color]; av.style.color = '#0b0718'; }
     row.append(av, el('div', 'name', p.name + (p.id === state.you ? ' (du)' : '')),
-      el('div', 'tag', [p.id === state.hostId ? 'Host' : '', p.watch ? '👁 Zuschauer' : '', !p.watch && p.guest && p.id !== state.hostId ? 'Gast' : ''].filter(Boolean).join(' · ')));
+      el('div', 'tag', [p.id === state.hostId ? 'Host' : '', state.settings.mode === 'quiz' && (state.settings.quiz || {}).team && Number.isInteger(p.team) && !p.watch ? 'Team ' + TEAM_NAMES[p.team] : '', p.watch ? '👁 Zuschauer' : '', !p.watch && p.guest && p.id !== state.hostId ? 'Gast' : ''].filter(Boolean).join(' · ')));
     if (host && p.id !== state.you) { const k = el('button', 'small danger', 'Kicken'); k.onclick = () => out({ type: 'kick', id: p.id }); row.append(k); }
     box.append(row);
   });
@@ -941,11 +972,11 @@ let qzPick = null, qzKey = '', qzTickN = null;
 
 // Moderator-Modus: Reihum Zufallsthema, der Spieler wählt die Schwierigkeit, alle sehen die Frage, der Host moderiert
 function renderQuizHost(z, g, host, spec) {
-  const me = state.you, act = g.players.find((x) => x.id === g.active), actName = act ? act.name : '?', iAm = g.active === me;
+  const me = state.you, meE = g.teamOf ? g.teamOf[me] : me, act = g.players.find((x) => x.id === g.active), actName = act ? act.name : '?', iAm = g.active === meE;
   const endBtn = () => { if (!host) return; const e = el('button', 'small danger', 'Quiz jetzt beenden'); e.style.alignSelf = 'center'; e.onclick = () => { if (confirm('Quiz wirklich jetzt beenden? Der aktuelle Punktestand entscheidet.')) out({ type: 'qend' }); }; z.append(e); };
   if (g.phase === 'pick') { // Thema steht fest, die Schwierigkeit fehlt noch: noch keine Frage
     const t = el('div', 'qtopic'); t.append(el('small', '', 'Thema dieser Runde'), el('div', '', (TOPIC_ICON[g.topic] || '❓') + ' ' + g.topic)); z.append(t);
-    z.append(el('div', 'qtext', iAm ? 'Du bist dran: wähle deine Schwierigkeit!' : actName + ' wählt die Schwierigkeit …'));
+    z.append(el('div', 'qtext', iAm ? (g.teamMode ? 'Euer Team ist dran: wählt die Schwierigkeit!' : 'Du bist dran: wähle deine Schwierigkeit!') : actName + ' wählt die Schwierigkeit …'));
     const row = el('div', 'qdiffs');
     ['leicht', 'mittel', 'schwer'].forEach((d) => { const b = el('button', 'qd ' + d); b.append(el('b', '', DIFF_LABEL[d]), el('small', '', g.ptsMap[d] + ' Punkte')); b.disabled = !iAm; if (!iAm) { b.tabIndex = -1; b.setAttribute('aria-disabled', 'true'); } b.onclick = () => { if (iAm) out({ type: 'qdiff', d }); }; row.append(b); });
     z.append(row);
@@ -954,8 +985,8 @@ function renderQuizHost(z, g, host, spec) {
   }
   z.append(el('div', 'qtext', g.q.q));
   const win = g.res && g.res.win, wp = win && g.players.find((x) => x.id === win);
-  if (g.phase === 'reveal') z.append(el('div', 'qbanner ' + (wp ? (win === me ? 'ok' : 'idle') : 'no'), wp ? '🏆 ' + wp.name + (win === me ? ' (du)' : '') + ' bekommt +' + g.res.pts + ' Punkte' : 'Niemand hat es gewusst'));
-  else if (!host) z.append(el('div', 'qbanner ' + (g.open || iAm ? 'ok' : 'idle'), g.open ? '🙋 Freigegeben: Alle dürfen raten!' : iAm ? 'Du bist dran: antworte laut!' : actName + ' ist dran und antwortet laut.'));
+  if (g.phase === 'reveal') z.append(el('div', 'qbanner ' + (wp ? (win === meE ? 'ok' : 'idle') : 'no'), wp ? '🏆 ' + wp.name + (win === meE ? (g.teamMode ? ' (euer Team)' : ' (du)') : '') + ' bekommt +' + g.res.pts + ' Punkte' : 'Niemand hat es gewusst'));
+  else if (!host) z.append(el('div', 'qbanner ' + (g.open || iAm ? 'ok' : 'idle'), g.open ? '🙋 Freigegeben: Alle dürfen raten!' : iAm ? (g.teamMode ? 'Euer Team ist dran: beratet euch und antwortet laut!' : 'Du bist dran: antworte laut!') : actName + ' ist dran und antwortet laut.'));
   else if (g.open) z.append(el('div', 'qbanner ok', '🙋 Für alle freigegeben: Alle dürfen raten'));
   if (host) {
     const box = el('div', 'qmod'); box.append(el('div', 'qlabel', 'Richtige Antwort (nur für dich sichtbar)'), el('div', 'qright', g.q.a[g.q.c]));
@@ -980,7 +1011,7 @@ function renderQuizHost(z, g, host, spec) {
       const op = el('button', 'qwin', '🙋 Für alle freigeben'); op.onclick = () => out({ type: 'qopen' }); pk.append(op);
     } else {
       z.append(el('div', 'qlabel', 'Wer hat es gewusst? (+' + g.pts + ' Punkte)'));
-      g.players.filter((p) => !p.out).forEach((p) => { const b = el('button', 'qwin', '🏆 ' + p.name); b.style.background = COL[p.color]; b.style.color = '#0b0718'; b.onclick = () => out({ type: 'qpick', id: p.id }); pk.append(b); });
+      g.players.filter((p) => !p.out).forEach((p) => { const b = el('button', 'qwin', '🏆 ' + p.name); b.style.background = COL[p.color]; b.style.color = '#0b0718'; if (p.members) b.title = p.members.join(', '); b.onclick = () => out({ type: 'qpick', id: p.id }); pk.append(b); });
     }
     const none = el('button', 'qwin ghost', 'Niemand'); none.onclick = () => out({ type: 'qpick', id: null }); pk.append(none); z.append(pk);
   }
@@ -993,25 +1024,25 @@ function renderQuizHost(z, g, host, spec) {
 }
 function renderQuiz() {
   $('admCard').classList.add('hide');
-  const g = state.game, me = state.you, spec = !!state.spec, meP = g.players.find((x) => x.id === me), canAnswer = !spec && !!meP && !meP.out, host = me === state.hostId;
+  const g = state.game, me = state.you, meE = g.teamOf ? g.teamOf[me] : me, spec = !!state.spec, meP = g.players.find((x) => x.id === meE), canAnswer = !spec && !!meP && !meP.out, host = me === state.hostId;
   $('bw').classList.add('hide'); $('qz').classList.remove('hide'); ['logCard', 'prCard', 'trCard'].forEach((id) => $(id).classList.add('hide'));
   $('rc').textContent = state.code; $('specInfo').textContent = spec ? '👁 Du schaust zu.' : state.specs && state.specs.length ? '👁 Zuschauer: ' + state.specs.join(', ') : '';
   const key = g.qi + ':' + g.phase;
   if (key !== qzKey) { // einmal pro Phase: Töne
     qzKey = key; qzTickN = null;
     if (g.phase === 'question') sfx('turn');
-    const mp = !g.hostMode && g.res && g.res.picks[me]; if (g.phase === 'reveal' && mp && mp.choice >= 0) sfx(mp.ok ? 'buy' : 'rent');
-    if (g.phase === 'reveal' && g.hostMode && g.res) sfx(g.res.win === me ? 'buy' : 'chat');
-    if (g.phase === 'pick' && g.active === me) sfx('turn');
-    if (g.phase === 'over') sfx(g.winner === me ? 'win' : 'chat');
+    const mp = !g.hostMode && g.res && g.res.picks[meE]; if (g.phase === 'reveal' && mp && mp.choice >= 0) sfx(mp.ok ? 'buy' : 'rent');
+    if (g.phase === 'reveal' && g.hostMode && g.res) sfx(g.res.win === meE ? 'buy' : 'chat');
+    if (g.phase === 'pick' && g.active === meE) sfx('turn');
+    if (g.phase === 'over') sfx(g.winner === meE ? 'win' : 'chat');
   }
   if (g.phase === 'over') { if (!overSeen) { overSeen = true; if (auth.session) { setTimeout(loadAccount, 2500); setTimeout(loadAccount, 7000); } } } else overSeen = false;
   if (qzPick && qzPick.qi !== g.qi) qzPick = null;
-  const avOf = (id, color, size) => { const sp = state.players.find((x) => x.id === id); if (sp && sp.avatar) return avWrap(sp.avatar, COL[color], size); const t = el('div', 'ptok', (g.players.find((x) => x.id === id) || { name: '?' }).name[0].toUpperCase()); t.style.background = COL[color]; t.style.cssText += ';position:static;transform:none;width:' + size + 'px;height:' + size + 'px;font-size:' + Math.round(size / 2) + 'px;flex:none;margin:0 auto'; return t; };
+  const avOf = (id, color, size) => { const ge0 = g.players.find((x) => x.id === id); if (ge0 && ge0.isTeam) { const tt = el('div', 'ptok', '👥'); tt.style.background = COL[color]; tt.style.cssText += ';position:static;transform:none;width:' + size + 'px;height:' + size + 'px;font-size:' + Math.round(size / 2) + 'px;flex:none;margin:0 auto'; return tt; } const sp = state.players.find((x) => x.id === id); if (sp && sp.avatar) return avWrap(sp.avatar, COL[color], size); const t = el('div', 'ptok', (g.players.find((x) => x.id === id) || { name: '?' }).name[0].toUpperCase()); t.style.background = COL[color]; t.style.cssText += ';position:static;transform:none;width:' + size + 'px;height:' + size + 'px;font-size:' + Math.round(size / 2) + 'px;flex:none;margin:0 auto'; return t; };
 
   const z = $('qz'); z.textContent = '';
   const head = el('div', 'qhead'), tm = el('b', ''); tm.id = 'qtm';
-  head.append(el('div', 'qt', g.title), el('span', 'qpill', g.phase === 'over' ? 'Ende' : g.phase === 'intro' ? 'Start' : (g.hostMode ? 'Runde ' : 'Frage ') + (g.qi + 1) + ' / ' + g.total), ...(g.topic && g.phase !== 'over' ? [el('span', 'qpill d-topic', (TOPIC_ICON[g.topic] || '') + ' ' + g.topic)] : []), ...(g.diff && g.phase !== 'over' ? [el('span', 'qpill d-' + g.diff, DIFF_LABEL[g.diff] + ' · ' + g.pts + ' Punkte')] : []), g.hostMode ? el('span', 'qpill d-mod', '🎤 Moderiert') : tm); z.append(head);
+  head.append(el('div', 'qt', g.title), el('span', 'qpill', g.phase === 'over' ? 'Ende' : g.phase === 'intro' ? 'Start' : (g.hostMode ? 'Runde ' : 'Frage ') + (g.qi + 1) + ' / ' + g.total), ...(g.topic && g.phase !== 'over' ? [el('span', 'qpill d-topic', (TOPIC_ICON[g.topic] || '') + ' ' + g.topic)] : []), ...(g.diff && g.phase !== 'over' ? [el('span', 'qpill d-' + g.diff, DIFF_LABEL[g.diff] + ' · ' + g.pts + ' Punkte')] : []), ...(g.teamMode && meP ? [el('span', 'qpill d-team', '👥 ' + meP.name)] : []), g.hostMode ? el('span', 'qpill d-mod', '🎤 Moderiert') : tm); z.append(head);
   if (!g.hostMode) { const bar = el('div', 'qbar'), fill = el('div', 'qfill'); fill.id = 'qfill'; bar.append(fill); z.append(bar); }
 
   if (g.phase === 'intro') { const b = el('div', 'qbig'), d = el('div', '', 'Gleich geht’s los!'); d.append(el('small', '', g.total + ' Fragen · ' + (g.hostMode ? (g.auto ? 'Reihum Zufallsthema und Schwierigkeit wählen · 100 / 200 / 300 Punkte' : 'mündlich antworten, der Host entscheidet') : g.time + ' Sekunden pro Frage · Punkte je nach Schwierigkeit der Frage'))); b.append(d); z.append(b); }
@@ -1022,18 +1053,18 @@ function renderQuiz() {
       pod.append(avOf(id, p.color, 56), el('b', '', p.name), el('div', 'sc', p.score + ' Punkte' + (po && po.coins && sp && !sp.guest ? ' · +' + po.coins + ' 🪙' : '')));
       const pb = el('div', 'pb', i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉'); pb.style.height = hts[i] + 'px'; pod.append(pb); podium.append(pod);
     });
-    z.append(el('div', 'qtext', g.winner === me ? '🏆 Du hast gewonnen!' : '🏆 ' + (g.players.find((x) => x.id === g.winner) || {}).name + ' gewinnt!'), podium);
+    z.append(el('div', 'qtext', g.winner === meE ? (g.teamMode ? '🏆 Euer Team hat gewonnen!' : '🏆 Du hast gewonnen!') : '🏆 ' + (g.players.find((x) => x.id === g.winner) || {}).name + ' gewinnt!'), podium);
     if (host) { const b = el('button', '', 'Zurück zur Lobby'); b.onclick = () => out({ type: 'lobby' }); b.style.alignSelf = 'center'; z.append(b); }
     if (g.title && g.payout && Object.values(g.payout).every((x) => x.coins === 0)) z.append(el('div', 'tag', g.hostMode ? 'Moderiertes Quiz: dafür gibt es keine Coins.' : 'Für dieses Spiel gab es keine Coins (eigenes Quiz oder weniger als 5 Fragen).'));
   } else if (g.hostMode) renderQuizHost(z, g, host, spec);
   else {
     z.append(el('div', 'qtext', g.q.q));
-    const mp = g.res && g.res.picks[me];
+    const mp = g.res && g.res.picks[meE];
     if (g.phase === 'reveal') {
       const bn = !canAnswer ? ['idle', 'Auflösung'] : mp && mp.ok ? ['ok', 'Richtig! +' + mp.pts + (mp.streak > 1 ? ' · 🔥 ' + mp.streak + ' in Folge' : '')] : mp && mp.choice < 0 ? ['no', 'Keine Antwort'] : ['no', 'Leider falsch'];
       z.append(el('div', 'qbanner ' + bn[0], bn[1]));
     }
-    const grid = el('div', 'qgrid'), picked = g.phase === 'reveal' ? (mp ? mp.choice : -1) : qzPick ? qzPick.choice : -1;
+    const grid = el('div', 'qgrid'), picked = g.phase === 'reveal' ? (mp ? mp.choice : -1) : g.mine !== undefined ? g.mine : qzPick ? qzPick.choice : -1;
     g.q.a.forEach((txt, i) => {
       const b = el('button', 'qans c' + i); b.append(el('span', 'shape', SHAPES[i]), el('span', '', txt));
       if (g.phase === 'question') { b.disabled = !canAnswer || picked >= 0; if (picked === i) b.classList.add('picked'); else if (picked >= 0) b.classList.add('dim'); b.onclick = () => { qzPick = { qi: g.qi, choice: i }; out({ type: 'answer', choice: i }); renderQuiz(); }; }
@@ -1041,6 +1072,8 @@ function renderQuiz() {
       grid.append(b);
     });
     z.append(grid);
+    if (g.lockedBy) z.append(el('div', 'tag qcenter', '✔ ' + g.lockedBy + ' hat für euer Team getippt.'));
+    else if (g.teamMode && canAnswer && g.phase === 'question') z.append(el('div', 'tag qcenter', 'Beratet euch: der erste Tipp im Team zählt für alle.'));
     if (g.phase === 'question') { const ch = el('div', 'qchips'); g.players.filter((p) => !p.out).forEach((p) => ch.append(el('span', 'qchip' + (p.answered ? ' done' : ''), (p.answered ? '✔ ' : '… ') + p.name))); z.append(ch); }
   }
 
@@ -1048,9 +1081,9 @@ function renderQuiz() {
   const pl = $('plCard'); pl.textContent = ''; pl.append(el('div', 'hd', 'Punkte'));
   [...g.players].sort((a, b) => b.score - a.score).forEach((q, i) => {
     const r = el('div', 'qrank' + (q.out ? ' out' : '')), pick = g.res && (g.hostMode ? { pts: g.res.win === q.id ? g.res.pts : 0 } : g.res.picks[q.id]);
-    r.append(el('span', 'n', i + 1), avOf(q.id, q.color, 28), el('span', '', q.name + (q.id === me ? ' (du)' : '') + (q.id === state.hostId ? ' 👑' : '') + (g.hostMode && q.id === g.active && (g.phase === 'pick' || g.phase === 'question') ? ' 🎯' : '') + (q.streak > 1 ? ' 🔥' + q.streak : '')));
+    r.append(el('span', 'n', i + 1), avOf(q.id, q.color, 28), el('span', '', q.name + (q.id === meE ? (g.teamMode ? ' (euer Team)' : ' (du)') : '') + (q.members ? ' · ' + q.members.join(', ') : '') + (q.id === state.hostId ? ' 👑' : '') + (g.hostMode && q.id === g.active && (g.phase === 'pick' || g.phase === 'question') ? ' 🎯' : '') + (q.streak > 1 ? ' 🔥' + q.streak : '')));
     const m = el('span', 'm', q.score); if (g.phase === 'reveal' && pick && pick.pts) m.append(el('span', 'gain', '+' + pick.pts)); else if (g.phase === 'question' && q.answered) m.append(el('span', 'gain', '✔')); r.append(m);
-    if (g.phase === 'over') payBadge(r, q, g);
+    if (g.phase === 'over' && !g.teamMode) payBadge(r, q, g);
     pl.append(r);
   });
   if (canAnswer && g.phase !== 'over') { const b = el('button', 'small danger', 'Quiz verlassen'); b.style.marginTop = '8px'; b.onclick = () => { if (confirm('Quiz wirklich verlassen?')) out({ type: 'giveup' }); }; pl.append(b); }
