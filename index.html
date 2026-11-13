@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-3Q6Tdw6GAIsb1SwJg/qHUZRO/nJeiip5VGbAxKq/o/4='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https:; connect-src https://hzvnbtksanoonvkblded.supabase.co https://graphql.anilist.co https://api.jikan.moe https://kitsu.io https://en.wikipedia.org wss://inkogniflix-minispiel.onrender.com ws://localhost:3000; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Ljas3SnjmbfkTVIkrML7/Gd3xF/NE9jZMazQWEy/B/k='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https:; connect-src https://hzvnbtksanoonvkblded.supabase.co https://graphql.anilist.co https://api.jikan.moe https://kitsu.io https://en.wikipedia.org wss://inkogniflix-minispiel.onrender.com ws://localhost:3000; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Inkogniflix</title>
 <link rel="icon" href="logo.png">
@@ -428,18 +428,28 @@ button.nudge{animation:nudge .8s ease-in-out infinite;box-shadow:0 0 0 3px #fff,
 .antm.hot{color:#fb7185;border-color:#fb7185;text-shadow:0 0 10px #fb7185;box-shadow:0 0 14px #fb7185aa;animation:hotpulse .5s ease-in-out infinite alternate}
 @keyframes hotpulse{from{transform:scale(1);box-shadow:0 0 8px #fb718566}to{transform:scale(1.14);box-shadow:0 0 22px #fb7185}}
 @media(prefers-reduced-motion:reduce){.antm.hot{animation:none}}
-/* Seltenheiten: neonfarbene Rahmen, legendär/mythisch mit dezentem Feuer */
-.rar{--rc:#9ca3af;--rg:#9ca3af55;--rf:transparent;border:2px solid var(--rc)!important;box-shadow:0 0 5px var(--rc),0 0 12px var(--rg),inset 0 0 8px var(--rg)}
+/* Seltenheiten: neonfarbene Rahmen; legendär und mythisch mit deutlich sichtbarem Feuer (mythisch stärker) */
+.rar{--rc:#9ca3af;--rg:#9ca3af55;border:2px solid var(--rc)!important;box-shadow:0 0 5px var(--rc),0 0 12px var(--rg),inset 0 0 8px var(--rg)}
 .rar-c{--rc:#9ca3af;--rg:#9ca3af33}
 .rar-r{--rc:#7dd3fc;--rg:#38bdf877;box-shadow:0 0 6px #7dd3fc,0 0 16px #38bdf8aa,inset 0 0 10px #38bdf855}
-.rar-l{--rc:#fb923c;--rg:#f9731688;--rf:#f9731666;animation:fireL 1.7s ease-in-out infinite alternate}
-.rar-m{--rc:#c084fc;--rg:#a855f799;--rf:#a855f799;animation:fireM 1.2s ease-in-out infinite alternate}
-.rar-l::after,.rar-m::after{content:'';position:absolute;left:0;right:0;bottom:0;height:60%;pointer-events:none;z-index:1;background:radial-gradient(55% 95% at 22% 100%,var(--rf),transparent 72%),radial-gradient(50% 85% at 74% 100%,var(--rf),transparent 72%);mix-blend-mode:screen;animation:flame 1.3s ease-in-out infinite alternate}
-.rar-m::after{height:75%}
-@keyframes fireL{from{box-shadow:0 0 6px #fb923c,0 0 14px #f9731677,inset 0 0 8px #f9731633}to{box-shadow:0 0 8px #fdba74,0 0 20px #f97316aa,inset 0 0 12px #f9731655}}
-@keyframes fireM{from{box-shadow:0 0 8px #c084fc,0 0 18px #a855f7aa,inset 0 0 10px #a855f755}to{box-shadow:0 0 12px #e9d5ff,0 0 28px #a855f7dd,inset 0 0 16px #a855f777}}
-@keyframes flame{from{transform:translateY(8%) scaleY(.8);opacity:.45}to{transform:translateY(-3%) scaleY(1.1);opacity:.9}}
-.ancard.rar{overflow:hidden}.ancard.rar .cap{z-index:3}
+.rar-l{--rc:#fb923c;--rg:#f9731688;--ff:rgba(249,115,22,.95);--ff2:rgba(253,224,71,.8);animation:fireSmallL 1.1s ease-in-out infinite alternate}
+.rar-m{--rc:#c084fc;--rg:#a855f799;--ff:rgba(168,85,247,.95);--ff2:rgba(232,121,249,.85);animation:fireSmallM .9s ease-in-out infinite alternate}
+@keyframes fireSmallL{0%{box-shadow:0 0 5px #fb923c,0 -3px 9px #f97316aa,0 -6px 14px #fde04755,inset 0 0 8px #f9731666}100%{box-shadow:0 0 8px #fdba74,0 -6px 14px #f97316dd,0 -11px 20px #fde04777,inset 0 -6px 12px #f9731699}}
+@keyframes fireSmallM{0%{box-shadow:0 0 7px #c084fc,0 -5px 12px #a855f7cc,0 -9px 18px #e879f977,inset 0 0 10px #a855f788}100%{box-shadow:0 0 12px #e9d5ff,0 -9px 20px #a855f7ee,0 -16px 28px #e879f9aa,inset 0 -8px 16px #a855f7aa}}
+/* Große Karte: Flammenzungen hinter dem Rahmen, die nach oben züngeln (zwei Lagen, leicht versetzt) */
+.ancard.rar{overflow:visible;isolation:isolate}.ancard.rar .face{border-radius:15px}.ancard.rar .cap{border-radius:0 0 15px 15px;z-index:3}
+.ancard.rar-l::before,.ancard.rar-l::after,.ancard.rar-m::before,.ancard.rar-m::after{content:'';position:absolute;pointer-events:none;z-index:-1;inset:-12px -9px -6px;border-radius:24px;filter:blur(4px);transform-origin:50% 100%;
+  background:radial-gradient(26% 42% at 10% 100%,var(--ff) 0,transparent 72%),radial-gradient(22% 58% at 33% 100%,var(--ff2) 0,transparent 72%),radial-gradient(26% 50% at 58% 100%,var(--ff) 0,transparent 72%),radial-gradient(22% 62% at 82% 100%,var(--ff2) 0,transparent 72%),radial-gradient(18% 36% at 96% 100%,var(--ff) 0,transparent 72%),radial-gradient(70% 18% at 50% 0,var(--ff) 0,transparent 80%),radial-gradient(14% 50% at 0 55%,var(--ff) 0,transparent 80%),radial-gradient(14% 50% at 100% 55%,var(--ff) 0,transparent 80%);
+  animation:flameDance 1.15s ease-in-out infinite alternate}
+.ancard.rar-l::after,.ancard.rar-m::after{inset:-8px -5px -4px;animation-duration:.8s;animation-direction:alternate-reverse;opacity:.5}
+.ancard.rar-m::before,.ancard.rar-m::after{inset:-22px -14px -8px;border-radius:30px}.ancard.rar-m::after{inset:-14px -9px -5px}
+.ancard.rar-l::before,.ancard.rar-l::after{opacity:.55}
+/* einzelne Flammenzungen (JS-erzeugt) */
+.flames{position:absolute;inset:0;pointer-events:none;z-index:-1}
+.flames i{position:absolute;width:26px;height:44px;margin-left:-13px;transform-origin:50% 100%;transform:translateY(-100%);background:radial-gradient(ellipse 55% 70% at 50% 84%,#ffffffcc 0,var(--f1) 36%,var(--f2) 66%,transparent 80%);clip-path:polygon(50% 0,68% 30%,92% 62%,78% 100%,22% 100%,8% 62%,32% 30%);filter:blur(.7px);animation:flick .7s ease-in-out infinite alternate}
+.flames.fl-l{--f1:#fdba74;--f2:#f97316}.flames.fl-m{--f1:#f0abfc;--f2:#8b5cf6}.flames.fl-m i{width:32px;margin-left:-16px}
+@keyframes flick{0%{transform:translateY(-90%) scale(.85,.78) rotate(-6deg);opacity:.65}100%{transform:translateY(-104%) scale(1.1,1.28) rotate(6deg);opacity:1}}
+@keyframes flameDance{0%{transform:scale(1,.9) translateY(3px)}100%{transform:scale(1.04,1.14) translateY(-5px)}}
 .rlabel{display:inline-block;margin-top:4px;font-size:12px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;padding:2px 10px;border-radius:999px;border:1px solid currentColor}
 .cap .rlabel{display:block;width:max-content;margin:6px auto 0}
 .rl-c{color:#d1d5db}.rl-r{color:#7dd3fc;text-shadow:0 0 8px #38bdf8}.rl-l{color:#fdba74;text-shadow:0 0 8px #f97316}.rl-m{color:#e9d5ff;text-shadow:0 0 10px #a855f7}
@@ -448,7 +458,7 @@ button.nudge{animation:nudge .8s ease-in-out infinite;box-shadow:0 0 0 3px #fff,
 .atot.best{color:#facc15;text-shadow:0 0 12px #facc1599}
 .ancenter{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:14px;min-height:420px;padding:20px}
 .anbig{font-size:clamp(30px,5vw,64px);font-weight:900;line-height:1.1}.ansub{font-size:clamp(16px,2.1vw,26px);color:var(--dim)}
-@media(prefers-reduced-motion:reduce){.rar-l,.rar-m,.rar-l::after,.rar-m::after,.slotwin.flash{animation:none}}
+@media(prefers-reduced-motion:reduce){.flames i{animation:none}.rar-l,.rar-m,.ancard.rar-l::before,.ancard.rar-l::after,.ancard.rar-m::before,.ancard.rar-m::after,.slotwin.flash{animation:none}}
 @media(max-width:700px){.anboard{grid-template-columns:1fr}.ancat{justify-content:space-between}.antable{font-size:12px}}
 @media(prefers-reduced-motion:reduce){.anslot.free,.ancell.new{animation:none}.slotstrip{transition:none}}
 </style>
@@ -1208,6 +1218,19 @@ async function pumpJikan() { // Name bleibt aus Gewohnheit: arbeitet die Wartesc
   fbBusy = false; setTimeout(pumpJikan, 900);
 }
 window.animeMissing = () => Object.values(IMG_FAIL); // Konsole: welche Charaktere haben (noch) kein Bild?
+// Flammenzungen rund um die große Karte (legendär: orange, mythisch: lila und mehr/größer)
+function flames(r) {
+  const n = r === 'm' ? 22 : 13, base = r === 'm' ? 54 : 40, box = el('div', 'flames fl-' + r), nt = Math.round(n * .4), ns = Math.round(n * .3);
+  for (let k = 0; k < n; k++) {
+    const f = el('i'); let x, y;
+    if (k < nt) { x = (k + .5) / nt * 100; y = 0; f.style.left = x + '%'; f.style.top = '2px'; }
+    else if (k < nt + ns) { y = 12 + (k - nt + .5) / ns * 78; f.style.left = '2px'; f.style.top = y + '%'; }
+    else { y = 12 + (k - nt - ns + .5) / (n - nt - ns) * 78; f.style.left = 'calc(100% - 2px)'; f.style.top = y + '%'; }
+    f.style.height = Math.round(base * (.7 + Math.random() * .6)) + 'px'; f.style.animationDuration = (.5 + Math.random() * .5).toFixed(2) + 's'; f.style.animationDelay = '-' + (Math.random() * 1).toFixed(2) + 's';
+    box.append(f);
+  }
+  return box;
+}
 const RARN = { c: 'Gewöhnlich', r: 'Selten', l: 'Legendär', m: 'Mythisch' };
 const rcl = (c) => (c && c.r ? 'rar rar-' + c.r : ''); // Rahmen nach Seltenheit: grau, hellblau, orange (Feuer), lila (stärkeres Feuer)
 
@@ -1329,7 +1352,7 @@ function buildAnimeStage(g, stage, ctx) {
       });
     } else left.append(el('div', 'tag', spec ? 'Du schaust zu.' : 'Du bist nicht mehr dabei.'));
     if (g.me && g.me.draw) {
-      const card = el('div', 'ancard ' + rcl(g.me.draw)); card.style.setProperty('--h', hueOf(g.me.draw.a)); card.append(faceEl(g.me.draw)); const cap = el('div', 'cap'); cap.append(el('b', '', g.me.draw.n), el('span', '', g.me.draw.a), el('span', 'rlabel rl-' + g.me.draw.r, RARN[g.me.draw.r])); card.append(cap); mid.append(card);
+      const card = el('div', 'ancard ' + rcl(g.me.draw)); card.style.setProperty('--h', hueOf(g.me.draw.a)); card.append(faceEl(g.me.draw)); const cap = el('div', 'cap'); cap.append(el('b', '', g.me.draw.n), el('span', '', g.me.draw.a), el('span', 'rlabel rl-' + g.me.draw.r, RARN[g.me.draw.r])); card.append(cap); if (g.me.draw.r === 'l' || g.me.draw.r === 'm') card.append(flames(g.me.draw.r)); mid.append(card);
       const done = meBoard.map((e, i) => (e && e.round === g.round ? g.cats[i] : null)).find(Boolean);
       mid.append(el('div', 'ancall', g.phase === 'between' ? 'Alle haben gesetzt!' : placed ? '✔ ' + g.me.draw.n + ' steht jetzt bei ' + (done ? done.e + ' ' + done.n : '…') : 'Du hast ' + g.me.draw.n + ' gezogen'));
       mid.append(el('div', 'tag qcenter', g.phase === 'between' ? 'Die nächste Runde startet gleich …' : placed ? 'Warte auf die anderen. Ihre Charaktere siehst du jetzt auch.' : 'Wähle links die Kategorie (+), in der er am besten ist.'));
