@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-UqSLjDm4uyK5Z2i435n1Dxs7n0a7t/fO+jih0+dpX/g='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https://hzvnbtksanoonvkblded.supabase.co wss://inkogniflix-minispiel.onrender.com ws://localhost:3000; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-rdxEnZHOfVWq79BMeuvoEhVQlTaeNInGGtJyNq3re0k='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https://hzvnbtksanoonvkblded.supabase.co wss://inkogniflix-minispiel.onrender.com ws://localhost:3000; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Inkogniflix</title>
 <link rel="icon" href="logo.png">
@@ -367,7 +367,7 @@ button.nudge{animation:nudge .8s ease-in-out infinite;box-shadow:0 0 0 3px #fff,
 .qtopic small{color:var(--dim);font-size:14px}.qtopic div{font-size:clamp(30px,4.6vw,54px);font-weight:800;margin-top:4px}
 .qdiffs{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
 .qd{display:flex;flex-direction:column;align-items:center;gap:2px;padding:16px 28px;border-radius:20px;font-size:22px;min-width:150px;color:#fff}.qd small{font-size:14px;font-weight:600;opacity:.9}
-.qd.leicht{background:#16a34a}.qd.mittel{background:#d97706}.qd.schwer{background:#dc2626}.qd:disabled{opacity:.45}
+.qd.leicht{background:#16a34a}.qd.mittel{background:#d97706}.qd.schwer{background:#dc2626}.qd:disabled{opacity:.4;pointer-events:none;cursor:not-allowed;box-shadow:none;filter:saturate(.4)}
 .qcenter{text-align:center}
 </style>
 </head>
@@ -947,7 +947,7 @@ function renderQuizHost(z, g, host, spec) {
     const t = el('div', 'qtopic'); t.append(el('small', '', 'Thema dieser Runde'), el('div', '', (TOPIC_ICON[g.topic] || '❓') + ' ' + g.topic)); z.append(t);
     z.append(el('div', 'qtext', iAm ? 'Du bist dran: wähle deine Schwierigkeit!' : actName + ' wählt die Schwierigkeit …'));
     const row = el('div', 'qdiffs');
-    ['leicht', 'mittel', 'schwer'].forEach((d) => { const b = el('button', 'qd ' + d); b.append(el('b', '', DIFF_LABEL[d]), el('small', '', g.ptsMap[d] + ' Punkte')); b.disabled = !iAm; b.onclick = () => out({ type: 'qdiff', d }); row.append(b); });
+    ['leicht', 'mittel', 'schwer'].forEach((d) => { const b = el('button', 'qd ' + d); b.append(el('b', '', DIFF_LABEL[d]), el('small', '', g.ptsMap[d] + ' Punkte')); b.disabled = !iAm; if (!iAm) { b.tabIndex = -1; b.setAttribute('aria-disabled', 'true'); } b.onclick = () => { if (iAm) out({ type: 'qdiff', d }); }; row.append(b); });
     z.append(row);
     z.append(el('div', 'tag qcenter', !iAm ? 'Die Frage erscheint, sobald ' + actName + ' die Schwierigkeit gewählt hat.' : 'Je schwerer, desto mehr Punkte.'));
     endBtn(); return;
