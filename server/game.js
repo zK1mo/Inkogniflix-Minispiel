@@ -5,8 +5,8 @@ const B = [['go'],['p',60,2,0],['c'],['p',60,4,0],['tax',200],['r',200],['p',100
 ['free'],['p',220,18,4],['ch'],['p',220,18,4],['p',240,20,4],['r',200],['p',260,22,5],['p',260,22,5],['u',150],['p',280,24,5],
 ['gojail'],['p',300,26,6],['p',300,26,6],['c'],['p',320,28,6],['r',200],['ch'],['p',350,35,7],['tax',100],['p',400,50,7]];
 const NAMES = {
-  klassisch: ['Start','Warschau','Schatztruhe','Krakau','Einkommensteuer','Flughafen Nord','Budapest','Überraschung','Debrecen','Szeged','Gefängnis','Dublin','Stromwerk','Cork','Galway','Flughafen Ost','Amsterdam','Schatztruhe','Rotterdam','Den Haag','Urlaub','Paris','Überraschung','Lyon','Marseille','Flughafen Süd','Madrid','Barcelona','Wasserwerk','Sevilla','Ins Gefängnis','Rom','Mailand','Schatztruhe','Venedig','Flughafen West','Überraschung','München','Luxussteuer','Berlin'],
-  minecraft: ['Spawn','Erdhütte','Truhe','Sandgrube','Hungersteuer','Minenbahn Nord','Kiesstrand','Ereignis','Wiesenhügel','Birkenwald','Verlies','Dschungel','Redstone-Werk','Lehmteich','Sumpfhütte','Minenbahn Ost','Taiga','Truhe','Schneeberg','Eisfjord','Pilzinsel','Savanne','Ereignis','Mesa','Wüstentempel','Minenbahn Süd','Ozeanmonument','Korallenriff','Wasserwerk','Unterwasserhöhle','Zum Verlies','Nether-Brücke','Lavasee','Truhe','Netherfestung','Minenbahn West','Ereignis','End-Stadt','Beacon-Steuer','Thron des Drachen'],
+  klassisch: ['Start','Warschau','Schatz\u00ADtruhe','Krakau','Einkommen\u00ADsteuer','Flughafen Nord','Budapest','Über\u00ADraschung','Debrecen','Szeged','Gefängnis','Dublin','Stromwerk','Cork','Galway','Flughafen Ost','Amsterdam','Schatz\u00ADtruhe','Rotterdam','Den Haag','Urlaub','Paris','Über\u00ADraschung','Lyon','Marseille','Flughafen Süd','Madrid','Barcelona','Wasserwerk','Sevilla','Ins Gefängnis','Rom','Mailand','Schatz\u00ADtruhe','Venedig','Flughafen West','Über\u00ADraschung','München','Luxus\u00ADsteuer','Berlin'],
+  minecraft: ['Spawn','Erdhütte','Truhe','Sandgrube','Hunger\u00ADsteuer','Minenbahn Nord','Kiesstrand','Ereignis','Wiesenhügel','Birkenwald','Verlies','Dschungel','Redstone-Werk','Lehmteich','Sumpfhütte','Minenbahn Ost','Taiga','Truhe','Schneeberg','Eisfjord','Pilzinsel','Savanne','Ereignis','Mesa','Wüstentempel','Minenbahn Süd','Ozean\u00ADmonument','Korallenriff','Wasserwerk','Unterwasser\u00ADhöhle','Zum Verlies','Nether-Brücke','Lavasee','Truhe','Nether\u00ADfestung','Minenbahn West','Ereignis','End-Stadt','Beacon-Steuer','Thron des Drachen'],
 };
 const GN = {
   klassisch: ['Polen', 'Ungarn', 'Irland', 'Niederlande', 'Frankreich', 'Spanien', 'Italien', 'Deutschland'],
@@ -22,7 +22,7 @@ const say = (g, t) => { g.log.push(t); if (g.log.length > 120) g.log.shift(); };
 const DEFAULT_RULES = { doubleRent: true, vacation: true, noRentPrison: true, evenBuild: true, randomOrder: true, auction: false, vacationSkip: false };
 function newGame(players, settings) {
   return { map: settings.map, rules: { ...DEFAULT_RULES, ...(settings.rules || {}) }, pot: 0, owners: {}, houses: {}, mort: {}, minus: null, outOrder: [], trades: [], tid: 0, rn: 0, turn: 0, phase: 'roll', dice: [0, 0], dbl: 0, again: false, winner: null, log: ['Das Spiel beginnt!'],
-    players: players.map((p) => ({ id: p.id, name: p.name, color: p.color || 0, pardon: 0, skip: 0, money: settings.budget, pos: 0, jail: 0, out: false })) };
+    players: players.map((p) => ({ id: p.id, name: p.name, color: p.color || 0, pardon: 0, skip: 0, debts: [], money: settings.budget, pos: 0, jail: 0, out: false })) };
 }
 // Coins nach Platz: Sieger bekommt am meisten, jeder weitere Platz die Hälfte des Vorgängers, der Letzte nichts.
 // Zu kurze Spiele (unter 12 Würfen) geben keine Coins, damit man sie nicht mit Zweitkonten erfarmen kann.
@@ -38,6 +38,8 @@ function view(g) {
   return { ...g, payout: g.phase === 'over' ? Object.fromEntries(payouts(g).map((x) => [x.id, { place: x.place, coins: x.coins }])) : null, groups: GN[g.map], board: B.map((f, i) => ({ n: NAMES[g.map][i], t: f[0], g: f[0] === 'p' ? f[3] : null, p: f[1] || 0, r: f[2] || 0 })) };
 }
 function bankrupt(g, p, to) {
+  for (const d of p.debts || []) { const cr = d.to && g.players.find((q) => q.id === d.to); credit(g, cr || null, d.amt); if (cr) say(g, `${cr.name} bekommt die Restschuld von ${d.amt} € von der Bank`); } // offene Schulden zahlt die Bank
+  p.debts = [];
   if (to) to.money += Math.max(p.money, 0);
   p.money = 0; p.out = true; g.outOrder.push(p.id);
   g.trades = g.trades.filter((t) => t.from !== p.id && t.to !== p.id);
@@ -47,10 +49,13 @@ function bankrupt(g, p, to) {
   const alive = g.players.filter((x) => !x.out);
   if (alive.length === 1) { g.phase = 'over'; g.winner = alive[0].id; }
 }
-const cost = (i) => [50, 50, 100, 100, 150, 150, 200, 200][B[i][3]];
+const cost = (i) => [50, 50, 100, 100, 150, 150, 200, 200][B[i][3]]; // Preis pro Haus
+const HOTEL_FACTOR = 5, hotelCost = (i) => B[i][1] * HOTEL_FACTOR;  // Hotel: 5x Grundstückspreis (Berlin 400 -> 2000)
+const stepCost = (i, h) => (h >= 4 ? hotelCost(i) : cost(i));        // Preis der nächsten Baustufe (h = aktuelle Stufe)
+const bldValue = (i, h) => { let v = 0; for (let k = 0; k < h; k++) v += stepCost(i, k); return v; };
 const grp = (i) => B.map((f, k) => k).filter((k) => B[k][0] === 'p' && B[k][3] === B[i][3]);
 const worth = (g, p) => Object.keys(g.owners).filter((k) => g.owners[k] === p.id)
-  .reduce((s, k) => s + (g.mort[k] ? 0 : B[k][1] / 2) + (g.houses[k] ? g.houses[k] * cost(k) / 2 : 0), 0);
+  .reduce((s, k) => s + (g.mort[k] ? 0 : B[k][1] / 2) + (g.houses[k] ? bldValue(k, g.houses[k]) / 2 : 0), 0);
 // ===== Auktion: wer nicht kaufen will, schickt das Feld in die Versteigerung =====
 const AUC_START_MS = 15000, AUC_BID_MS = 10000; // Startzeit; nach jedem Gebot laufen 10 s neu
 function startAuction(g, p) {
@@ -81,13 +86,36 @@ function auctionAct(g, pid, a) {
 }
 
 const MINUS_MS = 3 * 60 * 1000; // so lange hat man Zeit, wieder ins Plus zu kommen
+// Geld an Gläubiger (Spieler) oder an die Bank (-> Urlaubs-Topf, falls die Regel an ist)
+function credit(g, to, x) { if (x <= 0) return; if (to) to.money += x; else if (g.rules.vacation) g.pot += x; }
+// Zahlung: Was der Schuldner wirklich hat, geht sofort an den Gläubiger. Der Rest bleibt als Schuld offen und
+// geht erst an den Gläubiger, wenn der Schuldner ihn selbst begleicht (Hypothek, Handel ...) oder aufgibt.
 function pay(g, p, amt, to) {
-  p.money -= amt; if (to) to.money += amt; // darf ins Minus gehen, kein automatisches Aufgeben
-  if (!to && g.rules.vacation) g.pot += amt; // Zahlungen an die Bank wandern in den Urlaubs-Topf
-  if (p.money < 0) { say(g, `${p.name} ist im Minus (${p.money} €)`); g.minus = { id: p.id, until: Date.now() + MINUS_MS }; }
+  const now = Math.min(amt, Math.max(0, p.money)), rest = amt - now;
+  p.money -= amt; // darf ins Minus gehen, kein automatisches Aufgeben
+  credit(g, to, now);
+  if (rest > 0) {
+    (p.debts = p.debts || []).push({ to: to ? to.id : null, amt: rest });
+    say(g, `${p.name} ist im Minus (${p.money} €) und schuldet ${to ? to.name : 'der Bank'} noch ${rest} €`);
+    g.minus = { id: p.id, until: Date.now() + MINUS_MS };
+  }
+}
+// Hat der Schuldner wieder Bargeld (Hypothek, Verkauf, Handel ...), wird davon die offene Schuld an die Gläubiger bezahlt
+function settleDebts(g) {
+  for (const p of g.players) {
+    if (p.out || !p.debts || !p.debts.length) continue;
+    let cash = p.money + p.debts.reduce((s, d) => s + d.amt, 0); // echtes Bargeld = Kontostand + offene Schulden
+    for (const d of p.debts) {
+      if (cash <= 0) break;
+      const x = Math.min(d.amt, cash), cr = d.to && g.players.find((q) => q.id === d.to);
+      credit(g, cr || null, x); d.amt -= x; cash -= x;
+      if (cr) say(g, `${cr.name} erhält ${x} € von ${p.name}`);
+    }
+    p.debts = p.debts.filter((d) => d.amt > 0);
+  }
 }
 // Minus-Timer löschen, sobald der Spieler wieder im Plus ist (oder ausgeschieden)
-function chk(g) { if (g.minus) { const q = g.players.find((x) => x.id === g.minus.id); if (!q || q.out || q.money >= 0) g.minus = null; } }
+function chk(g) { settleDebts(g); if (g.minus) { const q = g.players.find((x) => x.id === g.minus.id); if (!q || q.out || q.money >= 0) g.minus = null; } }
 // Wird vom Server jede Sekunde aufgerufen: Zeit abgelaufen -> Bankrott
 function tick(g) {
   let ch = false;
@@ -185,11 +213,11 @@ function manage(g, p, a) {
   const i = Number(a.pos), f = B[i];
   if (!f || g.owners[i] !== p.id) return;
   const hs = g.houses, h = hs[i] || 0, G = grp(i).map((k) => hs[k] || 0);
-  if (a.type === 'build' && f[0] === 'p' && grp(i).every((k) => g.owners[k] === p.id && !g.mort[k]) && h < 5 && (!g.rules.evenBuild || h === Math.min(...G)) && p.money >= cost(i)) {
-    p.money -= cost(i); hs[i] = h + 1;
+  if (a.type === 'build' && f[0] === 'p' && grp(i).every((k) => g.owners[k] === p.id && !g.mort[k]) && h < 5 && (!g.rules.evenBuild || h === Math.min(...G)) && p.money >= stepCost(i, h)) {
+    p.money -= stepCost(i, h); hs[i] = h + 1;
     say(g, `${p.name} baut auf ${NAMES[g.map][i]} (${hs[i] === 5 ? 'Hotel' : hs[i] + '. Haus'})`);
   } else if (a.type === 'sell' && h > 0 && (!g.rules.evenBuild || h === Math.max(...G))) {
-    hs[i] = h - 1; p.money += cost(i) / 2;
+    hs[i] = h - 1; p.money += stepCost(i, h - 1) / 2;
     say(g, `${p.name} verkauft ein Gebäude auf ${NAMES[g.map][i]}`);
   } else if (a.type === 'mortgage') {
     if (g.mort[i]) { const c = Math.ceil(f[1] / 2 * 1.1); if (p.money >= c) { p.money -= c; delete g.mort[i]; say(g, `${p.name} löst die Hypothek auf ${NAMES[g.map][i]} aus`); } }
