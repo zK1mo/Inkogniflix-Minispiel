@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-I9QugzIqWM0LW94kAnLsZ+loUKQQ5vnAFBD6yY5/8Io='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https:; connect-src https://hzvnbtksanoonvkblded.supabase.co https://graphql.anilist.co https://api.jikan.moe https://kitsu.io https://en.wikipedia.org wss://inkogniflix-minispiel.onrender.com ws://localhost:3000; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-umrSP21ODQ2h+N3YmTDM5hOfFCeQjHWKp0ts2Hgyiso='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https:; connect-src https://hzvnbtksanoonvkblded.supabase.co https://graphql.anilist.co https://api.jikan.moe https://kitsu.io https://en.wikipedia.org wss://inkogniflix-minispiel.onrender.com ws://localhost:3000; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Inkogniflix</title>
 <link rel="icon" href="logo.png">
@@ -455,6 +455,8 @@ button.nudge{animation:nudge .8s ease-in-out infinite;box-shadow:0 0 0 3px #fff,
 .rl-c{color:#d1d5db}.rl-r{color:#7dd3fc;text-shadow:0 0 8px #38bdf8}.rl-l{color:#fdba74;text-shadow:0 0 8px #f97316}.rl-m{color:#e9d5ff;text-shadow:0 0 10px #a855f7}
 .slotwin.flash{animation:slotflash .9s ease-out}@keyframes slotflash{0%{filter:brightness(2.2)}100%{filter:none}}
 .slotwin.rar-m{border-color:#c084fc}
+.revbtn{box-shadow:none;border:1px solid var(--p1)}.revbtn.on{background:linear-gradient(135deg,#16a34a,#22c55e);border-color:#4ade80}
+.overrow{margin-top:6px}
 .atot.best{color:#facc15;text-shadow:0 0 12px #facc1599}
 .ancenter{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:14px;min-height:420px;padding:20px}
 .anbig{font-size:clamp(30px,5vw,64px);font-weight:900;line-height:1.1}.ansub{font-size:clamp(16px,2.1vw,26px);color:var(--dim)}
@@ -731,7 +733,11 @@ function renderTeams(on, qz, host) {
 }
 function render() {
   show(true);
-  if (!state.game) { lobbyView = false; clearTimeout(autoLobbyT); autoLobbyT = 0; }
+  if (!state.game) { lobbyView = false; curGid = null; clearTimeout(autoLobbyT); autoLobbyT = 0; }
+  else if (state.game.gid !== curGid) { // neues Spiel (auch eine Revanche): Spielansicht; wer nach dem Ende neu dazukommt, landet in der Lobby
+    curGid = state.game.gid; lobbyView = false; clearTimeout(autoLobbyT); autoLobbyT = 0;
+    if (state.game.phase === 'over' && !state.spec && !state.game.players.some((p) => p.id === state.you)) lobbyView = true;
+  }
   const view = state.game && !lobbyView ? 'game' : 'lobby'; if (view !== curView) { curView = view; toTop(); }
   if (state.game && !lobbyView) { $('lobby').classList.add('hide'); $('game').classList.remove('hide'); document.body.classList.add('ingame'); renderGame(); autoLobbyCheck(); return; }
   if (!state.game) resetGame();
@@ -760,10 +766,11 @@ function render() {
   { // Lobby-Ansicht, obwohl das Spiel noch läuft oder gerade beendet wurde
     const gn = $('gameNotice'), gm = state.game; gn.textContent = ''; gn.classList.toggle('hide', !gm);
     if (gm) {
-      const over = gm.phase === 'over', t = el('div', 'tag', over ? '🏁 Das Spiel ist beendet.' + (host ? '' : ' Warte, bis der Host zurück zur Lobby geht.') : 'Das Spiel läuft noch. Du kannst zuschauen.'); t.style.marginBottom = '8px'; gn.append(t);
-      const row = el('div', 'row'), back = el('button', 'small', '👁 Zurück zum Spiel'); back.onclick = () => { lobbyView = false; render(); }; row.append(back);
-      if (over && host) { const nb = el('button', 'small', '🔄 Neues Spiel (Lobby)'); nb.onclick = () => out({ type: 'lobby' }); row.append(nb); }
-      gn.append(row); $('startBtn').disabled = true; $('startBtn').textContent = over ? 'Erst zurück zur Lobby' : 'Das Spiel läuft noch …';
+      const over = gm.phase === 'over', t = el('div', 'tag', over ? '🏁 Das Spiel ist beendet.' + (host ? ' Du kannst direkt ein neues Spiel starten.' : ' Der Host startet das nächste Spiel.') + ' Oder alle stimmen für eine Revanche.' : 'Das Spiel läuft noch. Du kannst zuschauen.'); t.style.marginBottom = '8px'; gn.append(t);
+      const row = el('div', 'row'), back = el('button', 'small ghost', over ? '👁 Ergebnis ansehen' : '👁 Zurück zum Spiel'); back.onclick = () => setLobbyView(false); row.append(back);
+      if (over && !state.spec) row.append(revBtn());
+      gn.append(row);
+      if (!over) { $('startBtn').disabled = true; $('startBtn').textContent = 'Das Spiel läuft noch …'; } // nach dem Ende darf der Host direkt neu starten
     }
   }
   $('watchCb').checked = !!(state.players.find((p) => p.id === state.you) || {}).watch;
@@ -1134,15 +1141,21 @@ function renderQuizHost(z, g, host, spec) {
 }
 
 /* ===== Anime-Schmiede ===== */
-let anSig = '', anSlot = null, anRadarOff = {}, lobbyView = false; // lobbyView: Spieler schaut in die Lobby, obwohl das Spiel noch (oder nicht mehr) läuft
-const lobbyBtn = (txt) => { const b = el('button', 'small ghost', txt || '🏠 Zur Lobby'); b.style.marginTop = '8px'; b.onclick = () => { lobbyView = true; render(); }; return b; };
+let anSig = '', anSlot = null, anRadarOff = {}, lobbyView = false, curGid = null; // lobbyView: Spieler schaut in die Lobby, obwohl das Spiel noch (oder nicht mehr) läuft
+function setLobbyView(v) { lobbyView = v; const g = state && state.game; if (g && g.phase === 'over') out({ type: 'tolobby', on: v }); render(); } // dem Server melden: sind alle in der Lobby, wird das Spiel weggeräumt
+const lobbyBtn = (txt) => { const b = el('button', 'small ghost', txt || '🏠 Zurück zur Lobby'); b.onclick = () => setLobbyView(true); return b; };
+function revBtn() { // Revanche: alle müssen zustimmen, dann startet sofort ein neues Spiel mit gleichen Einstellungen
+  const rm = state.rematch || { votes: [], need: 0 }, mine = rm.votes.includes(state.you), b = el('button', 'small revbtn' + (mine ? ' on' : ''), '🔁 Revanche ' + (mine ? '✔ ' : '') + rm.votes.length + '/' + rm.need);
+  b.title = 'Alle Spieler müssen zustimmen. Nochmal klicken nimmt deine Zustimmung zurück.'; b.onclick = () => out({ type: 'rematch', on: !mine }); return b;
+}
+function overRow() { const row = el('div', 'qpicker overrow'); if (!state.spec) row.append(revBtn(), lobbyBtn()); return row; }
 const giveUp = (q) => { if (confirm(q)) out({ type: 'giveup' }); }; // aufgeben: man schaut weiter zu, bis der Gewinner angezeigt wurde, dann geht es zurück in die Lobby (siehe autoLobbyCheck)
 let autoLobbyT = 0;
 function autoLobbyCheck() {
   const g = state.game, p = g && g.players.find((x) => x.id === state.you);
   if (!g || g.phase !== 'over' || lobbyView || autoLobbyT || state.spec || state.you === state.hostId || g.teamOf || !p || !p.out) return; // nur wer aufgegeben hat
   toast('Du wirst gleich zur Lobby gebracht …', 5000);
-  autoLobbyT = setTimeout(() => { autoLobbyT = 0; if (state && state.game && state.game.phase === 'over' && !lobbyView) { lobbyView = true; render(); } }, 5000);
+  autoLobbyT = setTimeout(() => { autoLobbyT = 0; if (state && state.game && state.game.phase === 'over' && !lobbyView) setLobbyView(true); }, 5000);
 }
 const AK = { 'Dragon Ball': ['dragonball'], 'Naruto': ['naruto'], 'One Piece': ['onepiece'], 'Bleach': ['bleach'], 'Attack on Titan': ['attackontitan', 'shingekinokyojin'], 'My Hero Academia': ['myheroacademia', 'bokunoheroacademia'], 'Demon Slayer': ['demonslayer', 'kimetsunoyaiba'], 'Jujutsu Kaisen': ['jujutsukaisen'], 'Death Note': ['deathnote'], 'Fullmetal Alchemist': ['fullmetalalchemist'], 'Hunter x Hunter': ['hunterxhunter'], 'One Punch Man': ['onepunchman'], 'Fairy Tail': ['fairytail'], 'Sword Art Online': ['swordartonline'], 'Tokyo Ghoul': ['tokyoghoul'], 'Black Clover': ['blackclover'], 'Code Geass': ['codegeass'], 'Cowboy Bebop': ['cowboybebop'], 'Mob Psycho 100': ['mobpsycho'], 'Chainsaw Man': ['chainsawman'], 'Spy x Family': ['spyxfamily'], 'Dr. Stone': ['drstone'], 'Solo Leveling': ['sololeveling'], "JoJo's Bizarre Adventure": ['jojo'], 'Berserk': ['berserk'] };
 const normS = (t) => String(t || '').toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -1404,13 +1417,13 @@ function buildAnimeStage(g, stage, ctx) {
   const rw = el('div', 'anradarbox'); rw.append(el('div', 'anlabel', 'Netzdiagramm: So gut sind die erstellten Charaktere')); const holder = el('div', 'anradarholder'); holder.append(radarSVG(g, pl)); rw.append(holder);
   const leg = el('div', 'anleg'); pl.forEach((p) => { const b = el('button', 'qchip' + (anRadarOff[p.id] ? '' : ' done'), p.name + ' · Ø ' + sh.avg[p.id].toFixed(1)); b.style.borderColor = COL[p.color]; b.onclick = () => { anRadarOff[p.id] = !anRadarOff[p.id]; holder.textContent = ''; holder.append(radarSVG(g, pl)); b.classList.toggle('done', !anRadarOff[p.id]); }; leg.append(b); }); rw.append(leg);
   stage.append(rw);
-  if (host) { const b = el('button', '', 'Zurück zur Lobby'); b.onclick = () => out({ type: 'lobby' }); b.style.alignSelf = 'center'; stage.append(b); }
 }
 function renderAnime() {
   const g = state.game, me = state.you, spec = !!state.spec, host = me === state.hostId, z = $('an');
   $('bw').classList.add('hide'); $('qz').classList.add('hide'); z.classList.remove('hide'); ['logCard', 'prCard', 'trCard'].forEach((id) => $(id).classList.add('hide')); $('admCard').classList.add('hide');
   $('rc').textContent = state.code; $('specInfo').textContent = spec ? '👁 Du schaust zu.' : state.specs && state.specs.length ? '👁 Zuschauer: ' + state.specs.join(', ') : '';
-  if (!z.firstChild) { const h = el('div', 'anhead'), st = el('div', 'anstage'); st.id = 'anstage'; h.id = 'anhead'; z.append(h, st); }
+  if (!z.firstChild) { const h = el('div', 'anhead'), st = el('div', 'anstage'), ov = el('div', 'anover'); st.id = 'anstage'; h.id = 'anhead'; ov.id = 'anover'; z.append(h, st, ov); }
+  { const ov = $('anover'); ov.textContent = ''; if (g.phase === 'over' && !g.forfeit && !spec) ov.append(overRow()); } // Revanche-Zähler und Lobby-Knopf aktualisieren sich bei jeder Meldung
   const head = $('anhead'); head.textContent = '';
   const tm = el('b', 'antm'); tm.id = 'antm';
   head.append(el('div', 'antitle', '🎴 ANIME-SCHMIEDE'), el('span', 'qpill d-topic', g.rsName), el('span', 'qpill', g.phase === 'over' ? 'Ende' : g.phase === 'showdown' ? 'Showdown' : 'Runde ' + (g.round + 1) + ' / ' + g.rounds), tm);
@@ -1430,7 +1443,6 @@ function renderAnime() {
     r.append(t, el('span', '', p.name + (p.id === me ? ' (du)' : '') + (p.id === state.hostId ? ' 👑' : '')), el('span', 'm', st)); pl.append(r);
   });
   if (mineAlive(g, me) && g.phase !== 'over') { const b = el('button', 'small danger', 'Spiel aufgeben'); b.style.marginTop = '8px'; b.onclick = () => giveUp('Wirklich aufgeben? Du schaust dann zu, bis der Gewinner feststeht, und kommst danach in die Lobby.'); pl.append(b); }
-  else if (!spec && g.phase === 'over' && !host) pl.append(lobbyBtn());
   const ms = $('msgs'); ms.textContent = '';
   if (!state.chat.length) ms.append(el('div', 'tag', 'Noch keine Nachrichten'));
   state.chat.forEach((m, i) => { const d = el('div', prevChatN !== null && i >= prevChatN ? 'new' : ''); d.append(el('b', '', m.n + ': '), document.createTextNode(m.t)); ms.append(d); }); prevChatN = state.chat.length; ms.scrollTop = ms.scrollHeight;
@@ -1479,7 +1491,7 @@ function renderQuiz() {
       const pb = el('div', 'pb', i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉'); pb.style.height = hts[i] + 'px'; pod.append(pb); podium.append(pod);
     });
     z.append(el('div', 'qtext', g.winner === meE ? (g.teamMode ? '🏆 Euer Team hat gewonnen!' : '🏆 Du hast gewonnen!') : '🏆 ' + (g.players.find((x) => x.id === g.winner) || {}).name + ' gewinnt!'), podium);
-    if (host) { const b = el('button', '', 'Zurück zur Lobby'); b.onclick = () => out({ type: 'lobby' }); b.style.alignSelf = 'center'; z.append(b); }
+    if (!spec) z.append(overRow());
     if (g.backAt) { const bc = el('div', 'tag qcenter', 'Die anderen sind gegangen. Zurück zur Lobby in 3 s …'); bc.id = 'backcd'; z.append(bc); backTick(); }
     if (g.title && g.payout && Object.values(g.payout).every((x) => x.coins === 0)) z.append(el('div', 'tag', g.hostMode ? 'Moderiertes Quiz: dafür gibt es keine Coins.' : 'Für dieses Spiel gab es keine Coins (eigenes Quiz oder weniger als 5 Fragen).'));
   } else if (g.hostMode) renderQuizHost(z, g, host, spec);
@@ -1513,7 +1525,6 @@ function renderQuiz() {
     pl.append(r);
   });
   if (canAnswer && g.phase !== 'over') { const b = el('button', 'small danger', 'Spiel aufgeben'); b.style.marginTop = '8px'; b.onclick = () => giveUp('Wirklich aufgeben? Du schaust dann zu, bis der Gewinner feststeht, und kommst danach in die Lobby.'); pl.append(b); }
-  else if (!spec && g.phase === 'over' && !host) pl.append(lobbyBtn());
   // Chat
   const ms = $('msgs'); ms.textContent = '';
   if (!state.chat.length) ms.append(el('div', 'tag', 'Noch keine Nachrichten'));
@@ -1906,7 +1917,7 @@ function renderGame() {
   const btn = (txt, t, ghost) => { const b = el('button', ghost ? 'ghost' : '', txt); b.onclick = () => out({ type: t }); row.append(b); return b; };
   if (g.phase === 'over') {
     low.append(el('div', 'brand', '🏆 ' + nm(g.winner) + ' gewinnt!'));
-    if (host) btn('Zurück zur Lobby', 'lobby');
+    if (!spec) row.append(revBtn(), lobbyBtn());
   } else {
     if (!g.auction) low.append(el('div', 'tag', p.name + (mine ? ' (du)' : '') + ' ist am Zug'), el('div', 'tag', g.log[g.log.length - 1])); // bei Auktion zu wenig Platz
     if (g.auction) { // Auktion: alle können bieten
@@ -1979,7 +1990,6 @@ function renderGame() {
     dcRow(r, q, me); tradeBadge(r, q); payBadge(r, q, g); pl.append(r);
   });
   if (!spec && g.phase !== 'over' && !(g.players.find((x) => x.id === me) || SPEC).out) { const b = el('button', 'small danger', 'Spiel aufgeben'); b.style.marginTop = '8px'; b.onclick = () => giveUp('Wirklich aufgeben? Du schaust dann zu, bis der Gewinner feststeht, und kommst danach in die Lobby.'); pl.append(b); }
-  else if (!spec && g.phase === 'over' && !host) pl.append(lobbyBtn());
 
   // Rechts: Handel
   const tr = $('trCard'); tr.textContent = ''; const hd = el('div', 'hd', 'Handel'); const nb = el('button', 'small', '＋ Erstellen'); nb.onclick = () => openTrade(); nb.disabled = !!(g.players.find((x) => x.id === me) || {}).out; if (nb.disabled) nb.title = 'Du bist ausgeschieden'; if (!spec) hd.append(nb); tr.append(hd);
