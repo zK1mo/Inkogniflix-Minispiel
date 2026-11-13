@@ -4,7 +4,7 @@
 const CHARS = require('./anime_chars');
 const RS = {
   mix: { name: 'Gemischt (alle Animes)', anime: null, cats: [['Stärke', '💪'], ['Geschwindigkeit', '💨'], ['Fähigkeiten', '⚡'], ['IQ', '🧠'], ['Zähigkeit', '🛡️']] },
-  onepiece: { name: 'Nur One Piece', anime: 'One Piece', cats: [['Stärke', '💪'], ['Geschwindigkeit', '💨'], ['Haki', '👁️'], ['Technik', '⚔️'], ['Zähigkeit', '🛡️']] },
+  onepiece: { name: 'Nur One Piece', anime: 'One Piece', cats: [['Stärke', '💪'], ['Geschwindigkeit', '💨'], ['Haki', '👁️'], ['Teufelsfrucht', '🍎'], ['Zähigkeit', '🛡️']] },
   dragonball: { name: 'Nur Dragon Ball', anime: 'Dragon Ball', cats: [['Kampfkraft', '💥'], ['Geschwindigkeit', '💨'], ['Ki-Kontrolle', '✨'], ['Kampf-IQ', '🧠'], ['Zähigkeit', '🛡️']] },
   naruto: { name: 'Nur Naruto', anime: 'Naruto', cats: [['Ninjutsu', '🌀'], ['Taijutsu', '👊'], ['Genjutsu', '👁️'], ['Chakra', '🔋'], ['IQ', '🧠']] },
 };
@@ -12,7 +12,10 @@ const ROUNDS = 5, SPIN_MS = Number(process.env.ANIME_SPIN_MS) || 5200, BETWEEN_M
 
 const shuffle = (a) => { const r = [...a]; for (let i = r.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [r[i], r[j]] = [r[j], r[i]]; } return r; };
 const ci = (i) => (i === undefined || i === null ? null : { i, n: CHARS[i][0], a: CHARS[i][1], q: CHARS[i][4] || CHARS[i][0], img: CHARS[i][5] || null });
-const statOf = (g, ch, cat) => ((g.rs !== 'mix' && CHARS[ch][3]) ? CHARS[ch][3] : CHARS[ch][2])[cat]; // im Anime-Modus zählen die Spezialwerte
+// Nur-Anime-Modi: Spezialwerte, innerhalb des Animes neu skaliert: schwächster Wert der Kategorie ≈ 1, stärkster = 100, dazwischen mit Kurve (so liegen die Abstände im eigenen Universum auseinander)
+const RANGE = {}; Object.keys(RS).forEach((k) => { if (!RS[k].anime) return; const pool = CHARS.filter((c) => c[1] === RS[k].anime && c[3]); RANGE[k] = [0, 1, 2, 3, 4].map((i) => [Math.min(...pool.map((c) => c[3][i])), Math.max(...pool.map((c) => c[3][i]))]); });
+const scaleIn = (rs, cat, v) => { const [lo, hi] = RANGE[rs][cat]; return hi === lo ? 50 : Math.max(1, Math.min(100, Math.round(100 * Math.pow((v - lo) / (hi - lo), 1.5)))); };
+const statOf = (g, ch, cat) => ((g.rs !== 'mix' && CHARS[ch][3]) ? scaleIn(g.rs, cat, CHARS[ch][3][cat]) : CHARS[ch][2][cat]);
 
 function newGame(players, { rs, time }) {
   const key = RS[rs] ? rs : 'mix', pool = CHARS.map((_, i) => i).filter((i) => !RS[key].anime || CHARS[i][1] === RS[key].anime);
@@ -47,7 +50,7 @@ function act(g, pid, a) {
 function drop(g, pid) {
   const p = g.players.find((x) => x.id === pid); if (!p || p.out || g.phase === 'over') return;
   p.out = true;
-  if (active(g).length <= 1) { g.phase = 'over'; g.forfeit = true; g.winners = active(g).map((x) => x.id); g.until = 0; g.rn++; return; }
+  if (active(g).length <= 1) { g.phase = 'over'; g.forfeit = true; g.winners = active(g).map((x) => x.id); g.until = 0; g.backAt = Date.now() + 3000; g.rn++; return; } // alle anderen weg: nach 3 s zurück in die Lobby
   afterPlace(g);
 }
 function tick(g) {
@@ -80,7 +83,7 @@ function view(g, pid) { // pid = Betrachter (null = Zuschauer): geheime Infos we
   return { kind: 'anime', rs: g.rs, rsName: RS[g.rs].name, cats: RS[g.rs].cats.map(([n, e]) => ({ n, e })), phase: g.phase, round: g.round, rounds: ROUNDS, until: g.until, time: g.time, rn: g.rn, step, forfeit: g.forfeit,
     players: g.players.map((p) => ({ id: p.id, name: p.name, color: p.color, out: p.out, placed: (g.phase === 'pick' || g.phase === 'between' || g.phase === 'spin') && !p.out && placedNow(g, p.id) })),
     me: me && g.phase !== 'showdown' && g.phase !== 'over' ? { draw: ci(g.draw[pid]), placed: mine } : null,
-    board, decoys: g.phase === 'spin' ? g.decoys.map(ci) : [], show, winners: g.phase === 'over' ? g.winners : null, log: [] };
+    board, decoys: g.phase === 'spin' ? g.decoys.map(ci) : [], show, winners: g.phase === 'over' ? g.winners : null, backAt: g.backAt || null, log: [] };
 }
 const payouts = () => []; // keine Coins (Spielwert kann nicht mit Zweitkonten erfarmt werden)
 module.exports = { newGame, act, drop, tick, view, payouts, results, RS, CHARS, statOf };

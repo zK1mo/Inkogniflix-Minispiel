@@ -117,7 +117,7 @@ function drop(g, pid) {
   p.out = true;
   if (g.teams) { const t = g.teams.find((x) => x.members.includes(pid)); if (t && t.members.every((m) => g.players.find((x) => x.id === m).out)) { t.out = true; g.outOrder.push(t.id); } } // Team ist raus, wenn alle Mitglieder weg sind
   else g.outOrder.push(pid);
-  if (active(g).length <= 1) return finish(g);
+  if (active(g).length <= 1) { finish(g); g.forfeit = true; g.backAt = Date.now() + 3000; return; } // alle anderen weg: nach 3 s zurück in die Lobby
   if (!g.hostMode && g.phase === 'question' && active(g).every((x) => g.answers[x.id])) reveal(g);
 }
 function tick(g) {
@@ -141,7 +141,7 @@ function view(g, forMod, pid) {
     if (!hm) vq = { q: q.q, a: q.a, ...(show ? { c: q.c } : {}) };
     else vq = { q: q.q, a: forMod ? q.a : [], hints: q.hints.map((h, i) => (forMod || g.hs[i] ? h : null)), ...(forMod || show ? { c: q.c, ans: q.a[q.c] } : {}) }; // Antwort nur für den Host, bei der Auflösung für alle
   }
-  return { kind: 'quiz', title: g.title, phase: g.phase, qi: g.qi, total: g.total, time: g.time, until: g.until, rn: g.rn, winner: g.winner, log: g.log, hostMode: hm, auto: g.auto, topic: g.topic, diff: g.diff, pts: g.pts, ptsMap: PTS,
+  return { kind: 'quiz', title: g.title, phase: g.phase, qi: g.qi, total: g.total, time: g.time, until: g.until, rn: g.rn, winner: g.winner, log: g.log, backAt: g.backAt || null, hostMode: hm, auto: g.auto, topic: g.topic, diff: g.diff, pts: g.pts, ptsMap: PTS,
     active: hm ? activeOf(g) : null, open: g.open, hs: g.hs, canUndo: !!hm && show,
     q: vq,
     res: show ? (hm ? { c: q.c, win: g.res.win, pts: g.res.pts } : g.res) : null,

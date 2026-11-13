@@ -43,6 +43,18 @@ function settle(room) {
     }).catch((e) => console.log('Coins-Gutschrift fehlgeschlagen:', e.message));
   }
 }
+// Spiel beenden und alle zurück in die Lobby (Host-Wunsch oder automatisch, wenn alle anderen aufgegeben haben)
+function backToLobby(room) {
+  room.game = null;
+  room.spec.forEach((x) => {
+    if (room.players.size < room.settings.max) { room.players.set(x.id, { id: x.id, name: x.name, color: freeColor(room), guest: x.guest, uid: x.uid, cid: x.cid, ws: x.ws, dc: null, votes: new Set(), watch: !!x.chosen }); x.ws.spec = false; }
+    else { send(x.ws, { type: 'error', text: 'Der Raum ist voll.' }); x.ws.room = null; }
+  });
+  room.spec.clear();
+  [...room.players.values()].filter((p) => !p.ws).forEach((p) => room.players.delete(p.id)); // Getrennte fliegen nach dem Spiel raus
+  broadcast(room);
+}
+
 function broadcast(room) {
   if (room.game && room.game.phase === 'over' && !room.game.paid) settle(room);
   const base = {
@@ -215,14 +227,7 @@ wss.on('connection', (ws) => {
       if (m.type === 'start' && !room.game) {
         startGame(room);
       } else if (m.type === 'lobby' && room.game && room.game.phase === 'over') {
-        room.game = null;
-        room.spec.forEach((x) => {
-          if (room.players.size < room.settings.max) { room.players.set(x.id, { id: x.id, name: x.name, color: freeColor(room), guest: x.guest, uid: x.uid, cid: x.cid, ws: x.ws, dc: null, votes: new Set(), watch: !!x.chosen }); x.ws.spec = false; }
-          else { send(x.ws, { type: 'error', text: 'Der Raum ist voll.' }); x.ws.room = null; }
-        });
-        room.spec.clear();
-        [...room.players.values()].filter((p) => !p.ws).forEach((p) => room.players.delete(p.id)); // Getrennte fliegen nach dem Spiel raus
-        broadcast(room);
+        backToLobby(room);
       } else if (m.type === 'settings' && !room.game) {
         const b = Math.round(Number(m.budget));
         if (b >= 500 && b <= 100000) room.settings.budget = b;
@@ -288,6 +293,7 @@ wss.on('connection', (ws) => {
 
 // Jede Sekunde: Minus-Timer und Verbindungs-Timer prüfen
 setInterval(() => rooms.forEach((r) => {
+  if (r.game && r.game.phase === 'over' && r.game.backAt && Date.now() >= r.game.backAt) { backToLobby(r); return; } // alle anderen aufgegeben: automatisch zurück
   if (r.game && MOD(r.game).tick(r.game)) broadcast(r);
   [...r.players.values()].forEach((p) => { if (!p.ws && p.dc && Date.now() > p.dc && rooms.has(r.code)) removePlayer(r, p, 'Zeit abgelaufen'); });
 }), 500);
