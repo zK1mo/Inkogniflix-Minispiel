@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-VPdw4+mg0Twy1z8Kh8TQ0nLElJncECLY2+vbLSek5pw='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https://hzvnbtksanoonvkblded.supabase.co wss://inkogniflix-minispiel.onrender.com ws://localhost:3000; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-wQW71yyR21SJTgYCY8LHoepEg8h/iqslSOWX+t2JcfQ='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https://hzvnbtksanoonvkblded.supabase.co wss://inkogniflix-minispiel.onrender.com ws://localhost:3000; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Inkogniflix</title>
 <link rel="icon" href="logo.png">
@@ -289,6 +289,42 @@ select{color-scheme:dark}option{background:#1a1236;color:#f5ecff}
 .psel .ddb{font-weight:600;font-size:17px;padding:6px 10px}
 @keyframes ddin{from{opacity:0;transform:translateY(-6px) scale(.98)}to{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){.ddl{animation:none!important}}
+/* ===== Brett: größere, übersichtlichere Felder ===== */
+#board{grid-template:1.65fr repeat(9,1fr) 1.65fr / 1.65fr repeat(9,1fr) 1.65fr}
+.cell{--ob:3.7cqw;--bt:2.1cqw}
+.cell.top{padding-top:var(--ob)}.cell.bottom{padding-bottom:var(--ob)}.cell.left{padding-left:var(--ob)}.cell.right{padding-right:var(--ob)}
+.cell.prop.top{padding-bottom:var(--bt)}.cell.prop.bottom{padding-top:var(--bt)}.cell.prop.left{padding-right:var(--bt)}.cell.prop.right{padding-left:var(--bt)}
+.cell .bar{height:var(--bt)}.cell.left .bar,.cell.right .bar{width:var(--bt);height:auto}
+.own{height:1.2cqw}.cell.left .own,.cell.right .own{width:1.2cqw;height:auto}
+.row1{display:flex;align-items:center;justify-content:center;gap:.5cqw;position:relative;z-index:1;line-height:1}
+.cell .ic{font-size:max(11px,2.3cqw)}.cell .ic svg{width:max(14px,2.5cqw);height:max(14px,2.5cqw)}.cell .pr{font-size:max(9px,1.75cqw);font-weight:700}
+.cell.corner .ic svg{width:max(24px,4.8cqw);height:max(24px,4.8cqw)}
+.cell .nm{font-size:1.3cqw;line-height:1.08;text-align:center;overflow-wrap:anywhere;-webkit-hyphens:auto;hyphens:auto;max-width:100%;padding:0 .3cqw;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;color:#d9c9f5}
+@container (max-width:560px){.cell .nm{display:none}}
+/* Häuser/Hotel liegen auf dem Länder-Streifen */
+.hs{position:absolute;display:flex;align-items:center;justify-content:center;gap:.15cqw;z-index:2;pointer-events:none;font-size:0}
+.cell.top .hs{top:auto;bottom:0;left:0;right:0;height:var(--bt);flex-direction:row}.cell.bottom .hs{top:0;bottom:auto;left:0;right:0;height:var(--bt);flex-direction:row}
+.cell.left .hs{left:auto;right:0;top:0;bottom:0;width:var(--bt);height:auto;flex-direction:column}.cell.right .hs{left:0;right:auto;top:0;bottom:0;width:var(--bt);height:auto;flex-direction:column}
+.hs svg{flex:1 1 0;min-width:0;min-height:0;max-width:100%;max-height:100%;filter:drop-shadow(0 1px 1px #000c)}
+/* Hypothek: Streifenmuster, Schrift bleibt gut lesbar */
+.cell.mort::before{content:'';position:absolute;inset:0;z-index:0;background:repeating-linear-gradient(135deg,rgba(0,0,0,.55) 0 6px,rgba(0,0,0,.2) 6px 12px)}
+.cell.mort .flagbg,.cell.mort .bar{filter:grayscale(1)}.cell.mort .nm,.cell.mort .pr{color:#fff;text-shadow:0 1px 3px #000}
+.mb{position:absolute;top:2px;right:2px;z-index:3;font-size:max(8px,1.3cqw);font-weight:800;line-height:1;padding:2px 4px;border-radius:5px;background:#dc2626;color:#fff}
+/* Figuren */
+.ptok{width:max(14px,2.3cqw);height:max(14px,2.3cqw);font-size:max(8px,1.3cqw)}
+.ptok.moving{box-shadow:0 0 0 3px #fff,0 0 20px 8px var(--tc,#fff);z-index:12;animation:movepulse .5s ease-in-out infinite}
+@keyframes movepulse{50%{box-shadow:0 0 0 4px #fff,0 0 30px 12px var(--tc,#fff)}}
+.trail{position:absolute;width:max(14px,2.3cqw);height:max(14px,2.3cqw);border-radius:50%;background:var(--tc,#fff);transform:translate(-50%,-50%);opacity:.55;pointer-events:none;animation:trailfade .7s ease-out forwards;z-index:3}
+@keyframes trailfade{to{opacity:0;transform:translate(-50%,-50%) scale(.3)}}
+/* 3D-Würfel */
+#dice{perspective:900px}
+.dc{--s:max(40px,7.4cqw);width:var(--s);height:var(--s);position:relative;transform-style:preserve-3d;transition:opacity .2s}.dc.empty{opacity:0}
+.dcf{position:absolute;inset:0;border-radius:18%;background:linear-gradient(145deg,#fff,#e9defc 55%,#cdb6f7);box-shadow:inset 0 0 0 2px #ffffffaa,inset -4px -6px 12px #7c3aed40,0 0 14px #c471f055;display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);padding:16%;backface-visibility:hidden}
+.dcf i{border-radius:50%}.dcf i.on{background:radial-gradient(circle at 35% 30%,#5b4a8a,#1a1236 70%);box-shadow:0 1px 1px #fff9}
+/* Erinnerung */
+button.nudge{animation:nudge .8s ease-in-out infinite;box-shadow:0 0 0 3px #fff,0 0 34px 8px #e879f9}
+@keyframes nudge{0%,100%{transform:scale(1) rotate(0)}25%{transform:scale(1.12) rotate(-2deg)}75%{transform:scale(1.12) rotate(2deg)}}
+@media(prefers-reduced-motion:reduce){.ptok.moving,.trail,button.nudge{animation:none!important}}
 </style>
 </head>
 <body>
@@ -360,7 +396,7 @@ select{color-scheme:dark}option{background:#1a1236;color:#f5ecff}
         <div class="row"><input id="chatIn" maxlength="200" placeholder="Nachricht …" autocomplete="off"><button id="chatBtn" class="small" aria-label="Senden">➤</button></div></div>
     </div>
     <div id="colC">
-      <div id="bw"><div id="board"></div><div id="pop" class="hide"></div><div id="tokens"></div><div id="dice"><div class="die"></div><div class="die"></div></div><div id="cx"></div></div>
+      <div id="bw"><div id="board"></div><div id="pop" class="hide"></div><div id="tokens"></div><div id="dice"><div class="dc"></div><div class="dc"></div></div><div id="cx"></div></div>
       <div id="info"></div>
       <div id="qz" class="hide"></div>
     </div>
@@ -954,7 +990,7 @@ function propMark(g, k) {
   return symIcon(f, k, g.map, 16) || el('span', 'dot2');
 }
 const SPEC = { id: '-', name: 'Zuschauer', money: 0, out: true, pos: 0, jail: 0, color: 0, pardon: 0 }; // Platzhalter für Zuschauer
-let prevHouses = null, prevMort = null, prevLogLast = null, prevChatN = null, prevTurnId = null, attnKey = null, prevLobbyIds = null, prevOwners = null, shownMoney = {}, moneyAnim = {}, chips = {}, moneyRaf = 0, overSeen = false, holding = false, holdBase = null, holdMsg = null, holdRollShown = false, flash = {}, sel = null, busy = false, lastKey = '', shown = {}, tokEl = {}, timers = [];
+let nudgeOn = false, idleKey = '', idleSince = 0, idleN = 0, prevHouses = null, prevMort = null, prevLogLast = null, prevChatN = null, prevTurnId = null, attnKey = null, prevLobbyIds = null, prevOwners = null, shownMoney = {}, moneyAnim = {}, chips = {}, moneyRaf = 0, overSeen = false, holding = false, holdBase = null, holdMsg = null, holdRollShown = false, flash = {}, sel = null, busy = false, lastKey = '', shown = {}, tokEl = {}, timers = [];
 
 const grpIds = (g, gi) => g.board.map((x, k) => k).filter((k) => g.board[k].g === gi);
 function buildInfo(g, me, i) {
@@ -964,7 +1000,7 @@ function buildInfo(g, me, i) {
   else if (ids.some((k) => g.mort[k])) why = 'Ein Feld dieses Landes ist beliehen.';
   else if (h >= 5) why = 'Schon voll ausgebaut (Hotel).';
   else if (g.rules.evenBuild && h > Math.min(...hs)) why = 'Baue gleichmäßig: erst auf den anderen Feldern des Landes.';
-  else if (money < BC[gi]) why = 'Nicht genug Geld.';
+  else if (money < buildCost(g, i)) why = 'Nicht genug Geld.';
   return { can: !why, why };
 }
 const canSell = (g, i) => { const h = g.houses[i] || 0; return h > 0 && (!g.rules.evenBuild || h === Math.max(...grpIds(g, g.board[i].g).map((k) => g.houses[k] || 0))); };
@@ -1009,6 +1045,7 @@ const SFX = {
   rent: () => { tone(330, .12, 'sawtooth', .06); tone(220, .25, 'sawtooth', .06, .1); },
   jail: () => tone(200, .5, 'sawtooth', .08, 0, 70),
   bad: () => { tone(300, .2, 'sawtooth', .08); tone(150, .45, 'sawtooth', .08, .18); },
+  remind: () => { tone(880, .09, 'sine', .13); tone(880, .09, 'sine', .13, .15); tone(1320, .2, 'triangle', .11, .32); },
   ding: () => { tone(1318, .6, 'sine', .13); tone(1975, .8, 'sine', .07); tone(2637, .5, 'sine', .04, .02); tone(1568, .3, 'triangle', .05, .06); },
   build: () => { noise(.05, .2, 0, 300); tone(240, .08, 'square', .07, .05); tone(320, .1, 'square', .07, .12); },
   turn: () => { tone(660, .12, 'sine', .1); tone(880, .2, 'sine', .1, .12); },
@@ -1046,16 +1083,55 @@ function resetGame() {
   timers.forEach(clearTimeout); timers = []; busy = false; lastKey = ''; seen = ''; trk = null; pendingOffer = null; offerId = null; shown = {}; tokEl = {}; sel = null; qzPick = null; qzKey = ''; flash = {}; holding = false; holdBase = null; holdMsg = null; prevOwners = null; prevHouses = null; prevMort = null; prevLogLast = null; prevChatN = null; prevTurnId = null; attnKey = null; [shownMoney, moneyAnim, chips].forEach((o) => Object.keys(o).forEach((k) => delete o[k]));
   $('tokens').textContent = ''; $('modal').classList.add('hide');
 }
-function place(t, pos, k) {
-  const [r, c] = cellPos(pos);
-  t.style.left = ((c + .5) * 100 / 11 + ((k % 4) - 1.5) * 1.7) + '%';
-  t.style.top = ((r + .5) * 100 / 11 + (Math.floor(k / 4) - .5) * 2.6) + '%';
+
+// Einfache Silbentrennung für lange Feldnamen (setzt unsichtbare Trennstellen), damit nichts mitten im Wort abgeschnitten wird
+const VOW = 'aeiouäöüyAEIOUÄÖÜY';
+function hyph(name) {
+  return name.split(/(\s|\u00ad)/).map((w) => {
+    if (w.length < 8 || w.includes('-')) return w;
+    let out = '', last = 0;
+    for (let i = 3; i < w.length - 2; i++) {
+      const vcv = VOW.includes(w[i - 1]) && !VOW.includes(w[i]) && VOW.includes(w[i + 1]), vccv = VOW.includes(w[i - 2]) && !VOW.includes(w[i - 1]) && !VOW.includes(w[i]) && VOW.includes(w[i + 1]);
+      if ((vcv || vccv) && i - last >= 3 && w.length - i >= 3) { out += w.slice(last, i) + '\u00ad'; last = i; }
+    }
+    return out + w.slice(last);
+  }).join('');
 }
-function showDie(d, v) { d.textContent = ''; for (let k = 0; k < 9; k++) { const i = el('i'); if ((PIPS[v] || []).includes(k)) i.className = 'on'; d.append(i); } }
-const dieEls = () => document.querySelectorAll('#dice .die');
-function rollDice(v) {
-  const ds = dieEls(); ds.forEach((d) => { d.classList.remove('roll'); void d.offsetWidth; d.classList.add('roll'); });
-  let n = 0; const iv = setInterval(() => { ds.forEach((d) => showDie(d, 1 + Math.floor(Math.random() * 6))); if (++n > 9) { clearInterval(iv); ds.forEach((d, i) => showDie(d, v[i])); } }, 85);
+// Häuser und Hotel als kleine Symbole
+const HOUSE_SVG = '<path d="M2 12 12 3l10 9v9H2z" fill="#22c55e" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><rect x="9.5" y="13" width="5" height="8" fill="#14532d"/>';
+const HOTEL_SVG = '<rect x="3" y="4" width="18" height="17" rx="1.5" fill="#ef4444" stroke="#fff" stroke-width="2"/><path d="M7 9h2M11 9h2M15 9h2M7 13h2M11 13h2M15 13h2" stroke="#fff" stroke-width="2" stroke-linecap="round"/><rect x="10" y="16" width="4" height="5" fill="#7f1d1d"/>';
+function svgFrom(body) { const e = document.importNode(new DOMParser().parseFromString('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">' + body + '</svg>', 'image/svg+xml').documentElement, true); e.setAttribute('aria-hidden', 'true'); return e; }
+function houseStrip(n) { const w = el('div', 'hs' + (n === 5 ? ' hotel' : '')); if (n === 5) w.append(svgFrom(HOTEL_SVG)); else for (let k = 0; k < n; k++) w.append(svgFrom(HOUSE_SVG)); return w; }
+const buildCost = (g, i) => ((g.houses[i] || 0) >= 4 ? g.board[i].p * 5 : BC[g.board[i].g]); // 4 Häuser zum Hausepreis, das Hotel kostet das 5-Fache des Grundstückspreises (Berlin 2000)
+function trailAt(t, color) { const tr = el('div', 'trail'); tr.style.left = t.style.left; tr.style.top = t.style.top; tr.style.setProperty('--tc', color); $('tokens').append(tr); setTimeout(() => tr.remove(), 800); }
+// Brett-Geometrie: Randfelder sind dicker (RING), dadurch ist Platz für Symbol, Preis, Name und eine freie Zone für die Figuren
+const RING = 1.65, TT = 9 + 2 * RING, trackStart = (n) => (n === 0 ? 0 : RING + n - 1), trackSize = (n) => (n === 0 || n === 10 ? RING : 1);
+function cellBox(i) { const [r, c] = cellPos(i); return { x: trackStart(c) / TT * 100, y: trackStart(r) / TT * 100, w: trackSize(c) / TT * 100, h: trackSize(r) / TT * 100 }; }
+function place(t, pos, k) { // Figuren stehen am äußeren Rand des Feldes, so verdecken sie weder Symbol noch Namen
+  const b = cellBox(pos), [r, c] = cellPos(pos), A = 2.4, slot = k % 4, row = Math.floor(k / 4), along = (slot - 1.5) * 2.1, inward = row * 2.4;
+  let x, y;
+  if (pos % 10 === 0) { x = (c === 0 ? 3 : 97) + (c === 0 ? 1 : -1) * slot * 2.3; y = (r === 0 ? 3 : 97) + (r === 0 ? 1 : -1) * row * 2.4; }
+  else if (r === 0) { x = b.x + b.w / 2 + along; y = A + inward; }
+  else if (r === 10) { x = b.x + b.w / 2 + along; y = 100 - A - inward; }
+  else if (c === 0) { x = A + inward; y = b.y + b.h / 2 + along; }
+  else { x = 100 - A - inward; y = b.y + b.h / 2 + along; }
+  t.style.left = x + '%'; t.style.top = y + '%';
+}
+const FACE_T = { 1: 'rotateY(0deg)', 2: 'rotateY(90deg)', 3: 'rotateX(90deg)', 4: 'rotateX(-90deg)', 5: 'rotateY(-90deg)', 6: 'rotateY(180deg)' }; // gegenüberliegende Seiten ergeben 7
+const ORI = { 1: [0, 0], 2: [0, -90], 3: [-90, 0], 4: [90, 0], 5: [0, 90], 6: [0, 180] }; // Drehung, die die Zahl nach vorn bringt
+function buildDie(d) { if (d._b) return; d._b = true; for (let v = 1; v <= 6; v++) { const f = el('div', 'dcf'); f.style.transform = FACE_T[v] + ' translateZ(calc(var(--s) / 2))'; for (let k = 0; k < 9; k++) { const p = el('i'); if (PIPS[v].includes(k)) p.className = 'on'; f.append(p); } d.append(f); } }
+const diceT = (v, ty, dx, dy, rz) => 'translateY(' + ty + 'px) rotateX(-16deg) rotateY(22deg) rotateX(' + (ORI[v][0] + dx) + 'deg) rotateY(' + (ORI[v][1] + dy) + 'deg) rotateZ(' + rz + 'deg)';
+function showDie(d, v) { buildDie(d); d.classList.toggle('empty', !v); d.style.transform = diceT(v || 1, 0, 0, 0, 0); }
+const dieEls = () => document.querySelectorAll('#dice .dc');
+function rollDice(v) { // Würfel wirbeln, springen zweimal und bleiben mit der gewürfelten Zahl vorn liegen
+  dieEls().forEach((d, i) => {
+    buildDie(d); d.classList.remove('empty'); const rest = diceT(v[i], 0, 0, 0, 0), sx = 360 * (2 + (i % 2)) * (i % 2 ? -1 : 1), sy = 360 * (2 + ((i + 1) % 2)), rz = i % 2 ? -180 : 180;
+    d.style.transform = rest;
+    if (!REDUCED && d.animate) d.animate([
+      { transform: diceT(v[i], -110, sx, sy, rz), offset: 0 }, { transform: diceT(v[i], 0, sx * .45, sy * .45, rz * .4), offset: .45 },
+      { transform: diceT(v[i], -34, sx * .12, sy * .12, rz * .1), offset: .62 }, { transform: diceT(v[i], 0, 0, 0, 0), offset: .8 },
+      { transform: diceT(v[i], -8, 0, 0, 0), offset: .9 }, { transform: rest, offset: 1 }], { duration: 950 + i * 70, easing: 'ease-out' });
+  });
 }
 
 /* ===== Zug erst zeigen, dann wirken lassen =====
@@ -1122,12 +1198,12 @@ function planMoves(g, t0) {
       const d = (to - cur + 40) % 40, base = d <= 12 ? 105 : Math.max(42, Math.floor(1500 / d));
       for (let i = 1; i <= d; i++) {
         const rem = d - i, dur = rem === 0 ? 280 : rem === 1 ? 200 : rem === 2 ? 150 : base, pos = (cur + i) % 40;
-        timers.push(setTimeout(() => { t.style.transitionDuration = dur + 'ms'; place(t, pos, k); hop(t, dur); if (q.id === state.you) sfx('tick'); if (rem === 0) landBounce(t); }, tt));
+        timers.push(setTimeout(() => { if (i === 1) t.classList.add('moving'); trailAt(t, COL[q.color]); t.style.transitionDuration = dur + 'ms'; place(t, pos, k); hop(t, dur); if (q.id === state.you) sfx('tick'); if (rem === 0) { landBounce(t); setTimeout(() => t.classList.remove('moving'), 800); } }, tt));
         tt += dur;
       }
       cur = to;
     };
-    const warp = (to) => { timers.push(setTimeout(() => { t.classList.add('warp'); place(t, to, k); markCell(to); setTimeout(() => t.classList.remove('warp'), 950); }, tt)); tt += 1100; cur = to; };
+    const warp = (to) => { timers.push(setTimeout(() => { t.classList.add('warp', 'moving'); place(t, to, k); markCell(to); setTimeout(() => t.classList.remove('warp', 'moving'), 950); }, tt)); tt += 1100; cur = to; };
     const landing = q.id === roller.id && !threeDoubles ? (from + sum) % 40 : null; // Feld, auf dem der Würfelwurf endet
     if (landing !== null && landing !== from) {
       walk(landing);
@@ -1149,7 +1225,7 @@ function syncGame(g) {
   g.players.forEach((q, k) => {
     let t = tokEl[q.id];
     if (!t) { t = tokEl[q.id] = el('div', 'ptok'); $('tokens').append(t); shown[q.id] = q.pos; place(t, q.pos, k); }
-    t.style.background = COL[q.color]; t.textContent = q.name[0].toUpperCase(); t.style.display = q.out ? 'none' : '';
+    t.style.background = COL[q.color]; t.style.setProperty('--tc', COL[q.color]); t.textContent = q.name[0].toUpperCase(); t.style.display = q.out ? 'none' : '';
     if (holding) return; // Bewegung wird gerade von planMoves gesteuert
     if (shown[q.id] !== q.pos) {
       const from = shown[q.id], d = (q.pos - from + 40) % 40; shown[q.id] = q.pos;
@@ -1189,13 +1265,13 @@ function renderGame() {
     d.style.gridArea = (r + 1) + '/' + (c + 1);
     d.onclick = () => { sel = sel === i ? null : i; renderGame(); };
     if (f.g != null) { const fb = el('div', 'flagbg'); fb.style.background = gc(f.g); d.append(fb); const b = el('div', 'bar'); b.style.background = gc(f.g); d.append(b); } // Flagge als Milchglas-Hintergrund + Streifen
-    const ic = el('div', 'ic'), sv = symIcon(f, i, g.map); if (sv) ic.append(sv); else ic.textContent = ICON[f.t] || ''; d.append(ic);
-    if (f.p && !corner) d.append(el('div', 'pr', f.p));
+    const ic = el('div', 'ic'), sv = symIcon(f, i, g.map); if (sv) ic.append(sv); else ic.textContent = ICON[f.t] || '';
+    const r1 = el('div', 'row1'); r1.append(ic); if (f.p && !corner) r1.append(el('div', 'pr', f.p)); d.append(r1);
     if (g.auction && g.auction.pos === i) d.classList.add('auc');
     if (i === 20 && g.rules.vacation) d.append(el('div', 'pot', g.pot + ' €')); // Urlaubs-Topf, dezent in Weiß
-    d.append(el('div', 'nm', f.n));
-    if (g.houses[i]) d.append(el('b', 'hs', g.houses[i] === 5 ? '🏨' : '🏠' + g.houses[i]));
-    if (g.mort[i]) d.style.opacity = '.45';
+    d.append(el('div', 'nm', hyph(f.n)));
+    if (g.houses[i]) d.append(houseStrip(g.houses[i])); // Häuser (bis 4) bzw. Hotel direkt auf dem Länder-Streifen
+    if (g.mort[i]) { d.classList.add('mort'); d.append(el('span', 'mb', 'H')); d.title = f.n + ' (Hypothek)'; }
     if (g.owners[i]) { const col = COL[g.players[idx(g.owners[i])].color], o = el('div', 'own'); o.style.background = col; d.append(o); d.style.background = 'linear-gradient(150deg,' + col + '88,' + col + '1c 78%)'; } // Farbverlauf in der Farbe des Besitzers
     bd.append(d);
   });
@@ -1224,15 +1300,15 @@ function renderGame() {
     if (spp && spp.dc) { const w2 = el('div', 'tag why'), b2 = el('b', 'dcc', ''); b2.dataset.until = spp.dc; w2.append(document.createTextNode(p.name + ' ist getrennt – noch '), b2); low.append(w2); }
     if (g.minus) {
       const mp = g.players.find((x) => x.id === g.minus.id), im = mp.id === me, w = el('div', 'tag why');
-      w.append(document.createTextNode((im ? 'Du bist im Minus (' + mp.money + ' €)' : mp.name + ' ist im Minus') + ' – noch '), el('b', '', ''),
+      w.append(document.createTextNode((im ? 'Du bist im Minus (' + mp.money + ' €' + ((mp.debts || []).length ? ', Schulden: ' + mp.debts.map((d) => (d.to ? nm(d.to) : 'die Bank') + ' ' + d.amt + ' €').join(', ') : '') + ')' : mp.name + ' ist im Minus') + ' – noch '), el('b', '', ''),
         document.createTextNode(im ? '. Nimm Hypotheken auf, verkaufe Häuser oder handle. Läuft die Zeit ab, bist du bankrott.' : '.'));
       w.querySelector('b').id = 'cd'; low.append(w);
     }
     const f = g.board[p.pos];
     if (mine && !busy) {
-      if (g.phase === 'roll') { { const rb = btn('Würfeln', 'roll'); rb.disabled = p.money < 0; const ak = g.turn + ':' + g.rn; if (!rb.disabled && attnKey !== ak) { attnKey = ak; rb.classList.add('attn'); } } if (p.jail) { btn('50 € zahlen', 'jailpay', true).disabled = p.money < 50; if (p.pardon > 0) btn('🃏 Pardon', 'jailcard', true); low.append(el('div', 'tag', 'Im Gefängnis: Pasch würfeln oder freikaufen (dann setzt du eine Runde aus).')); } }
+      if (g.phase === 'roll') { { const rb = btn('Würfeln', 'roll'); rb.disabled = p.money < 0; if (nudgeOn) rb.classList.add('nudge'); const ak = g.turn + ':' + g.rn; if (!rb.disabled && attnKey !== ak) { attnKey = ak; rb.classList.add('attn'); } } if (p.jail) { btn('50 € zahlen', 'jailpay', true).disabled = p.money < 50; if (p.pardon > 0) btn('🃏 Pardon', 'jailcard', true); low.append(el('div', 'tag', 'Im Gefängnis: Pasch würfeln oder freikaufen (dann setzt du eine Runde aus).')); } }
       else if (g.phase === 'buy') { btn('Kaufen für ' + f.p + ' €', 'buy').disabled = p.money < f.p; btn(g.rules.auction ? 'Versteigern' : 'Nicht kaufen', 'skip', true); }
-      else if (g.phase === 'end') btn('Zug beenden', 'end').disabled = p.money < 0;
+      else if (g.phase === 'end') { const eb = btn('Zug beenden', 'end'); eb.disabled = p.money < 0; if (nudgeOn) eb.classList.add('nudge'); }
       if (p.money < 0) { const gb = btn('Aufgeben', 'giveup', true); gb.className = 'danger'; gb.onclick = () => { if (confirm('Wirklich aufgeben?')) out({ type: 'giveup' }); }; }
     }
   }
@@ -1258,12 +1334,12 @@ function renderGame() {
     pop.append(tb);
     if (f.p) {
       const ft = el('div', 'pf'), cell = (a, c) => { const d = el('div'); d.append(el('span', '', a), el('b', '', c)); ft.append(d); };
-      cell('Preis', f.p + ' €'); if (f.t === 'p') { cell('🏠 Haus', BC[f.g] + ' €'); cell('🏨 Hotel', BC[f.g] + ' €'); } else cell('Hypothek', f.p / 2 + ' €');
+      cell('Preis', f.p + ' €'); if (f.t === 'p') { cell('🏠 Haus', BC[f.g] + ' €'); cell('🏨 Hotel', f.p * 5 + ' €'); } else cell('Hypothek', f.p / 2 + ' €');
       pop.append(ft);
       pop.append(el('div', 'tag', (g.owners[i] ? 'Besitzer: ' + nm(g.owners[i]) : 'Noch frei') + (f.t === 'p' && g.owners[i] ? ' · Häuser: ' + h + '/5' : '') + (g.mort[i] ? ' · beliehen' : '')));
       if (g.owners[i] === me) {
         const ac = el('div', 'pact'), ab = (t, a, gh, dis) => { const x = el('button', gh ? 'ghost' : '', t); x.disabled = !!dis; x.onclick = (e) => { e.stopPropagation(); out({ type: a, pos: i }); }; ac.append(x); };
-        if (f.t === 'p') { const bi = buildInfo(g, me, i); ab('Bauen ' + BC[f.g] + ' €', 'build', 0, !act || !bi.can); ab('Verkaufen', 'sell', 1, !act || !canSell(g, i)); if (act && !bi.can) pop.append(el('div', 'tag why', bi.why)); }
+        if (f.t === 'p') { const bi = buildInfo(g, me, i); ab((h >= 4 ? 'Hotel ' : 'Bauen ') + buildCost(g, i) + ' €', 'build', 0, !act || !bi.can); ab('Verkaufen', 'sell', 1, !act || !canSell(g, i)); if (act && !bi.can) pop.append(el('div', 'tag why', bi.why)); }
         ab(g.mort[i] ? 'Auslösen ' + Math.ceil(f.p / 2 * 1.1) + ' €' : 'Hypothek +' + f.p / 2 + ' €', 'mortgage', 1, !(act || (g.phase === 'auction' && !g.mort[i] && !busy)) || (f.t === 'p' && !g.mort[i] && grpIds(g, f.g).some((k) => g.houses[k])));
         if (!act) pop.append(el('div', 'tag', 'Bauen, Verkaufen und Hypotheken gehen nur in deinem Zug.'));
         pop.append(ac);
@@ -1282,7 +1358,7 @@ function renderGame() {
   if (!spec && g.phase !== 'over' && !(g.players.find((x) => x.id === me) || SPEC).out) { const b = el('button', 'small danger', 'Aufgeben'); b.style.marginTop = '8px'; b.onclick = () => { if (confirm('Wirklich aufgeben?')) out({ type: 'giveup' }); }; pl.append(b); }
 
   // Rechts: Handel
-  const tr = $('trCard'); tr.textContent = ''; const hd = el('div', 'hd', 'Handel'); const nb = el('button', 'small', '＋ Erstellen'); nb.onclick = () => openTrade(); if (!spec) hd.append(nb); tr.append(hd);
+  const tr = $('trCard'); tr.textContent = ''; const hd = el('div', 'hd', 'Handel'); const nb = el('button', 'small', '＋ Erstellen'); nb.onclick = () => openTrade(); nb.disabled = !!(g.players.find((x) => x.id === me) || {}).out; if (nb.disabled) nb.title = 'Du bist ausgeschieden'; if (!spec) hd.append(nb); tr.append(hd);
   const desc = (m, ps) => [m ? m + ' €' : '', ...ps.map((k) => g.board[k].n)].filter(Boolean).join(' + ') || 'nichts';
   const mt = g.trades.filter((t) => t.from === me || t.to === me);
   if (!mt.length) tr.append(el('div', 'tag', 'Keine offenen Angebote'));
@@ -1304,7 +1380,7 @@ function renderGame() {
     r.append(dot, el('span', '', f.n + (g.mort[i] ? ' (Hypothek)' : h ? (h === 5 ? ' 🏨' : ' 🏠' + h) : '')));
     if (!spec) { // Knöpfe bleiben sichtbar, sind aber ausgegraut, wenn du nicht dran bist oder gerade gewürfelt wird
       const box = el('span', 'sq'), b = (t, a, dis, why) => { const x = el('button', 'small ghost', t); x.disabled = !!dis; if (why) x.title = why; x.onclick = () => out({ type: a, pos: i }); box.append(x); };
-      if (f.t === 'p') { const bi = buildInfo(g, me, i); b('＋ ' + BC[f.g], 'build', !act || !bi.can, act ? bi.why : 'Nur in deinem Zug'); b('－', 'sell', !act || !canSell(g, i)); }
+      if (f.t === 'p') { const bi = buildInfo(g, me, i); b('＋ ' + buildCost(g, i), 'build', !act || !bi.can, act ? bi.why : 'Nur in deinem Zug'); b('－', 'sell', !act || !canSell(g, i)); }
       b(g.mort[i] ? 'Auslösen' : 'Hypothek', 'mortgage', !(act || (g.phase === 'auction' && !g.mort[i] && !busy)) || (f.t === 'p' && !g.mort[i] && grpIds(g, f.g).some((k) => g.houses[k]))); r.append(box);
     }
     pr.append(r);
@@ -1462,6 +1538,22 @@ function enhanceSelect(sel) {
 }
 document.querySelectorAll('select').forEach(enhanceSelect);
 new MutationObserver((ms) => ms.forEach((m) => m.addedNodes.forEach((n) => { if (n.nodeType === 1) { if (n.tagName === 'SELECT') enhanceSelect(n); else if (n.firstElementChild) n.querySelectorAll('select').forEach(enhanceSelect); } }))).observe(document.body, { childList: true, subtree: true });
+
+/* ===== Erinnerung: 10 Sekunden nichts getan (würfeln oder Zug beenden) -> Ton, Leuchten, Titel blinkt ===== */
+const TITLE0 = document.title;
+setInterval(() => {
+  const g = state && state.game, off = () => { if (nudgeOn) { nudgeOn = false; document.title = TITLE0; if (state && state.game && state.game.kind !== 'quiz') renderGame(); } };
+  if (!g || g.kind === 'quiz' || state.spec) { idleKey = ''; return off(); }
+  const p = g.players[g.turn], me = p && p.id === state.you;
+  const want = me && !busy && !holding && g.phase !== 'over' && !g.auction && p.money >= 0 && (g.phase === 'roll' || g.phase === 'end');
+  const key = want ? g.turn + ':' + g.rn + ':' + g.phase : '';
+  if (key !== idleKey) { idleKey = key; idleSince = Date.now(); idleN = 0; return off(); }
+  if (!want) return;
+  if (Date.now() - idleSince >= 10000 + idleN * 12000) { // nach 10 s, danach alle 12 s erneut
+    idleN++; sfx('remind');
+    if (!nudgeOn) { nudgeOn = true; document.title = '🎲 Du bist dran! – ' + TITLE0; renderGame(); }
+  }
+}, 1000);
 document.addEventListener('click', (e) => { // Klick neben die Feld-Karte schließt sie
   if (sel != null && state && state.game && !e.target.closest('#pop') && !e.target.closest('.cell')) { sel = null; renderGame(); }
 });
