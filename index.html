@@ -338,6 +338,9 @@ button.nudge{animation:nudge .8s ease-in-out infinite;box-shadow:0 0 0 3px #fff,
 @keyframes setfl{0%,38%,76%{box-shadow:inset 0 0 0 3px #fff,0 0 26px 4px #fff}19%,57%,100%{box-shadow:inset 0 0 0 0 #fff0,0 0 0 0 #fff0}}
 @media(prefers-reduced-motion:reduce){.cell.setfl{animation:none}}
 .dcb{position:absolute;inset:2px;background:#bda3f5;backface-visibility:hidden}.dcf{inset:-1px;border-radius:9%}
+/* Eckfelder: Farben wie vorher */
+.cell.corner.t-go{background:linear-gradient(135deg,#14532d,#1a1236)}.cell.corner.t-jail{background:linear-gradient(135deg,#9a3412,#1a1236)}
+.cell.corner.t-free{background:linear-gradient(135deg,#1e3a8a,#1a1236)}.cell.corner.t-gojail{background:linear-gradient(135deg,#991b1b,#1a1236)}
 /* Spalten links und rechts größer */
 @media(min-width:1081px){#game{grid-template-columns:clamp(250px,21vw,420px) minmax(0,1fr) clamp(250px,21vw,420px)}}
 #colL .card,#colR .card{padding:20px;font-size:16px}#colL .hd,#colR .hd{font-size:18px}
