@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-u19NP6StdgHiQIqqR5sFyZWfOT5lFPLSvlk/LQ17urU='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https://hzvnbtksanoonvkblded.supabase.co wss://inkogniflix-minispiel.onrender.com ws://localhost:3000; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-VPdw4+mg0Twy1z8Kh8TQ0nLElJncECLY2+vbLSek5pw='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https://hzvnbtksanoonvkblded.supabase.co wss://inkogniflix-minispiel.onrender.com ws://localhost:3000; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Inkogniflix</title>
 <link rel="icon" href="logo.png">
@@ -274,6 +274,21 @@ button.qans:hover:not(:disabled){transform:translateY(-2px)}.qans .shape{font-si
 .pod b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pod .sc{color:var(--dim);font-size:14px}.pod svg,.pod .avw{margin:0 auto}
 .qrank{display:flex;align-items:center;gap:10px;padding:6px 4px}.qrank .n{width:22px;font-weight:800;color:var(--dim);text-align:center}.qrank .gain{color:#4ade80;font-weight:700;font-size:13px;margin-left:6px}
 @media(prefers-reduced-motion:reduce){.qtext,.qbanner,.qbig,.pod,#qpmodal,#qemodal{animation:none!important}}
+/* Auswahlfelder im Look der Seite */
+select{color-scheme:dark}option{background:#1a1236;color:#f5ecff}
+.dd{position:relative;margin-bottom:12px}.dd.psel{margin:0}
+.ddb{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;text-align:left;font:inherit;font-weight:400;color:var(--text);background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:12px;padding:11px 13px;box-shadow:none;transition:border-color .15s,box-shadow .15s}
+.ddb:hover:not(:disabled){border-color:var(--p1);transform:none}.ddb:focus-visible{outline:2px solid var(--p1);outline-offset:2px}
+.ddb[aria-expanded=true]{border-color:var(--p1);box-shadow:0 0 18px rgba(232,121,249,.25)}
+.ddt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ddc{color:var(--dim);transition:transform .2s;flex:none}.ddb[aria-expanded=true] .ddc{transform:rotate(180deg)}
+.dd.off{opacity:.55}.dd.off .ddb{cursor:not-allowed}
+.ddl{position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:90;max-height:min(300px,50vh);overflow:auto;padding:6px;border-radius:16px;background:#1b1338;border:1px solid var(--line);box-shadow:0 14px 40px rgba(0,0,0,.6),0 0 28px rgba(168,85,247,.28);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);animation:ddin .14s ease-out}
+.dd.up .ddl{top:auto;bottom:calc(100% + 6px)}
+.ddo{padding:9px 12px;border-radius:10px;cursor:pointer;color:var(--text);display:flex;align-items:center;justify-content:space-between;gap:8px}
+.ddo:hover,.ddo.hi{background:rgba(168,85,247,.28)}.ddo.sel{background:linear-gradient(135deg,rgba(168,85,247,.55),rgba(232,121,249,.35));font-weight:600}.ddo.sel::after{content:'✓'}
+.psel .ddb{font-weight:600;font-size:17px;padding:6px 10px}
+@keyframes ddin{from{opacity:0;transform:translateY(-6px) scale(.98)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.ddl{animation:none!important}}
 </style>
 </head>
 <body>
@@ -1412,6 +1427,41 @@ function openTrade(pre) {
   ok.onclick = () => { out({ type: 'trade', to: who.value, gm: L.money(), tm: R.money(), gp: [...L.sel], tp: [...R.sel], replace: pre && pre.replace }); close(); };
   box.append(ok);
 }
+/* ===== Eigene Auswahlfelder, passend zum Look der Seite =====
+   Das echte <select> bleibt unsichtbar im Hintergrund (Werte und change-Ereignisse laufen wie bisher darüber). */
+function enhanceSelect(sel) {
+  if (sel._dd) return; sel._dd = true;
+  const dd = el('div', 'dd ' + sel.className), btn = el('button', 'ddb'), list = el('div', 'ddl hide'), lab = el('span', 'ddt');
+  btn.type = 'button'; btn.setAttribute('aria-haspopup', 'listbox'); btn.setAttribute('aria-expanded', 'false'); btn.append(lab, el('span', 'ddc', '▾'));
+  list.setAttribute('role', 'listbox'); dd.append(btn, list); sel.style.display = 'none'; sel.after(dd);
+  let hi = -1;
+  const mark = () => { [...list.children].forEach((c, i) => c.classList.toggle('hi', i === hi)); const c = list.children[hi]; if (c) c.scrollIntoView({ block: 'nearest' }); };
+  const sync = () => { // Beschriftung, Einträge und Sperre aus dem echten Feld übernehmen
+    const o = sel.options[sel.selectedIndex]; lab.textContent = o ? o.textContent : ''; btn.disabled = sel.disabled; dd.classList.toggle('off', sel.disabled); list.textContent = '';
+    [...sel.options].forEach((op, i) => { const it = el('div', 'ddo' + (i === sel.selectedIndex ? ' sel' : ''), op.textContent); it.setAttribute('role', 'option'); it.onclick = () => choose(i); list.append(it); });
+  };
+  const close = () => { list.classList.add('hide'); btn.setAttribute('aria-expanded', 'false'); };
+  const choose = (i) => { if (i !== sel.selectedIndex) { sel.selectedIndex = i; sel.dispatchEvent(new Event('change', { bubbles: true })); } sync(); close(); btn.focus(); };
+  const open = () => {
+    sync(); hi = sel.selectedIndex; list.classList.remove('hide'); btn.setAttribute('aria-expanded', 'true'); dd.classList.remove('up');
+    const r = list.getBoundingClientRect(); if (r.bottom > innerHeight - 8 && btn.getBoundingClientRect().top > r.height + 16) dd.classList.add('up'); // oben aufklappen, wenn unten kein Platz ist
+    mark();
+  };
+  btn.onclick = () => (list.classList.contains('hide') ? open() : close());
+  btn.onkeydown = (e) => {
+    const isOpen = !list.classList.contains('hide');
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); if (!isOpen) return open(); hi = Math.max(0, Math.min(sel.options.length - 1, hi + (e.key === 'ArrowDown' ? 1 : -1))); mark(); }
+    else if ((e.key === 'Enter' || e.key === ' ') && isOpen && hi >= 0) { e.preventDefault(); choose(hi); }
+    else if (e.key === 'Escape' && isOpen) { e.preventDefault(); close(); }
+  };
+  document.addEventListener('click', (e) => { if (!dd.contains(e.target)) close(); });
+  const v = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value'); // programmatisch gesetzte Werte übernehmen
+  Object.defineProperty(sel, 'value', { get() { return v.get.call(this); }, set(x) { v.set.call(this, x); sync(); }, configurable: true });
+  new MutationObserver(sync).observe(sel, { childList: true, attributes: true, attributeFilter: ['disabled'] });
+  sync();
+}
+document.querySelectorAll('select').forEach(enhanceSelect);
+new MutationObserver((ms) => ms.forEach((m) => m.addedNodes.forEach((n) => { if (n.nodeType === 1) { if (n.tagName === 'SELECT') enhanceSelect(n); else if (n.firstElementChild) n.querySelectorAll('select').forEach(enhanceSelect); } }))).observe(document.body, { childList: true, subtree: true });
 document.addEventListener('click', (e) => { // Klick neben die Feld-Karte schließt sie
   if (sel != null && state && state.game && !e.target.closest('#pop') && !e.target.closest('.cell')) { sel = null; renderGame(); }
 });
