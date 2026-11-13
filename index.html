@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-ja5K9kNWXGc+tW8WGYsZf7nwtNp9eDRXaFIyrV/j0kI='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https://hzvnbtksanoonvkblded.supabase.co wss://inkogniflix-minispiel.onrender.com ws://localhost:3000; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-fh/Ei4dD6YZfzdHEeW3rLkPNJ6u0nhrQYjzLa/WlTmE='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https://hzvnbtksanoonvkblded.supabase.co wss://inkogniflix-minispiel.onrender.com ws://localhost:3000; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Inkogniflix</title>
 <link rel="icon" href="logo.png">
@@ -12,7 +12,7 @@
 *{box-sizing:border-box}
 body{margin:0;min-height:100vh;font-family:Outfit,system-ui,sans-serif;color:var(--text);background:radial-gradient(900px 500px at 70% 100%,#4c1d7a66,transparent),var(--bg)}
 main{max-width:520px;margin:0 auto;padding:28px 18px 60px}
-body.ingame main{max-width:1760px;padding:10px 14px}
+body.ingame main{max-width:2200px;padding:10px 14px}
 body.ingame h1,body.ingame p.sub{display:none}
 h1{font-size:44px;font-weight:800;letter-spacing:1px;margin:8px 0 6px;text-align:center;background:linear-gradient(90deg,#f3dcff,#b36cf5);-webkit-background-clip:text;background-clip:text;color:transparent}
 p.sub{text-align:center;color:var(--dim);margin:0 0 26px;line-height:1.5}
@@ -290,7 +290,7 @@ select{color-scheme:dark}option{background:#1a1236;color:#f5ecff}
 @keyframes ddin{from{opacity:0;transform:translateY(-6px) scale(.98)}to{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){.ddl{animation:none!important}}
 /* ===== Brett: größere, übersichtlichere Felder ===== */
-#board{grid-template:1.8fr repeat(9,1fr) 1.8fr / 1.8fr repeat(9,1fr) 1.8fr}
+#board{grid-template:1.7fr repeat(9,1fr) 1.7fr / 1.7fr repeat(9,1fr) 1.7fr}
 .cell{--ob:4.3cqw;--bt:2.1cqw}
 .cell.top{padding-top:var(--ob)}.cell.bottom{padding-bottom:var(--ob)}.cell.left{padding-left:var(--ob)}.cell.right{padding-right:var(--ob)}
 .cell.prop.top{padding-bottom:var(--bt)}.cell.prop.bottom{padding-top:var(--bt)}.cell.prop.left{padding-right:var(--bt)}.cell.prop.right{padding-left:var(--bt)}
@@ -326,12 +326,12 @@ button.nudge{animation:nudge .8s ease-in-out infinite;box-shadow:0 0 0 3px #fff,
 @keyframes nudge{0%,100%{transform:scale(1) rotate(0)}25%{transform:scale(1.12) rotate(-2deg)}75%{transform:scale(1.12) rotate(2deg)}}
 @media(prefers-reduced-motion:reduce){.ptok.moving,.trail,button.nudge{animation:none!important}}
 /* ===== Feinschliff Brett ===== */
-#bw{border-radius:2.4%}
-.cell.corner.t-go{border-top-left-radius:calc(2.4cqw - max(1px,.16cqw))}.cell.corner.t-jail{border-top-right-radius:calc(2.4cqw - max(1px,.16cqw))}
-.cell.corner.t-free{border-bottom-right-radius:calc(2.4cqw - max(1px,.16cqw))}.cell.corner.t-gojail{border-bottom-left-radius:calc(2.4cqw - max(1px,.16cqw))}
-.cell{background:rgba(255,255,255,.07);border:1px solid rgba(192,132,252,.3)} /* alle Felder gleich sichtbar eingerahmt */
-#cx{inset:15%}.clogo{width:max(44px,11cqw)}
-.cell .pr{background:rgba(0,0,0,.38);border-radius:999px;padding:.12cqw .6cqw;font-size:max(9px,1.55cqw)}.row1{flex-wrap:wrap;row-gap:1px}
+#bw{aspect-ratio:var(--ar,1);width:min(100%,calc((100vh - 92px) * var(--ar,1)));width:min(100%,calc((100dvh - 92px) * var(--ar,1)));border-radius:clamp(10px,1.7vw,24px)}
+.cell.corner.t-go{border-top-left-radius:calc(clamp(10px,1.7vw,24px) - max(1px,.16cqw))}.cell.corner.t-jail{border-top-right-radius:calc(clamp(10px,1.7vw,24px) - max(1px,.16cqw))}
+.cell.corner.t-free{border-bottom-right-radius:calc(clamp(10px,1.7vw,24px) - max(1px,.16cqw))}.cell.corner.t-gojail{border-bottom-left-radius:calc(clamp(10px,1.7vw,24px) - max(1px,.16cqw))}
+.cell{background:#1a123688;border:1px solid rgba(192,132,252,.3)} /* dunkle Grundfarbe wie früher, Rahmen gut sichtbar */
+#cx{inset:14.9% 14.2%}.clogo{width:max(44px,11cqw)}
+.cell .pr{background:rgba(0,0,0,.38);border-radius:999px;padding:.1cqw .45cqw;font-size:max(9px,1.5cqw);white-space:nowrap}.row1{flex-wrap:wrap;row-gap:1px;gap:.3cqw}.cell .ic svg{width:max(13px,2.1cqw);height:max(13px,2.1cqw)}
 .cell.mort::before{background:repeating-linear-gradient(135deg,rgba(0,0,0,.4) 0 6px,rgba(0,0,0,.12) 6px 12px)}
 .cell.mort .flagbg,.cell.mort .bar{filter:none}
 .cell.setfl{animation:setfl 2.1s ease-out;z-index:6}
@@ -1151,16 +1151,29 @@ function houseStrip(n) { const w = el('div', 'hs' + (n === 5 ? ' hotel' : '')); 
 const buildCost = (g, i) => BC[g.board[i].g]; // jede Baustufe (4 Häuser, dann das Hotel) kostet den Hauspreis
 function trailAt(t, color) { const tr = el('div', 'trail'); tr.style.left = t.style.left; tr.style.top = t.style.top; tr.style.setProperty('--tc', color); $('tokens').append(tr); setTimeout(() => tr.remove(), 800); }
 // Brett-Geometrie: Randfelder sind dicker (RING), dadurch ist Platz für Symbol, Preis, Name und eine freie Zone für die Figuren
-const RING = 1.8, TT = 9 + 2 * RING, trackStart = (n) => (n === 0 ? 0 : RING + n - 1), trackSize = (n) => (n === 0 || n === 10 ? RING : 1);
-function cellBox(i) { const [r, c] = cellPos(i); return { x: trackStart(c) / TT * 100, y: trackStart(r) / TT * 100, w: trackSize(c) / TT * 100, h: trackSize(r) / TT * 100 }; }
-function place(t, pos, k) { // Figuren stehen am äußeren Rand des Feldes, so verdecken sie weder Symbol noch Namen
+const RX = 1.7, TX = 9 + 2 * RX;
+let RY = 1.7, TY = 9 + 2 * RY, AR = 1; // Brett ist bei viel Platz bis zu 1,1-mal so breit wie hoch; die Eckfelder bleiben quadratisch
+function fitBoard() { // Seitenverhältnis des Bretts an den verfügbaren Platz anpassen (breiter, wenn die Höhe der Engpass ist)
+  const col = $('colC'), cw = col.clientWidth, ha = Math.max(300, innerHeight - 92);
+  if (!cw) return false;
+  const ar = Math.round(Math.max(1, Math.min(1.1, cw / ha)) * 1000) / 1000; if (ar === AR && $('bw').style.getPropertyValue('--ar')) return false;
+  const k = RX * ar / TX, ry = 9 * k / (1 - 2 * k); AR = ar; RY = ry; TY = 9 + 2 * RY;
+  $('bw').style.setProperty('--ar', ar); $('board').style.gridTemplateRows = ry.toFixed(3) + 'fr repeat(9,1fr) ' + ry.toFixed(3) + 'fr';
+  $('cx').style.inset = (RY / TY * 100 + 1.2).toFixed(2) + '% ' + (RX / TX * 100 + .5).toFixed(2) + '%';
+  if (state && state.game && state.game.kind !== 'quiz') state.game.players.forEach((q, k2) => { const t = tokEl[q.id]; if (t && shown[q.id] != null) place(t, shown[q.id], k2); });
+  return true;
+}
+addEventListener('resize', () => { if (state && state.game && state.game.kind !== 'quiz') fitBoard(); });
+const tStart = (n, R) => (n === 0 ? 0 : R + n - 1), tSize = (n, R) => (n === 0 || n === 10 ? R : 1);
+function cellBox(i) { const [r, c] = cellPos(i); return { x: tStart(c, RX) / TX * 100, y: tStart(r, RY) / TY * 100, w: tSize(c, RX) / TX * 100, h: tSize(r, RY) / TY * 100 }; }
+function place(t, pos, k) { // Figuren stehen am äußeren Rand des Feldes, so verdecken sie weder Symbol noch Namen (x in % der Breite, y in % der Höhe)
   const b = cellBox(pos), [r, c] = cellPos(pos), A = 2.9, slot = k % 4, row = Math.floor(k / 4), along = (slot - 1.5) * 2.4, inward = row * 3;
   let x, y;
-  if (pos % 10 === 0) { x = (c === 0 ? 2.5 : 97.5) + (c === 0 ? 1 : -1) * slot * 2.6; y = (r === 0 ? 2.5 : 97.5) + (r === 0 ? 1 : -1) * row * 3; }
-  else if (r === 0) { x = b.x + b.w / 2 + along; y = A + inward; }
-  else if (r === 10) { x = b.x + b.w / 2 + along; y = 100 - A - inward; }
-  else if (c === 0) { x = A + inward; y = b.y + b.h / 2 + along; }
-  else { x = 100 - A - inward; y = b.y + b.h / 2 + along; }
+  if (pos % 10 === 0) { x = (c === 0 ? 2.5 : 97.5) + (c === 0 ? 1 : -1) * slot * 2.6; y = (r === 0 ? 2.5 * AR : 100 - 2.5 * AR) + (r === 0 ? 1 : -1) * row * 3 * AR; }
+  else if (r === 0) { x = b.x + b.w / 2 + along; y = (A + inward) * AR; }
+  else if (r === 10) { x = b.x + b.w / 2 + along; y = 100 - (A + inward) * AR; }
+  else if (c === 0) { x = A + inward; y = b.y + b.h / 2 + along * AR; }
+  else { x = 100 - A - inward; y = b.y + b.h / 2 + along * AR; }
   t.style.left = x + '%'; t.style.top = y + '%';
 }
 const FACE_T = { 1: 'rotateY(0deg)', 2: 'rotateY(90deg)', 3: 'rotateX(90deg)', 4: 'rotateX(-90deg)', 5: 'rotateY(-90deg)', 6: 'rotateY(180deg)' }; // gegenüberliegende Seiten ergeben 7
@@ -1295,6 +1308,7 @@ function syncGame(g) {
 
 function renderGame() {
   if (state.game.kind === 'quiz') return renderQuiz();
+  fitBoard();
   $('bw').classList.remove('hide'); $('qz').classList.add('hide'); $('logCard').classList.remove('hide');
   const g = state.game, me = state.you, p = g.players[g.turn], mine = p.id === me, host = me === state.hostId, spec = !!state.spec;
   const idx = (id) => g.players.findIndex((x) => x.id === id), nm = (id) => g.players.find((x) => x.id === id).name;
@@ -1317,7 +1331,7 @@ function renderGame() {
     d.onclick = () => { sel = sel === i ? null : i; renderGame(); };
     if (f.g != null) { const fb = el('div', 'flagbg'); fb.style.background = gc(f.g); d.append(fb); const b = el('div', 'bar'); b.style.background = gc(f.g); d.append(b); } // Flagge als Milchglas-Hintergrund + Streifen
     const ic = el('div', 'ic'), sv = symIcon(f, i, g.map); if (sv) ic.append(sv); else ic.textContent = ICON[f.t] || '';
-    const r1 = el('div', 'row1'); r1.append(ic); if (f.p && !corner) r1.append(el('div', 'pr', f.p + ' €')); d.append(r1);
+    const r1 = el('div', 'row1'); r1.append(ic); if (f.p && !corner) r1.append(el('div', 'pr', f.p + '\u202f€')); d.append(r1);
     if (g.auction && g.auction.pos === i) d.classList.add('auc');
     if (i === 20 && g.rules.vacation) d.append(el('div', 'pot', g.pot + ' €')); // Urlaubs-Topf, dezent in Weiß
     d.append(el('div', 'nm', hyph(f.n)));
