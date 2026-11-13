@@ -72,10 +72,10 @@ function rank(g) {
   return [...act, ...[...g.outOrder].reverse().map((id) => g.players.find((p) => p.id === id))];
 }
 function finish(g) { g.phase = 'over'; g.until = 0; g.winner = rank(g)[0].id; g.rn++; }
-// Moderator-Modus: Schwierigkeit wählen darf der Spieler, der dran ist (oder der Host für ihn)
-function pickDiff(g, pid, a, ctx) {
+// Moderator-Modus: Die Schwierigkeit darf NUR der Spieler wählen, der dran ist (auch der Host nicht)
+function pickDiff(g, pid, a) {
   if (!g.auto || g.phase !== 'pick' || !PTS[a.d]) return;
-  if (!(ctx && ctx.host) && pid !== activeOf(g)) return;
+  if (pid !== activeOf(g)) return;
   g.questions[g.qi] = drawQuestion(g, g.topic, a.d); g.diff = a.d; g.pts = PTS[a.d]; g.phase = 'question'; g.rn++;
 }
 // Nur der Host: Hinweise zeigen, für alle freigeben, Gewinner wählen, korrigieren, weiter, beenden
@@ -95,7 +95,7 @@ function hostAct(g, a, ctx) {
   else if (a.type === 'qnext' && g.phase === 'reveal') { if (g.qi + 1 < g.total) nextQuestion(g); else finish(g); }
 }
 function act(g, pid, a, ctx) {
-  if (g.hostMode && a.type === 'qdiff') return pickDiff(g, pid, a, ctx);
+  if (g.hostMode && a.type === 'qdiff') return pickDiff(g, pid, a);
   if (g.hostMode && /^q(pick|hint|next|undo|end|open)$/.test(a.type)) return hostAct(g, a, ctx);
   const p = g.players.find((x) => x.id === pid); if (!p || p.out || g.phase === 'over') return;
   if (a.type === 'giveup') return drop(g, pid);
