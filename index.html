@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Y1RDAlQ88OsCWAXiZFR+lZRaMAebbrHK0clxxPfJPq8='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://*.anilist.co; connect-src https://hzvnbtksanoonvkblded.supabase.co https://graphql.anilist.co wss://inkogniflix-minispiel.onrender.com ws://localhost:3000; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-MHDOi8EYPiQFBok8g8/BjBi+UO6T9gQZne7MP5kHulM='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://*.anilist.co; connect-src https://hzvnbtksanoonvkblded.supabase.co https://graphql.anilist.co wss://inkogniflix-minispiel.onrender.com ws://localhost:3000; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Inkogniflix</title>
 <link rel="icon" href="logo.png">
@@ -465,6 +465,7 @@ button.nudge{animation:nudge .8s ease-in-out infinite;box-shadow:0 0 0 3px #fff,
       <div class="tag" style="text-align:center">Raumcode</div>
       <div class="code" id="code"></div>
       <button id="copyBtn" class="ghost" style="width:100%">Einladungslink kopieren</button>
+      <div id="gameNotice" class="hide" style="margin-top:12px"></div>
     </div>
     <div class="card"><label>Spieler</label><div id="players"></div><label style="margin:14px 0 8px">Deine Farbe</label><div id="colors" class="colors"></div>
       <label class="rule" style="margin:16px 0 0"><span class="rtx"><b>Nur zuschauen</b><small>Du spielst nicht mit, siehst aber alles. Zum Start braucht es trotzdem mindestens 2 Mitspieler.</small></span><input type="checkbox" id="watchCb"><span class="sw"></span></label></div>
@@ -694,9 +695,10 @@ function renderTeams(on, qz, host) {
 }
 function render() {
   show(true);
-  const view = state.game ? 'game' : 'lobby'; if (view !== curView) { curView = view; toTop(); }
-  if (state.game) { $('lobby').classList.add('hide'); $('game').classList.remove('hide'); document.body.classList.add('ingame'); renderGame(); return; }
-  resetGame();
+  if (!state.game) lobbyView = false;
+  const view = state.game && !lobbyView ? 'game' : 'lobby'; if (view !== curView) { curView = view; toTop(); }
+  if (state.game && !lobbyView) { $('lobby').classList.add('hide'); $('game').classList.remove('hide'); document.body.classList.add('ingame'); renderGame(); return; }
+  if (!state.game) resetGame();
   const host = state.you === state.hostId;
   $('code').textContent = state.code;
   $('budget').value = state.settings.budget; $('map').value = state.settings.map;
@@ -719,6 +721,15 @@ function render() {
   const playing = state.players.filter((p) => !p.watch).length, need = state.settings.test && state.admin ? 1 : state.settings.mode === 'quiz' && (state.settings.quiz || {}).team ? ((state.settings.quiz || {}).host ? 3 : 2) : 2; // Zuschauer zählen nicht als Spieler; Teammodus braucht 2 Teams
   $('startBtn').disabled = !(host && playing >= need);
   $('startBtn').textContent = playing >= need ? (state.settings.mode === 'quiz' ? 'Quiz starten' : state.settings.mode === 'anime' ? 'Anime-Schmiede starten' : 'Monopoly starten') : 'Warte auf weitere Mitspieler (mindestens ' + need + ') …';
+  { // Lobby-Ansicht, obwohl das Spiel noch läuft oder gerade beendet wurde
+    const gn = $('gameNotice'), gm = state.game; gn.textContent = ''; gn.classList.toggle('hide', !gm);
+    if (gm) {
+      const over = gm.phase === 'over', t = el('div', 'tag', over ? '🏁 Das Spiel ist beendet.' + (host ? '' : ' Warte, bis der Host zurück zur Lobby geht.') : 'Das Spiel läuft noch. Du bist nicht mehr dabei, kannst aber zuschauen.'); t.style.marginBottom = '8px'; gn.append(t);
+      const row = el('div', 'row'), back = el('button', 'small', '👁 Zurück zum Spiel'); back.onclick = () => { lobbyView = false; render(); }; row.append(back);
+      if (over && host) { const nb = el('button', 'small', '🔄 Neues Spiel (Lobby)'); nb.onclick = () => out({ type: 'lobby' }); row.append(nb); }
+      gn.append(row); $('startBtn').disabled = true; $('startBtn').textContent = over ? 'Erst zurück zur Lobby' : 'Das Spiel läuft noch …';
+    }
+  }
   $('watchCb').checked = !!(state.players.find((p) => p.id === state.you) || {}).watch;
   const box = $('players'); box.textContent = '';
   state.players.forEach((p) => {
@@ -1087,7 +1098,9 @@ function renderQuizHost(z, g, host, spec) {
 }
 
 /* ===== Anime-Schmiede ===== */
-let anSig = '', anSlot = null, anRadarOff = {};
+let anSig = '', anSlot = null, anRadarOff = {}, lobbyView = false; // lobbyView: Spieler schaut in die Lobby, obwohl das Spiel noch (oder nicht mehr) läuft
+const lobbyBtn = (txt) => { const b = el('button', 'small ghost', txt || '🏠 Zur Lobby'); b.style.marginTop = '8px'; b.onclick = () => { lobbyView = true; render(); }; return b; };
+const giveUp = (q) => { if (confirm(q)) { out({ type: 'giveup' }); lobbyView = true; render(); } }; // aufgeben/verlassen → direkt zur Lobby
 const AK = { 'Dragon Ball': ['dragonball'], 'Naruto': ['naruto'], 'One Piece': ['onepiece'], 'Bleach': ['bleach'], 'Attack on Titan': ['attackontitan', 'shingekinokyojin'], 'My Hero Academia': ['myheroacademia', 'bokunoheroacademia'], 'Demon Slayer': ['demonslayer', 'kimetsunoyaiba'], 'Jujutsu Kaisen': ['jujutsukaisen'], 'Death Note': ['deathnote'], 'Fullmetal Alchemist': ['fullmetalalchemist'], 'Hunter x Hunter': ['hunterxhunter'], 'One Punch Man': ['onepunchman'], 'Fairy Tail': ['fairytail'], 'Sword Art Online': ['swordartonline'], 'Tokyo Ghoul': ['tokyoghoul'], 'Black Clover': ['blackclover'], 'Code Geass': ['codegeass'], 'Cowboy Bebop': ['cowboybebop'], 'Mob Psycho 100': ['mobpsycho'], 'Chainsaw Man': ['chainsawman'], 'Spy x Family': ['spyxfamily'], 'Dr. Stone': ['drstone'], 'Solo Leveling': ['sololeveling'], "JoJo's Bizarre Adventure": ['jojo'], 'Berserk': ['berserk'] };
 const normS = (t) => String(t || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 // Bilder: werden von der AniList-Schnittstelle geholt (gebündelt, im Browser zwischengespeichert). Klappt das nicht, bleibt ein farbiger Platzhalter mit Initialen.
@@ -1248,7 +1261,8 @@ function renderAnime() {
     const st = g.show ? g.show.wins[p.id] + ' 🏆' : g.phase === 'pick' || g.phase === 'between' ? (p.placed || g.phase === 'between' ? '✔' : '…') : '';
     r.append(t, el('span', '', p.name + (p.id === me ? ' (du)' : '') + (p.id === state.hostId ? ' 👑' : '')), el('span', 'm', st)); pl.append(r);
   });
-  if (mineAlive(g, me) && g.phase !== 'over') { const b = el('button', 'small danger', 'Spiel verlassen'); b.style.marginTop = '8px'; b.onclick = () => { if (confirm('Wirklich aufgeben?')) out({ type: 'giveup' }); }; pl.append(b); }
+  if (mineAlive(g, me) && g.phase !== 'over') { const b = el('button', 'small danger', 'Spiel verlassen'); b.style.marginTop = '8px'; b.onclick = () => giveUp('Wirklich aufgeben und zur Lobby zurück?'); pl.append(b); }
+  else if (!spec && (g.phase === 'over' ? !host : g.players.some((p) => p.id === me))) pl.append(lobbyBtn());
   const ms = $('msgs'); ms.textContent = '';
   if (!state.chat.length) ms.append(el('div', 'tag', 'Noch keine Nachrichten'));
   state.chat.forEach((m, i) => { const d = el('div', prevChatN !== null && i >= prevChatN ? 'new' : ''); d.append(el('b', '', m.n + ': '), document.createTextNode(m.t)); ms.append(d); }); prevChatN = state.chat.length; ms.scrollTop = ms.scrollHeight;
@@ -1325,7 +1339,8 @@ function renderQuiz() {
     if (g.phase === 'over' && !g.teamMode) payBadge(r, q, g);
     pl.append(r);
   });
-  if (canAnswer && g.phase !== 'over') { const b = el('button', 'small danger', 'Quiz verlassen'); b.style.marginTop = '8px'; b.onclick = () => { if (confirm('Quiz wirklich verlassen?')) out({ type: 'giveup' }); }; pl.append(b); }
+  if (canAnswer && g.phase !== 'over') { const b = el('button', 'small danger', 'Quiz verlassen'); b.style.marginTop = '8px'; b.onclick = () => giveUp('Quiz wirklich verlassen und zur Lobby zurück?'); pl.append(b); }
+  else if (!spec && (g.phase === 'over' ? !host : !!meP && meP.out)) pl.append(lobbyBtn());
   // Chat
   const ms = $('msgs'); ms.textContent = '';
   if (!state.chat.length) ms.append(el('div', 'tag', 'Noch keine Nachrichten'));
@@ -1789,7 +1804,8 @@ function renderGame() {
     r.append(t, el('span', '', q.name + (q.id === me ? ' (du)' : '') + (q.id === state.hostId ? ' 👑' : '') + (q.jail ? ' ⛓' : '') + (q.pardon ? ' 🃏' + q.pardon : '')), moneySpan(q));
     dcRow(r, q, me); tradeBadge(r, q); payBadge(r, q, g); pl.append(r);
   });
-  if (!spec && g.phase !== 'over' && !(g.players.find((x) => x.id === me) || SPEC).out) { const b = el('button', 'small danger', 'Aufgeben'); b.style.marginTop = '8px'; b.onclick = () => { if (confirm('Wirklich aufgeben?')) out({ type: 'giveup' }); }; pl.append(b); }
+  if (!spec && g.phase !== 'over' && !(g.players.find((x) => x.id === me) || SPEC).out) { const b = el('button', 'small danger', 'Aufgeben'); b.style.marginTop = '8px'; b.onclick = () => giveUp('Wirklich aufgeben und zur Lobby zurück?'); pl.append(b); }
+  else if (!spec && ((g.players.find((x) => x.id === me) || SPEC).out || (g.phase === 'over' && !host))) pl.append(lobbyBtn());
 
   // Rechts: Handel
   const tr = $('trCard'); tr.textContent = ''; const hd = el('div', 'hd', 'Handel'); const nb = el('button', 'small', '＋ Erstellen'); nb.onclick = () => openTrade(); nb.disabled = !!(g.players.find((x) => x.id === me) || {}).out; if (nb.disabled) nb.title = 'Du bist ausgeschieden'; if (!spec) hd.append(nb); tr.append(hd);
