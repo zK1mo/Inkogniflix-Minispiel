@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-fh/Ei4dD6YZfzdHEeW3rLkPNJ6u0nhrQYjzLa/WlTmE='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https://hzvnbtksanoonvkblded.supabase.co wss://inkogniflix-minispiel.onrender.com ws://localhost:3000; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-tWDy/YootejnSMibP660MK+e5mzwtUyoZycXT1atfSk='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https://hzvnbtksanoonvkblded.supabase.co wss://inkogniflix-minispiel.onrender.com ws://localhost:3000; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Inkogniflix</title>
 <link rel="icon" href="logo.png">
@@ -331,7 +331,7 @@ button.nudge{animation:nudge .8s ease-in-out infinite;box-shadow:0 0 0 3px #fff,
 .cell.corner.t-free{border-bottom-right-radius:calc(clamp(10px,1.7vw,24px) - max(1px,.16cqw))}.cell.corner.t-gojail{border-bottom-left-radius:calc(clamp(10px,1.7vw,24px) - max(1px,.16cqw))}
 .cell{background:#1a123688;border:1px solid rgba(192,132,252,.3)} /* dunkle Grundfarbe wie früher, Rahmen gut sichtbar */
 #cx{inset:14.9% 14.2%}.clogo{width:max(44px,11cqw)}
-.cell .pr{background:rgba(0,0,0,.38);border-radius:999px;padding:.1cqw .45cqw;font-size:max(9px,1.5cqw);white-space:nowrap}.row1{flex-wrap:wrap;row-gap:1px;gap:.3cqw}.cell .ic svg{width:max(13px,2.1cqw);height:max(13px,2.1cqw)}
+.cell .pr{background:rgba(0,0,0,.38);border-radius:999px;padding:.1cqw .35cqw;font-size:max(9px,1.35cqw);white-space:nowrap}.row1{flex-wrap:nowrap;gap:.3cqw;min-height:max(18px,2.4cqw)}.cell .ic{flex:none}.cell .ic svg{width:max(12px,1.85cqw);height:max(12px,1.85cqw)}
 .cell.mort::before{background:repeating-linear-gradient(135deg,rgba(0,0,0,.4) 0 6px,rgba(0,0,0,.12) 6px 12px)}
 .cell.mort .flagbg,.cell.mort .bar{filter:none}
 .cell.setfl{animation:setfl 2.1s ease-out;z-index:6}
@@ -341,6 +341,12 @@ button.nudge{animation:nudge .8s ease-in-out infinite;box-shadow:0 0 0 3px #fff,
 /* Eckfelder: Farben wie vorher */
 .cell.corner.t-go{background:linear-gradient(135deg,#14532d,#1a1236)}.cell.corner.t-jail{background:linear-gradient(135deg,#9a3412,#1a1236)}
 .cell.corner.t-free{background:linear-gradient(135deg,#1e3a8a,#1a1236)}.cell.corner.t-gojail{background:linear-gradient(135deg,#991b1b,#1a1236)}
+/* Nicht-Land-Felder: gleiche Textposition und Schrift wie die Länder */
+.cell:not(.prop):not(.corner).top{padding-bottom:var(--bt)}.cell:not(.prop):not(.corner).bottom{padding-top:var(--bt)}
+.cell:not(.prop):not(.corner).left{padding-right:var(--bt)}.cell:not(.prop):not(.corner).right{padding-left:var(--bt)}
+.cell .nm{color:#e6dbfa;font-weight:400}
+.cell.left .nm,.cell.right .nm{font-size:1.15cqw;padding:0}
+.cell.top:not(.corner),.cell.bottom:not(.corner){justify-content:flex-start} /* Preis-Zeile steht in allen Feldern oben/unten auf gleicher Höhe */
 /* Spalten links und rechts größer */
 @media(min-width:1081px){#game{grid-template-columns:clamp(250px,21vw,420px) minmax(0,1fr) clamp(250px,21vw,420px)}}
 #colL .card,#colR .card{padding:20px;font-size:16px}#colL .hd,#colR .hd{font-size:18px}
@@ -1126,7 +1132,7 @@ let vt; $('vol').oninput = () => {
 
 function resetGame() {
   $('admCard').classList.add('hide');
-  timers.forEach(clearTimeout); timers = []; busy = false; lastKey = ''; seen = ''; trk = null; pendingOffer = null; offerId = null; shown = {}; tokEl = {}; sel = null; qzPick = null; qzKey = ''; flash = {}; holding = false; holdBase = null; holdMsg = null; prevOwners = null; setFlash = {}; prevHouses = null; prevMort = null; prevLogLast = null; prevChatN = null; prevTurnId = null; attnKey = null; [shownMoney, moneyAnim, chips].forEach((o) => Object.keys(o).forEach((k) => delete o[k]));
+  timers.forEach(clearTimeout); timers = []; busy = false; lastKey = ''; seen = ''; trk = null; pendingOffer = null; offerId = null; shown = {}; tokEl = {}; for (const k in vis) delete vis[k]; sel = null; qzPick = null; qzKey = ''; flash = {}; holding = false; holdBase = null; holdMsg = null; prevOwners = null; setFlash = {}; prevHouses = null; prevMort = null; prevLogLast = null; prevChatN = null; prevTurnId = null; attnKey = null; [shownMoney, moneyAnim, chips].forEach((o) => Object.keys(o).forEach((k) => delete o[k]));
   $('tokens').textContent = ''; $('modal').classList.add('hide');
 }
 
@@ -1160,21 +1166,33 @@ function fitBoard() { // Seitenverhältnis des Bretts an den verfügbaren Platz 
   const k = RX * ar / TX, ry = 9 * k / (1 - 2 * k); AR = ar; RY = ry; TY = 9 + 2 * RY;
   $('bw').style.setProperty('--ar', ar); $('board').style.gridTemplateRows = ry.toFixed(3) + 'fr repeat(9,1fr) ' + ry.toFixed(3) + 'fr';
   $('cx').style.inset = (RY / TY * 100 + 1.2).toFixed(2) + '% ' + (RX / TX * 100 + .5).toFixed(2) + '%';
-  if (state && state.game && state.game.kind !== 'quiz') state.game.players.forEach((q, k2) => { const t = tokEl[q.id]; if (t && shown[q.id] != null) place(t, shown[q.id], k2); });
+  if (state && state.game && state.game.kind !== 'quiz') reflowAll();
   return true;
 }
 addEventListener('resize', () => { if (state && state.game && state.game.kind !== 'quiz') fitBoard(); });
 const tStart = (n, R) => (n === 0 ? 0 : R + n - 1), tSize = (n, R) => (n === 0 || n === 10 ? R : 1);
 function cellBox(i) { const [r, c] = cellPos(i); return { x: tStart(c, RX) / TX * 100, y: tStart(r, RY) / TY * 100, w: tSize(c, RX) / TX * 100, h: tSize(r, RY) / TY * 100 }; }
-function place(t, pos, k) { // Figuren stehen am äußeren Rand des Feldes, so verdecken sie weder Symbol noch Namen (x in % der Breite, y in % der Höhe)
-  const b = cellBox(pos), [r, c] = cellPos(pos), A = 2.9, slot = k % 4, row = Math.floor(k / 4), along = (slot - 1.5) * 2.4, inward = row * 3;
+const vis = {}; // sichtbare Position jeder Figur (nach Spieler-ID)
+function put(t, pos, slot, n) { // eine Figur auf ihren Platz im Feld setzen (x in % der Breite, y in % der Höhe)
+  const b = cellBox(pos), [r, c] = cellPos(pos), A = 2.9, row = 0, sp = n > 1 ? Math.min(2.4, 6.4 / (n - 1)) : 0, along = (slot - (n - 1) / 2) * sp, inward = 0; // immer eine Reihe im Randstreifen; bei vielen Figuren überlappen sie sich leicht
   let x, y;
-  if (pos % 10 === 0) { x = (c === 0 ? 2.5 : 97.5) + (c === 0 ? 1 : -1) * slot * 2.6; y = (r === 0 ? 2.5 * AR : 100 - 2.5 * AR) + (r === 0 ? 1 : -1) * row * 3 * AR; }
+  if (pos % 10 === 0) { x = (c === 0 ? 2.5 : 97.5) + (c === 0 ? 1 : -1) * slot * Math.min(2.6, 9 / Math.max(1, n - 1)); y = r === 0 ? 2.5 * AR : 100 - 2.5 * AR; }
   else if (r === 0) { x = b.x + b.w / 2 + along; y = (A + inward) * AR; }
   else if (r === 10) { x = b.x + b.w / 2 + along; y = 100 - (A + inward) * AR; }
   else if (c === 0) { x = A + inward; y = b.y + b.h / 2 + along * AR; }
   else { x = 100 - A - inward; y = b.y + b.h / 2 + along * AR; }
   t.style.left = x + '%'; t.style.top = y + '%';
+}
+function reflow(pos) { // alle Figuren auf einem Feld gleichmäßig und mittig anordnen
+  const g = state && state.game; if (!g) return;
+  const here = g.players.filter((q) => !q.out && vis[q.id] === pos);
+  here.forEach((q, s) => { const t = tokEl[q.id]; if (t) put(t, pos, s, here.length); });
+}
+const reflowAll = () => new Set(Object.values(vis)).forEach(reflow);
+function place(t, pos, k, pass) { // pass = Figur läuft nur über das Feld (kein Platz für andere nötig)
+  const q = state.game.players[k], old = vis[q.id]; vis[q.id] = pos;
+  if (old !== undefined && old !== pos) reflow(old);
+  if (pass) put(t, pos, 0, 1); else reflow(pos);
 }
 const FACE_T = { 1: 'rotateY(0deg)', 2: 'rotateY(90deg)', 3: 'rotateX(90deg)', 4: 'rotateX(-90deg)', 5: 'rotateY(-90deg)', 6: 'rotateY(180deg)' }; // gegenüberliegende Seiten ergeben 7
 const ORI = { 1: [0, 0], 2: [0, -90], 3: [-90, 0], 4: [90, 0], 5: [0, 90], 6: [0, 180] }; // Drehung, die die Zahl nach vorn bringt
@@ -1258,7 +1276,7 @@ function planMoves(g, t0) {
       const d = (to - cur + 40) % 40, base = d <= 12 ? 105 : Math.max(42, Math.floor(1500 / d));
       for (let i = 1; i <= d; i++) {
         const rem = d - i, dur = rem === 0 ? 280 : rem === 1 ? 200 : rem === 2 ? 150 : base, pos = (cur + i) % 40;
-        timers.push(setTimeout(() => { if (i === 1) t.classList.add('moving'); trailAt(t, COL[q.color]); t.style.transitionDuration = dur + 'ms'; place(t, pos, k); hop(t, dur); if (q.id === state.you) sfx('tick'); if (rem === 0) { landBounce(t); setTimeout(() => t.classList.remove('moving'), 800); } }, tt));
+        timers.push(setTimeout(() => { if (i === 1) t.classList.add('moving'); trailAt(t, COL[q.color]); t.style.transitionDuration = dur + 'ms'; place(t, pos, k, rem > 0); hop(t, dur); if (q.id === state.you) sfx('tick'); if (rem === 0) { landBounce(t); setTimeout(() => t.classList.remove('moving'), 800); } }, tt));
         tt += dur;
       }
       cur = to;
@@ -1296,7 +1314,7 @@ function syncGame(g) {
         timers.push(setTimeout(() => { t.classList.add('warp'); place(t, q.pos, k); mark(q.pos); setTimeout(() => t.classList.remove('warp'), 950); }, t0));
         end = Math.max(end, t0 + 1100);
       } else {
-        path.forEach((pos, s) => timers.push(setTimeout(() => { place(t, pos, k); if (q.id === state.you) sfx('tick'); if (s === path.length - 1 && d > 12) mark(pos); }, t0 + s * step)));
+        path.forEach((pos, s) => timers.push(setTimeout(() => { place(t, pos, k, s < path.length - 1); if (q.id === state.you) sfx('tick'); if (s === path.length - 1 && d > 12) mark(pos); }, t0 + s * step)));
         end = Math.max(end, t0 + path.length * step + 150);
       }
     }
