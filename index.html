@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Y6upuhsjqt9uPlwTIjN3xvA9dqvCkDlFiCKSk9mAhzc='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https://hzvnbtksanoonvkblded.supabase.co wss://inkogniflix-minispiel.onrender.com ws://localhost:3000; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-UqSLjDm4uyK5Z2i435n1Dxs7n0a7t/fO+jih0+dpX/g='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https://hzvnbtksanoonvkblded.supabase.co wss://inkogniflix-minispiel.onrender.com ws://localhost:3000; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Inkogniflix</title>
 <link rel="icon" href="logo.png">
@@ -947,9 +947,9 @@ function renderQuizHost(z, g, host, spec) {
     const t = el('div', 'qtopic'); t.append(el('small', '', 'Thema dieser Runde'), el('div', '', (TOPIC_ICON[g.topic] || '❓') + ' ' + g.topic)); z.append(t);
     z.append(el('div', 'qtext', iAm ? 'Du bist dran: wähle deine Schwierigkeit!' : actName + ' wählt die Schwierigkeit …'));
     const row = el('div', 'qdiffs');
-    ['leicht', 'mittel', 'schwer'].forEach((d) => { const b = el('button', 'qd ' + d); b.append(el('b', '', DIFF_LABEL[d]), el('small', '', g.ptsMap[d] + ' Punkte')); b.disabled = !(iAm || host); b.onclick = () => out({ type: 'qdiff', d }); row.append(b); });
+    ['leicht', 'mittel', 'schwer'].forEach((d) => { const b = el('button', 'qd ' + d); b.append(el('b', '', DIFF_LABEL[d]), el('small', '', g.ptsMap[d] + ' Punkte')); b.disabled = !iAm; b.onclick = () => out({ type: 'qdiff', d }); row.append(b); });
     z.append(row);
-    z.append(el('div', 'tag qcenter', host && !iAm ? 'Du kannst die Schwierigkeit auch für ' + actName + ' wählen.' : !iAm ? 'Die Frage erscheint, sobald ' + actName + ' gewählt hat.' : 'Je schwerer, desto mehr Punkte.'));
+    z.append(el('div', 'tag qcenter', !iAm ? 'Die Frage erscheint, sobald ' + actName + ' die Schwierigkeit gewählt hat.' : 'Je schwerer, desto mehr Punkte.'));
     endBtn(); return;
   }
   z.append(el('div', 'qtext', g.q.q));
