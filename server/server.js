@@ -133,7 +133,7 @@ async function identify(m) {
 function entry(ws, m, id) {
   const cid = String(m.cid || '');
   if (m.type === 'create') {
-    const r = { code: newCode(), hostId: null, players: new Map(), spec: new Map(), banned: new Set(), settings: { budget: 1500, map: 'klassisch', max: 8, test: false, mode: 'monopoly', anime: { rs: 'mix', time: 45 }, quiz: { category: 'gemischt', count: 10, time: 20, host: false, team: false, teamSize: 2, id: null, title: null, max: null }, rules: { doubleRent: true, vacation: true, noRentPrison: true, evenBuild: true, randomOrder: true, auction: false, vacationSkip: false } }, chat: [] };
+    const r = { code: newCode(), hostId: null, players: new Map(), spec: new Map(), banned: new Set(), settings: { budget: 1500, map: 'klassisch', max: 8, test: false, mode: 'monopoly', anime: { rs: 'mix', time: 45, win: 'cats' }, quiz: { category: 'gemischt', count: 10, time: 20, host: false, team: false, teamSize: 2, id: null, title: null, max: null }, rules: { doubleRent: true, vacation: true, noRentPrison: true, evenBuild: true, randomOrder: true, auction: false, vacationSkip: false } }, chat: [] };
     rooms.set(r.code, r);
     return enter(ws, r, m, id);
   }
@@ -174,7 +174,7 @@ async function startGame(room) {
   room.starting = true;
   try {
     let quizSetup = null;
-    const animeSetup = room.settings.mode === 'anime' ? { rs: room.settings.anime.rs, time: room.settings.anime.time } : null;
+    const animeSetup = room.settings.mode === 'anime' ? { rs: room.settings.anime.rs, time: room.settings.anime.time, win: room.settings.anime.win } : null;
     if (room.settings.mode === 'quiz') {
       const cfg = room.settings.quiz; let questions = [], title = 'Allgemeinwissen' + (cfg.category !== 'gemischt' ? ': ' + cfg.category : ''), coins = true;
       if (cfg.id) {
@@ -235,7 +235,7 @@ wss.on('connection', (ws) => {
         const mx = Math.round(Number(m.max)); if (mx >= Math.max(2, room.players.size) && mx <= 8) room.settings.max = mx;
         for (const k of Object.keys(room.settings.rules)) if (m.rules && typeof m.rules[k] === 'boolean') room.settings.rules[k] = m.rules[k];
         if (['monopoly', 'quiz', 'anime'].includes(m.mode)) room.settings.mode = m.mode;
-        if (m.anime && typeof m.anime === 'object') { const an = room.settings.anime; if (A.RS[m.anime.rs]) an.rs = m.anime.rs; const at = Math.round(Number(m.anime.time)); if (at >= 15 && at <= 120) an.time = at; } // Anime-Schmiede
+        if (m.anime && typeof m.anime === 'object') { const an = room.settings.anime; if (A.RS[m.anime.rs]) an.rs = m.anime.rs; const at = Math.round(Number(m.anime.time)); if (at >= 15 && at <= 120) an.time = at; if (m.anime.win === 'cats' || m.anime.win === 'avg') an.win = m.anime.win; } // Anime-Schmiede
         if (typeof m.test === 'boolean') { const h = room.players.get(room.hostId); room.settings.test = !!(m.test && h && h.admin); } // Testmodus nur für Admins
         if (m.quiz && typeof m.quiz === 'object') { // Quiz-Einstellungen
           const qz = m.quiz, cfg = room.settings.quiz;
