@@ -188,7 +188,7 @@ function act0(g, pid, a) {
     p.pardon--; p.jail = 0; g.again = false; g.phase = 'end';
     say(g, `${p.name} nutzt eine Pardon-Karte und setzt diese Runde aus`);
   } else if (a.type === 'roll' && g.phase === 'roll' && p.money >= 0) { // im Minus darf man nicht würfeln
-    g.dice = g.nextDice || [rnd(), rnd()]; g.nextDice = null; g.rn++; // Wurfzähler: nur ein neuer Wurf startet die Würfel-Animation
+    g.dice = g.nextDice || [rnd(), rnd()]; g.nextDice = null; g.rn++; g.mv = null; // g.mv merkt sich den Zug dieses Wurfs (für die Animation) // Wurfzähler: nur ein neuer Wurf startet die Würfel-Animation
     const dbl = g.dice[0] === g.dice[1];
     say(g, `${p.name} würfelt ${g.dice[0]} + ${g.dice[1]}`);
     if (p.jail) {
@@ -199,7 +199,8 @@ function act0(g, pid, a) {
       g.dbl++; g.again = true;
       if (g.dbl >= 3) { toJail(g, p); g.phase = 'end'; return; }
     } else { g.dbl = 0; g.again = false; }
-    move(g, p, (p.pos + g.dice[0] + g.dice[1]) % 40);
+    g.mv = { id: p.id, rn: g.rn, from: p.pos, to: (p.pos + g.dice[0] + g.dice[1]) % 40 }; // Wurfziel, auch wenn eine Karte danach wieder aufs Startfeld zurückschickt
+    move(g, p, g.mv.to);
   } else if ((a.type === 'buy' || a.type === 'skip') && g.phase === 'buy') {
     const f = B[p.pos];
     if (a.type === 'skip' && g.rules.auction) { startAuction(g, p); return; }
